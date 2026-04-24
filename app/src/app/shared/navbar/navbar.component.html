@@ -1,0 +1,36 @@
+<nav class="navbar navbar-expand navbar-dark bg-dark shadow-sm">
+  <div class="container">
+    <a class="navbar-brand fw-bold" routerLink="/recipes">RecipeApp</a>
+
+    <div class="navbar-nav ms-auto align-items-center gap-2">
+      <a
+        class="nav-link"
+        routerLink="/recipes"
+        routerLinkActive="active"
+        *ngIf="isLoggedIn()"
+      >
+        Recipes
+      </a>
+
+      <a
+        class="nav-link"
+        routerLink="/login"
+        routerLinkActive="active"
+        *ngIf="!isLoggedIn()"
+      >
+        Login
+      </a>
+      <a
+        class="btn btn-warning btn-sm fw-semibold"
+        routerLink="/register"
+        *ngIf="!isLoggedIn()"
+      >
+        Register
+      </a>
+
+      <button class="btn btn-outline-light btn-sm" *ngIf="isLoggedIn()" (click)="logout()">
+        Logout
+      </button>
+    </div>
+  </div>
+</nav>

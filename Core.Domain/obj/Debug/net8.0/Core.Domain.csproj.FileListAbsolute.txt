@@ -1,0 +1,11 @@
+/mnt/data2/dotnetAngular/Recepi/Core.Domain/bin/Debug/net8.0/Core.Domain.deps.json
+/mnt/data2/dotnetAngular/Recepi/Core.Domain/bin/Debug/net8.0/Core.Domain.dll
+/mnt/data2/dotnetAngular/Recepi/Core.Domain/bin/Debug/net8.0/Core.Domain.pdb
+/mnt/data2/dotnetAngular/Recepi/Core.Domain/obj/Debug/net8.0/Core.Domain.GeneratedMSBuildEditorConfig.editorconfig
+/mnt/data2/dotnetAngular/Recepi/Core.Domain/obj/Debug/net8.0/Core.Domain.AssemblyInfoInputs.cache
+/mnt/data2/dotnetAngular/Recepi/Core.Domain/obj/Debug/net8.0/Core.Domain.AssemblyInfo.cs
+/mnt/data2/dotnetAngular/Recepi/Core.Domain/obj/Debug/net8.0/Core.Domain.csproj.CoreCompileInputs.cache
+/mnt/data2/dotnetAngular/Recepi/Core.Domain/obj/Debug/net8.0/Core.Domain.dll
+/mnt/data2/dotnetAngular/Recepi/Core.Domain/obj/Debug/net8.0/refint/Core.Domain.dll
+/mnt/data2/dotnetAngular/Recepi/Core.Domain/obj/Debug/net8.0/Core.Domain.pdb
+/mnt/data2/dotnetAngular/Recepi/Core.Domain/obj/Debug/net8.0/ref/Core.Domain.dll

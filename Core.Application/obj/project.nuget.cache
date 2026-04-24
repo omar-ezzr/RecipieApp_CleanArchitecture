@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "dgSpecHash": "vmkQ258ljeuERS16vzi4LLKFyl4bKnFkVgWRVUND/AR/mQPdrm8y+x3lfEnBdMC3zlP7gA90pNhctmoaGofVRg==",
+  "success": true,
+  "projectFilePath": "/mnt/data2/dotnetAngular/Recepi/Core.Application/Core.Application.csproj",
+  "expectedPackageFiles": [
+    "/home/omar-zaroili/.nuget/packages/bcrypt.net-next/4.1.0/bcrypt.net-next.4.1.0.nupkg.sha512",
+    "/home/omar-zaroili/.nuget/packages/fluentvalidation/12.1.1/fluentvalidation.12.1.1.nupkg.sha512"
+  ],
+  "logs": []
+}

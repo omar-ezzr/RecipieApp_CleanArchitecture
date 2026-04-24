@@ -1,0 +1,33 @@
+.stats-pill {
+  display: inline-flex;
+  gap: 0.4rem;
+  align-items: center;
+  width: fit-content;
+  padding: 0.75rem 1rem;
+  background: #ffffff;
+  border-radius: 999px;
+  box-shadow: 0 0.75rem 1.5rem rgba(38, 50, 56, 0.08);
+}
+
+.recipe-card {
+  overflow: hidden;
+  border: 0;
+  border-radius: 0.75rem;
+  box-shadow: 0 0.75rem 1.75rem rgba(38, 50, 56, 0.08);
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.recipe-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 1rem 2.25rem rgba(38, 50, 56, 0.12);
+}
+
+.recipe-card img {
+  width: 100%;
+  height: 190px;
+  object-fit: cover;
+}
+
+.empty-state {
+  color: #455a64;
+}

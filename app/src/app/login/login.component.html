@@ -1,0 +1,40 @@
+<section class="auth-shell">
+  <div class="card soft-card">
+    <div class="card-body p-4 p-md-5">
+      <div class="mb-4">
+        <p class="text-uppercase text-warning fw-bold small mb-2">Welcome back</p>
+        <h1 class="h3 mb-1">Login</h1>
+        <p class="text-secondary mb-0">Sign in to manage your recipes.</p>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label" for="loginEmail">Email</label>
+        <input
+          id="loginEmail"
+          type="email"
+          class="form-control form-control-lg"
+          placeholder="you@example.com"
+          [(ngModel)]="email"
+          required
+        />
+      </div>
+
+      <div class="mb-4">
+        <label class="form-label" for="loginPassword">Password</label>
+        <input
+          id="loginPassword"
+          type="password"
+          class="form-control form-control-lg"
+          placeholder="Your password"
+          [(ngModel)]="password"
+          required
+        />
+      </div>
+
+      <button class="btn btn-warning btn-lg w-100 fw-semibold" (click)="login()">Login</button>
+
+      <div *ngIf="success" class="alert alert-success mt-4 mb-0">Login successful</div>
+      <div *ngIf="error" class="alert alert-danger mt-4 mb-0">{{ error }}</div>
+    </div>
+  </div>
+</section>

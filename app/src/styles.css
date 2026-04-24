@@ -1,0 +1,33 @@
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(255, 193, 7, 0.16), transparent 30rem),
+    linear-gradient(135deg, #fff8ec 0%, #f7fafc 45%, #eef5f1 100%);
+  color: #263238;
+}
+
+.app-main {
+  padding: 2rem 0 3rem;
+}
+
+.page-shell {
+  width: min(1120px, calc(100% - 2rem));
+  margin: 0 auto;
+}
+
+.auth-shell {
+  width: min(460px, calc(100% - 2rem));
+  margin: 3rem auto 0;
+}
+
+.soft-card {
+  border: 0;
+  border-radius: 0.75rem;
+  box-shadow: 0 1rem 2.5rem rgba(38, 50, 56, 0.09);
+}
+
+.form-control,
+.form-select,
+.btn {
+  border-radius: 0.55rem;
+}

@@ -1,0 +1,38 @@
+<section class="auth-shell">
+  <div class="card soft-card">
+    <div class="card-body p-4 p-md-5">
+      <div class="mb-4">
+        <p class="text-uppercase text-warning fw-bold small mb-2">Join the kitchen</p>
+        <h1 class="h3 mb-1">Create account</h1>
+        <p class="text-secondary mb-0">Save and manage your favorite recipes.</p>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label" for="registerEmail">Email</label>
+        <input
+          id="registerEmail"
+          class="form-control form-control-lg"
+          type="email"
+          [(ngModel)]="email"
+          placeholder="you@example.com"
+        />
+      </div>
+
+      <div class="mb-4">
+        <label class="form-label" for="registerPassword">Password</label>
+        <input
+          id="registerPassword"
+          class="form-control form-control-lg"
+          [(ngModel)]="password"
+          type="password"
+          placeholder="Choose a password"
+        />
+      </div>
+
+      <button class="btn btn-warning btn-lg w-100 fw-semibold" (click)="register()">Register</button>
+
+      <div *ngIf="message" class="alert alert-success mt-4 mb-0">{{ message }}</div>
+      <div *ngIf="error" class="alert alert-danger mt-4 mb-0">{{ error }}</div>
+    </div>
+  </div>
+</section>

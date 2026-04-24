@@ -1,0 +1,134 @@
+<section class="page-shell">
+  <div class="d-flex flex-column flex-lg-row justify-content-between gap-3 mb-4">
+    <div>
+      <p class="text-uppercase text-warning fw-bold small mb-2">Recipe collection</p>
+      <h1 class="display-6 fw-bold mb-2">Find something worth cooking</h1>
+      <p class="text-secondary mb-0">Browse, filter, and keep your recipes tidy.</p>
+    </div>
+    <div class="stats-pill align-self-lg-end">
+      <span class="fw-bold">{{ filteredRecipes.length }}</span>
+      <span class="text-secondary">recipes</span>
+    </div>
+  </div>
+
+  <div class="card soft-card mb-4" *ngIf="auth.isAdmin() || editingId">
+    <div class="card-body p-4">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="h4 mb-0">{{ editingId ? 'Edit Recipe' : 'Create Recipe' }}</h2>
+        <span class="badge text-bg-dark">{{ editingId ? 'Editing' : 'Admin' }}</span>
+      </div>
+
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label" for="recipeTitle">Title</label>
+          <input id="recipeTitle" class="form-control" [(ngModel)]="newRecipe.title" placeholder="Recipe title" />
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="recipeImage">Image URL</label>
+          <input id="recipeImage" class="form-control" [(ngModel)]="newRecipe.imageUrl" placeholder="https://..." />
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="recipeCategory">Category</label>
+          <select id="recipeCategory" class="form-select" [(ngModel)]="newRecipe.categoryId">
+            <option value="">Select Category</option>
+            <option *ngFor="let c of categories" [value]="c.id">
+              {{ c.name }}
+            </option>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="recipeTime">Preparation time</label>
+          <div class="input-group">
+            <input
+              id="recipeTime"
+              class="form-control"
+              type="number"
+              min="0"
+              [(ngModel)]="newRecipe.preparationTimeMinutes"
+              placeholder="30"
+            />
+            <span class="input-group-text">min</span>
+          </div>
+        </div>
+        <div class="col-12">
+          <label class="form-label" for="recipeDescription">Description</label>
+          <textarea
+            id="recipeDescription"
+            class="form-control"
+            rows="3"
+            [(ngModel)]="newRecipe.description"
+            placeholder="Short recipe description"
+          ></textarea>
+        </div>
+      </div>
+
+      <div class="d-flex flex-wrap gap-2 mt-4">
+        <button class="btn btn-warning fw-semibold" *ngIf="auth.isAdmin() && !editingId" (click)="createRecipe()">
+          Create
+        </button>
+        <button class="btn btn-warning fw-semibold" *ngIf="editingId" (click)="updateRecipe()">Update</button>
+        <button class="btn btn-outline-secondary" *ngIf="editingId" (click)="resetForm()">Cancel</button>
+      </div>
+
+      <div *ngIf="success" class="alert alert-success mt-4 mb-0">{{ success }}</div>
+      <div *ngIf="error" class="alert alert-danger mt-4 mb-0">{{ error }}</div>
+    </div>
+  </div>
+
+  <div class="card soft-card mb-4">
+    <div class="card-body p-3 p-md-4">
+      <div class="row g-3 align-items-center">
+        <div class="col-md-8">
+          <label class="form-label" for="recipeSearch">Search</label>
+          <input
+            id="recipeSearch"
+            class="form-control"
+            [(ngModel)]="searchTerm"
+            (input)="applyFilters()"
+            placeholder="Search recipes..."
+          />
+        </div>
+        <div class="col-md-4">
+          <label class="form-label" for="categoryFilter">Category</label>
+          <select id="categoryFilter" class="form-select" [(ngModel)]="selectedCategory" (change)="applyFilters()">
+            <option value="">All Categories</option>
+            <option *ngFor="let c of categories" [value]="c.id">
+              {{ c.name }}
+            </option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-sm-6 col-lg-4" *ngFor="let recipe of filteredRecipes">
+      <article class="card recipe-card h-100">
+        <img
+          class="card-img-top"
+          [src]="recipe.imageUrl || 'https://via.placeholder.com/600x400?text=Recipe'"
+          alt="recipe"
+        />
+
+        <div class="card-body d-flex flex-column">
+          <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+            <h3 class="h5 card-title mb-0">{{ recipe.title }}</h3>
+            <span class="badge rounded-pill text-bg-light text-nowrap">{{ recipe.preparationTimeMinutes }} min</span>
+          </div>
+
+          <p class="card-text text-secondary flex-grow-1">{{ recipe.description || 'No description yet.' }}</p>
+
+          <div class="d-flex gap-2 mt-3" *ngIf="auth.isAdmin()">
+            <button class="btn btn-outline-dark btn-sm" (click)="startEdit(recipe)">Edit</button>
+            <button class="btn btn-outline-danger btn-sm" (click)="deleteRecipe(recipe.id)">Delete</button>
+          </div>
+        </div>
+      </article>
+    </div>
+  </div>
+
+  <div class="empty-state text-center py-5" *ngIf="filteredRecipes.length === 0">
+    <h2 class="h4">No recipes found</h2>
+    <p class="text-secondary mb-0">Try a different search or category.</p>
+  </div>
+</section>
