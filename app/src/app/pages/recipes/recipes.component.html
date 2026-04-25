@@ -90,12 +90,12 @@
         </div>
         <div class="col-md-4">
           <label class="form-label" for="categoryFilter">Category</label>
-          <select id="categoryFilter" class="form-select" [(ngModel)]="selectedCategory" (change)="applyFilters()">
-            <option value="">All Categories</option>
-           <option *ngFor="let c of categories" [value]="c.name">
-  {{ c.name }}
-</option>
-          </select>
+         <select [(ngModel)]="selectedCategory" class="form-select" (change)="applyFilters()">
+  <option value="">All Categories</option>
+  <option *ngFor="let c of categories" [value]="c.id">
+    {{ c.name }}
+  </option>
+</select>
         </div>
         <div class="col-md-3">
           <label class="form-label" for="difficultyFilter">Difficulty</label>
@@ -144,4 +144,21 @@
     <h2 class="h4">No recipes found</h2>
     <p class="text-secondary mb-0">Try a different search or category.</p>
   </div>
+  <div class="d-flex justify-content-center align-items-center gap-2 mt-4">
+
+  <button class="btn btn-outline-dark"
+          [disabled]="currentPage === 1"
+          (click)="goToPage(currentPage - 1)">
+    Prev
+  </button>
+
+  <span>Page {{ currentPage }} / {{ totalPages }}</span>
+
+  <button class="btn btn-outline-dark"
+          [disabled]="currentPage === totalPages"
+          (click)="goToPage(currentPage + 1)">
+    Next
+  </button>
+
+</div>
 </section>

@@ -19,25 +19,33 @@ import { AuthService } from '../../services/auth.service';
 export class RecipesComponent implements OnInit {
 
   // ========================
-  // 🧠 DATA
+  //  DATA
   // ========================
   recipes: Recipe[] = [];
   filteredRecipes: Recipe[] = [];
   categories: Category[] = [];
 
   // ========================
-  // 🔍 FILTER STATE
+  //  FILTER STATE
   // ========================
   searchTerm: string = '';
   selectedCategory: string = '';
   selectedDifficulty: string = '';
 
   // ========================
-  // ✏️ FORM STATE
+  //  FORM STATE
   // ========================
   editingId: string | null = null;
   success = '';
   error = '';
+  // ========================
+  // pagination
+  // ========================
+
+  currentPage: number = 1;
+pageSize: number = 12;
+totalItems: number = 0;
+totalPages: number = 0;
 
   newRecipe: CreateRecipe = {
     title: '',
@@ -54,22 +62,33 @@ export class RecipesComponent implements OnInit {
   ) {}
 
   // ========================
-  // 🚀 INIT
+  // INIT
   // ========================
   ngOnInit() {
     this.loadRecipes();
     this.loadCategories();
   }
 
-  loadRecipes() {
-    this.recipeService.getAll().subscribe({
-      next: (data) => {
-        this.recipes = data;
-        this.filteredRecipes = data;
-      },
-      error: () => this.error = 'Failed to load recipes'
-    });
-  }
+loadRecipes() {
+  const params = {
+    page: this.currentPage,
+    pageSize: this.pageSize,
+    search: this.searchTerm,
+    difficulty: this.selectedDifficulty,
+    categoryId: this.selectedCategory // careful: must be ID if backend expects it
+  };
+
+  this.recipeService.getPaged(params).subscribe({
+    next: (res) => {
+      this.recipes = res.items;
+      this.filteredRecipes = res.items;
+
+      this.totalItems = res.total;
+      this.totalPages = Math.ceil(this.totalItems / this.pageSize);
+    },
+    error: () => this.error = 'Failed to load recipes'
+  });
+}
 
   loadCategories() {
     this.categoryService.getAll().subscribe({
@@ -79,28 +98,20 @@ export class RecipesComponent implements OnInit {
   }
 
   // ========================
-  // 🔍 FILTER LOGIC (FIXED)
+  //  FILTER LOGIC (FIXED)
   // ========================
-  applyFilters() {
-    this.filteredRecipes = this.recipes.filter(r => {
-      const matchesSearch =
-        !this.searchTerm ||
-        r.title.toLowerCase().includes(this.searchTerm.toLowerCase());
+applyFilters() {
+  this.currentPage = 1;
+  this.loadRecipes();
+}
+goToPage(page: number) {
+  if (page < 1 || page > this.totalPages) return;
 
-      const matchesCategory =
-        !this.selectedCategory ||
-        r.category === this.selectedCategory;
-
-      const matchesDifficulty =
-        !this.selectedDifficulty ||
-        r.difficulty === this.selectedDifficulty;
-
-      return matchesSearch && matchesCategory && matchesDifficulty;
-    });
-  }
-
+  this.currentPage = page;
+  this.loadRecipes();
+}
   // ========================
-  // ➕ CREATE
+  // CREATE
   // ========================
   createRecipe() {
     if (!this.newRecipe.title || !this.newRecipe.categoryId) {
@@ -123,7 +134,7 @@ export class RecipesComponent implements OnInit {
   }
 
   // ========================
-  // ✏️ EDIT
+  // EDIT
   // ========================
   startEdit(recipe: Recipe) {
     this.editingId = recipe.id;
@@ -153,7 +164,7 @@ export class RecipesComponent implements OnInit {
   }
 
   // ========================
-  // ❌ DELETE
+  //  DELETE
   // ========================
   deleteRecipe(id: string) {
     if (!confirm('Delete this recipe?')) return;
@@ -168,7 +179,7 @@ export class RecipesComponent implements OnInit {
   }
 
   // ========================
-  // 🔄 RESET
+  // RESET
   // ========================
   resetForm() {
     this.newRecipe = {

@@ -66,5 +66,9 @@ export class RecipeService {
     delete(id: string) {
     return this.http.delete(`http://localhost:5130/api/recipes/${id}`);
     }
-    
+    getPaged(params: any) {
+  return this.http.get<any>('http://localhost:5130/api/Recipes/paged', {
+    params
+  });
+}
 }
