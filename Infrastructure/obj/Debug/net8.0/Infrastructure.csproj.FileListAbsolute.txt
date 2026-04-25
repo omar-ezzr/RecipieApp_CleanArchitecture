@@ -17,3 +17,4 @@
 /mnt/data2/dotnetAngular/Recepi/Infrastructure/obj/Debug/net8.0/Infrastructure.pdb
 /mnt/data2/dotnetAngular/Recepi/Infrastructure/obj/Debug/net8.0/Infrastructure.genruntimeconfig.cache
 /mnt/data2/dotnetAngular/Recepi/Infrastructure/obj/Debug/net8.0/ref/Infrastructure.dll
+/mnt/data2/dotnetAngular/Recepi/Infrastructure/obj/Debug/net8.0/Infrastructure.sourcelink.json

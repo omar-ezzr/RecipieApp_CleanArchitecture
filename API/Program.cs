@@ -12,6 +12,7 @@ using FluentValidation;
 using FluentValidation.AspNetCore;
 using Core.Application.Validators;
 using Infrastructure.Services;
+using Infrastructure.Seed;
 
 
 
@@ -96,7 +97,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-
+Console.WriteLine(builder.Configuration.GetConnectionString("DefaultConnection"));
 app.UseHttpsRedirection();
 app.UseCors("AllowAngular");
 
@@ -109,7 +110,6 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.Migrate();
-    await DataSeeder.SeedAsync(db);
-}
+await DbSeeder.SeedAsync(db);}
 
 app.Run();

@@ -1,8 +1,10 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+
 import { CreateRecipe, Recipe } from '../../models/recipe.model';
 import { Category } from '../../models/category.model';
+
 import { RecipeService } from '../../services/recipe.service';
 import { CategoryService } from '../../services/category.service';
 import { AuthService } from '../../services/auth.service';
@@ -16,33 +18,57 @@ import { AuthService } from '../../services/auth.service';
 })
 export class RecipesComponent implements OnInit {
 
-    recipes: Recipe[] = [];
-    categories: Category[] = [];
-    editingId: string | null = null;
-    success = '';
-    error = '';
-    searchTerm: string = '';
-    selectedCategory: string = '';
-    filteredRecipes: Recipe[] = [];
-    newRecipe: CreateRecipe = {
+  // ========================
+  // 🧠 DATA
+  // ========================
+  recipes: Recipe[] = [];
+  filteredRecipes: Recipe[] = [];
+  categories: Category[] = [];
+
+  // ========================
+  // 🔍 FILTER STATE
+  // ========================
+  searchTerm: string = '';
+  selectedCategory: string = '';
+  selectedDifficulty: string = '';
+
+  // ========================
+  // ✏️ FORM STATE
+  // ========================
+  editingId: string | null = null;
+  success = '';
+  error = '';
+
+  newRecipe: CreateRecipe = {
     title: '',
     description: '',
     preparationTimeMinutes: 0,
     categoryId: '',
-    imageUrl: '' 
-    
+    imageUrl: ''
   };
 
-constructor(
-  private recipeService: RecipeService,
-  private categoryService: CategoryService,
-  public auth: AuthService 
-  
-) {}
+  constructor(
+    private recipeService: RecipeService,
+    private categoryService: CategoryService,
+    public auth: AuthService
+  ) {}
 
-  ngOnInit(): void {
+  // ========================
+  // 🚀 INIT
+  // ========================
+  ngOnInit() {
     this.loadRecipes();
     this.loadCategories();
+  }
+
+  loadRecipes() {
+    this.recipeService.getAll().subscribe({
+      next: (data) => {
+        this.recipes = data;
+        this.filteredRecipes = data;
+      },
+      error: () => this.error = 'Failed to load recipes'
+    });
   }
 
   loadCategories() {
@@ -52,27 +78,30 @@ constructor(
     });
   }
 
-loadRecipes() {
-  this.recipeService.getAll().subscribe({
-    next: (data) => {
-      this.recipes = data;
-      this.applyFilters(); // 🔥 important
-    },
-    error: () => this.error = 'Failed to load recipes'
-  });
-}
-applyFilters() {
-  this.filteredRecipes = this.recipes.filter(r => {
+  // ========================
+  // 🔍 FILTER LOGIC (FIXED)
+  // ========================
+  applyFilters() {
+    this.filteredRecipes = this.recipes.filter(r => {
+      const matchesSearch =
+        !this.searchTerm ||
+        r.title.toLowerCase().includes(this.searchTerm.toLowerCase());
 
-    const matchesSearch =
-      r.title.toLowerCase().includes(this.searchTerm.toLowerCase());
+      const matchesCategory =
+        !this.selectedCategory ||
+        r.category === this.selectedCategory;
 
-    const matchesCategory =
-      this.selectedCategory === '' || r.categoryId === this.selectedCategory;
+      const matchesDifficulty =
+        !this.selectedDifficulty ||
+        r.difficulty === this.selectedDifficulty;
 
-    return matchesSearch && matchesCategory;
-  });
-}
+      return matchesSearch && matchesCategory && matchesDifficulty;
+    });
+  }
+
+  // ========================
+  // ➕ CREATE
+  // ========================
   createRecipe() {
     if (!this.newRecipe.title || !this.newRecipe.categoryId) {
       this.error = 'Title and category are required';
@@ -93,8 +122,10 @@ applyFilters() {
     });
   }
 
-  startEdit(recipe: Recipe) { 
-    
+  // ========================
+  // ✏️ EDIT
+  // ========================
+  startEdit(recipe: Recipe) {
     this.editingId = recipe.id;
 
     this.newRecipe = {
@@ -102,8 +133,7 @@ applyFilters() {
       description: recipe.description,
       preparationTimeMinutes: recipe.preparationTimeMinutes,
       categoryId: recipe.categoryId,
-      imageUrl: recipe.imageUrl || '' 
-      
+      imageUrl: recipe.imageUrl || ''
     };
   }
 
@@ -122,6 +152,9 @@ applyFilters() {
     });
   }
 
+  // ========================
+  // ❌ DELETE
+  // ========================
   deleteRecipe(id: string) {
     if (!confirm('Delete this recipe?')) return;
 
@@ -134,13 +167,16 @@ applyFilters() {
     });
   }
 
+  // ========================
+  // 🔄 RESET
+  // ========================
   resetForm() {
     this.newRecipe = {
       title: '',
       description: '',
       preparationTimeMinutes: 0,
       categoryId: '',
-      imageUrl: '' // ✅ reset properly
+      imageUrl: ''
     };
     this.editingId = null;
   }

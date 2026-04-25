@@ -146,3 +146,4 @@
 /mnt/data2/dotnetAngular/Recepi/API/obj/Debug/net8.0/API.pdb
 /mnt/data2/dotnetAngular/Recepi/API/obj/Debug/net8.0/API.genruntimeconfig.cache
 /mnt/data2/dotnetAngular/Recepi/API/obj/Debug/net8.0/ref/API.dll
+/mnt/data2/dotnetAngular/Recepi/API/obj/Debug/net8.0/API.sourcelink.json

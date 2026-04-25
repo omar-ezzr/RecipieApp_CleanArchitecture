@@ -12,7 +12,7 @@ namespace Core.Application.DTO
 
     public string? Search { get; set; }
     public string? Difficulty { get; set; }
-    public int? CategoryId { get; set; }
+    public Guid? CategoryId { get; set; }
 
     public string? SortBy { get; set; } = "CreatedAt";
     }

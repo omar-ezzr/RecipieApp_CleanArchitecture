@@ -18,3 +18,4 @@
 /mnt/data2/dotnetAngular/Recepi/Core.Application/obj/Debug/net8.0/refint/Core.Application.dll
 /mnt/data2/dotnetAngular/Recepi/Core.Application/obj/Debug/net8.0/Core.Application.pdb
 /mnt/data2/dotnetAngular/Recepi/Core.Application/obj/Debug/net8.0/ref/Core.Application.dll
+/mnt/data2/dotnetAngular/Recepi/Core.Application/obj/Debug/net8.0/Core.Application.sourcelink.json

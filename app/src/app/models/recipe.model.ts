@@ -1,9 +1,11 @@
 export interface Recipe {
   id: string;
   title: string;
-  description: string; // ✅ keep it
+  description: string;
   preparationTimeMinutes: number;
   categoryId: string;
+  category: string;
+  difficulty?: string;
   imageUrl?: string;
 }
 
@@ -12,5 +14,6 @@ export interface CreateRecipe {
   description: string;
   preparationTimeMinutes: number;
   categoryId: string;
+  difficulty?: string;
   imageUrl?: string;
 }

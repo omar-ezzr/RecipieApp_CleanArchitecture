@@ -8,7 +8,7 @@ namespace Core.Domain.Entities
 {
     public class RecipieStep : BaseEntity
     {
-        public int StepNumber { get; set; }
+public int StepNumber { get; set; }
     public string Instruction { get; set; } = default!;
 
     public Guid RecipeId { get; set; }

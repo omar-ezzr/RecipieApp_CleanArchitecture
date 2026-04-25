@@ -1,4 +1,5 @@
 using Core.Application.DTO.Recipe;
+using Core.Application.DTO;
 using Core.Application.Interfaces.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
@@ -24,6 +25,21 @@ public class RecipesController : ControllerBase
     {
         var recipes = await _service.GetAllAsync();
         return Ok(recipes);
+    }
+
+    [Authorize]
+    [HttpGet("paged")]
+    public async Task<IActionResult> GetPaged([FromQuery] RecipeQueryParams parameters)
+    {
+        var (recipes, total) = await _service.GetPagedAsync(parameters);
+
+        return Ok(new
+        {
+            Items = recipes,
+            Total = total,
+            parameters.Page,
+            parameters.PageSize
+        });
     }
 
     // GET: api/recipes/{id}

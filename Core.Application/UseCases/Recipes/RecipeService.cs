@@ -25,6 +25,7 @@ namespace Core.Application.UseCases.Recipes
         Title = r.Title,
         Description = r.Description,
         PreparationTimeMinutes = r.PreparationTimeMinutes,
+        CategoryId = r.CategoryId,
         ImageUrl = r.ImageUrl,
         Difficulty = r.Difficulty.ToString(),
         Category = r.Category != null ? r.Category.Name : "Unknown",

@@ -55,7 +55,7 @@ public class RecipeRepository : IRecipeRepository
 {
     var page = parameters.Page < 1 ? 1 : parameters.Page;
     var pageSize = parameters.PageSize < 1 ? 10 : parameters.PageSize;
-    pageSize = Math.Min(pageSize, 50);
+    pageSize = Math.Min(pageSize, 1000);
 
     var query = _context.Recipies
         .Include(r => r.Category)
@@ -73,6 +73,11 @@ public class RecipeRepository : IRecipeRepository
         Enum.TryParse<DifficultyLevel>(parameters.Difficulty, true, out var difficulty))
     {
         query = query.Where(r => r.Difficulty == difficulty);
+    }
+
+    if (parameters.CategoryId.HasValue)
+    {
+        query = query.Where(r => r.CategoryId == parameters.CategoryId.Value);
     }
 
     query = parameters.SortBy?.ToLower() switch
