@@ -7,6 +7,7 @@ using System.Text;
 using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.Authorization;
 using Core.Application.Interfaces.Services;
+using Core.Application.UseCases.Favorites;
 using Core.Application.UseCases.Recipes;
 using FluentValidation;
 using FluentValidation.AspNetCore;
@@ -98,6 +99,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 
 builder.Services.AddScoped<IPasswordService, PasswordService>();
+builder.Services.AddScoped<IFavoriteService, FavoriteService>();
+
+
 //validation error
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<CreateRecipeValidator>();

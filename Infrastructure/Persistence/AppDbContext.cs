@@ -20,6 +20,7 @@ public class AppDbContext : DbContext
     public DbSet<RecipieStep> RecipeSteps => Set<RecipieStep>();
     
     public DbSet<Users> Users => Set<Users>();
+    public DbSet<FavoriteRecipe> FavoriteRecipes { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);

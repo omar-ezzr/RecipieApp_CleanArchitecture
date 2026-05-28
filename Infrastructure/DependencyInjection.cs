@@ -1,4 +1,5 @@
 using Core.Application.Interfaces;
+using Core.Application.Interfaces.Repositories;
 using Infrastructure.Persistence;
 using Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
@@ -18,6 +19,7 @@ public static class DependencyInjection
                 configuration.GetConnectionString("DefaultConnection")));
 
         services.AddScoped<IRecipeRepository, RecipeRepository>();
+        services.AddScoped<IFavoriteRepository, FavoriteRepository>();
 
         return services;
     }
