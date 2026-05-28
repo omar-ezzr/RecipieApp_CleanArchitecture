@@ -7,6 +7,9 @@ export interface Recipe {
   category: string;
   difficulty?: string;
   imageUrl?: string;
+  ingredients: string[];
+
+steps: string[];
 }
 
 export interface CreateRecipe {

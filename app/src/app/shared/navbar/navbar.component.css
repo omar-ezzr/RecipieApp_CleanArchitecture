@@ -1,3 +1,45 @@
+.app-navbar {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.88);
+  border-bottom: 1px solid rgba(31, 41, 55, 0.08);
+  box-shadow: 0 0.75rem 2rem rgba(17, 24, 39, 0.06);
+  backdrop-filter: blur(18px);
+}
+
 .navbar-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  color: #17201b;
+  font-weight: 800;
   letter-spacing: 0;
+}
+
+.navbar-brand:hover,
+.navbar-brand:focus {
+  color: #17201b;
+}
+
+.brand-mark {
+  display: inline-grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  place-items: center;
+  border-radius: 0.65rem;
+  background: #1f5138;
+  color: #fffaf0;
+  font-size: 0.85rem;
+  box-shadow: 0 0.5rem 1.25rem rgba(31, 81, 56, 0.24);
+}
+
+.nav-link {
+  color: #5b665f;
+  font-weight: 650;
+}
+
+.nav-link:hover,
+.nav-link.active {
+  color: #1f5138;
 }

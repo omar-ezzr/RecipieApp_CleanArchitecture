@@ -29,9 +29,16 @@ export class RegisterComponent {
         this.message = 'Account created successfully';
         setTimeout(() => this.router.navigate(['/login']), 1500);
       },
-      error: () => {
-        this.error = 'Registration failed';
-      }
+error: (err) => {
+
+  console.log(err);
+
+  this.error =
+    err.error?.message ||
+    err.error?.error ||
+    'Registration failed';
+
+}
     });
   }
 }

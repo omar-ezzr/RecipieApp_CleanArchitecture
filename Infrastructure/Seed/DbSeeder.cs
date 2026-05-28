@@ -72,8 +72,7 @@ namespace Infrastructure.Seed
                     CreatedAt = DateTime.UtcNow,
 
                     // ✅ enum FIX
-                    Difficulty = (DifficultyLevel)(i % 3),
-
+Difficulty = (DifficultyLevel)((i % 3) + 1),
                     // ✅ stable image source
                     ImageUrl = $"https://picsum.photos/400/300?random={i}",
 

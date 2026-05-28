@@ -70,7 +70,17 @@ builder.Services.AddCors(options =>
 });
 
 //JWT
-var key = Encoding.UTF8.GetBytes("THIS_IS_MY_SUPER_SECRET_KEY_1234567890");
+var jwtKey = builder.Configuration["Jwt:Key"];
+
+if (string.IsNullOrWhiteSpace(jwtKey))
+{
+    throw new InvalidOperationException("JWT key is missing from configuration.");
+}
+
+var jwtSigningKey = new SymmetricSecurityKey(
+    Encoding.UTF8.GetBytes(jwtKey)
+);
+
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -81,9 +91,12 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateAudience = false,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(key)
+            IssuerSigningKey = jwtSigningKey,
+            ClockSkew = TimeSpan.Zero
         };
     });
+
+
 builder.Services.AddScoped<IPasswordService, PasswordService>();
 //validation error
 builder.Services.AddFluentValidationAutoValidation();
@@ -110,6 +123,7 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.Migrate();
-await DbSeeder.SeedAsync(db);}
+    await DbSeeder.SeedAsync(db);
+}
 
 app.Run();

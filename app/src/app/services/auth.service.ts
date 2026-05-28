@@ -1,53 +1,122 @@
-import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Router } from '@angular/router';
+
+import { HttpClient } from '@angular/common/http';
+
+import { Observable } from 'rxjs';
+
 
 @Injectable({
   providedIn: 'root'
 })
+
 export class AuthService {
 
-  private api = 'http://localhost:5130/api/auth';
+  private apiUrl = 'http://localhost:5130/api/auth';
 
-  constructor(private http: HttpClient, private router: Router) {}
 
-  login(data: any) {
-    return this.http.post<any>(`${this.api}/login`, data);
+  constructor(private http: HttpClient) {}
+
+
+  login(data: any): Observable<any> {
+
+    return this.http.post(
+      `${this.apiUrl}/login`,
+      data
+    );
   }
 
-  saveTokens(accessToken: string, refreshToken: string) {
-    localStorage.setItem('accessToken', accessToken);
-    localStorage.setItem('refreshToken', refreshToken);
-  }
-  register(data: any) {
-  return this.http.post(`${this.api}/register`, data);
-}
 
-  logout() {
-    localStorage.clear();
-    this.router.navigate(['/login']);
+  register(data: any): Observable<any> {
+
+    return this.http.post(
+      `${this.apiUrl}/register`,
+      data
+    );
   }
+
+
+  refreshToken(refreshToken: string): Observable<any> {
+
+    return this.http.post(
+      `${this.apiUrl}/refresh`,
+      {
+        refreshToken: refreshToken
+      }
+    );
+  }
+
+
+  saveTokens(
+    accessToken: string,
+    refreshToken: string
+  ) {
+
+    localStorage.setItem(
+      'accessToken',
+      accessToken
+    );
+
+    localStorage.setItem(
+      'refreshToken',
+      refreshToken
+    );
+  }
+
+
+  getAccessToken(): string | null {
+
+    return localStorage.getItem(
+      'accessToken'
+    );
+  }
+
+
+  getRefreshToken(): string | null {
+
+    return localStorage.getItem(
+      'refreshToken'
+    );
+  }
+
 
   isLoggedIn(): boolean {
-    return !!localStorage.getItem('accessToken');
+
+    return !!this.getAccessToken();
   }
-  refresh() {
-  const refreshToken = localStorage.getItem('refreshToken');
 
-  return this.http.post<any>('http://localhost:5130/api/auth/refresh', {
-    refreshToken
-  });
-}
-getRole(): string | null {
-  const token = localStorage.getItem('accessToken');
-  if (!token) return null;
 
-  const payload = JSON.parse(atob(token.split('.')[1]));
+  logout() {
 
-  return payload["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"];
-}
-isAdmin(): boolean {
-  return this.getRole() === 'Admin';
-}
+    localStorage.removeItem(
+      'accessToken'
+    );
 
+    localStorage.removeItem(
+      'refreshToken'
+    );
+  }
+
+
+  isAdmin(): boolean {
+
+    const token = this.getAccessToken();
+
+    if (!token) return false;
+
+    try {
+
+      const payload = JSON.parse(
+        atob(token.split('.')[1])
+      );
+
+      const role =
+        payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];
+
+      return role === 'Admin';
+
+    } catch {
+
+      return false;
+    }
+  }
 }

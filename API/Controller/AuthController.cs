@@ -6,6 +6,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using System.Text;
+
 using Core.Application.Interfaces.Services;
 using Core.Domain.Entities;
 
@@ -17,10 +18,15 @@ namespace API.Controller
     {
         private readonly AppDbContext _context;
         private readonly IPasswordService _passwordService;
-        public AuthController(AppDbContext context, IPasswordService passwordService)
-        {
+        private readonly IConfiguration _configuration;
+
+public AuthController(
+    AppDbContext context,
+    IPasswordService passwordService,
+    IConfiguration configuration)        {
             _context = context;
             _passwordService = passwordService;
+            _configuration = configuration;
 
         }
 
@@ -33,22 +39,7 @@ namespace API.Controller
             if (user == null || !_passwordService.Verify(dto.Password, user.PasswordHash))
                 return Unauthorized("Invalid credentials");
 
-            var key = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes("THIS_IS_MY_SUPER_SECRET_KEY_1234567890"));
-
-            var credentials = new SigningCredentials(
-                key, SecurityAlgorithms.HmacSha256);
-
-            var token = new JwtSecurityToken(
-                claims: new[]
-                {
-                new Claim(ClaimTypes.Name, user.Email),
-                new Claim(ClaimTypes.Role, user.Role)
-                },
-                expires: DateTime.UtcNow.AddMinutes(5),
-            signingCredentials: credentials
-
-            );
+     
             var accessToken = GenerateJwtToken(user);
             var refreshToken = GenerateRefreshToken();
 
@@ -112,26 +103,43 @@ namespace API.Controller
             return Ok("User created");
         }
       
-private string GenerateJwtToken(Users user)
-{
-    var key = new SymmetricSecurityKey(
-        Encoding.UTF8.GetBytes("THIS_IS_MY_SUPER_SECRET_KEY_1234567890"));
-
-    var credentials = new SigningCredentials(
-        key, SecurityAlgorithms.HmacSha256);
-
-    var token = new JwtSecurityToken(
-        claims: new[]
+        private string GenerateJwtToken(Users user)
         {
-            new Claim(ClaimTypes.Name, user.Email),
-            new Claim(ClaimTypes.Role, user.Role)
-        },
-        expires: DateTime.UtcNow.AddMinutes(5),
-        signingCredentials: credentials
-    );
+            var jwtKey = _configuration["Jwt:Key"];
 
-    return new JwtSecurityTokenHandler().WriteToken(token);
-}
+            if (string.IsNullOrWhiteSpace(jwtKey))
+            {
+                throw new InvalidOperationException("JWT key is missing from configuration.");
+            }
+
+            var accessTokenMinutes = _configuration.GetValue<int>(
+                "Jwt:AccessTokenMinutes",
+                5
+            );
+
+            var claims = new[]
+            {
+                new Claim(ClaimTypes.Name, user.Email),
+                new Claim(ClaimTypes.Role, user.Role)
+            };
+
+            var key = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(jwtKey)
+            );
+
+            var credentials = new SigningCredentials(
+                key,
+                SecurityAlgorithms.HmacSha256
+            );
+
+            var token = new JwtSecurityToken(
+                claims: claims,
+                expires: DateTime.UtcNow.AddMinutes(accessTokenMinutes),
+                signingCredentials: credentials
+            );
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
+        }
 
   private string GenerateRefreshToken()
         {

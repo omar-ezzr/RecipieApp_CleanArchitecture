@@ -1,6 +1,9 @@
-<nav class="navbar navbar-expand navbar-dark bg-dark shadow-sm">
+<nav class="navbar navbar-expand-lg app-navbar">
   <div class="container">
-    <a class="navbar-brand fw-bold" routerLink="/recipes">RecipeApp</a>
+    <a class="navbar-brand" routerLink="/recipes">
+      <span class="brand-mark">R2</span>
+      <span>Recepes V2</span>
+    </a>
 
     <div class="navbar-nav ms-auto align-items-center gap-2">
       <a
@@ -21,14 +24,14 @@
         Login
       </a>
       <a
-        class="btn btn-warning btn-sm fw-semibold"
+        class="btn btn-brand btn-sm fw-semibold"
         routerLink="/register"
         *ngIf="!isLoggedIn()"
       >
         Register
       </a>
 
-      <button class="btn btn-outline-light btn-sm" *ngIf="isLoggedIn()" (click)="logout()">
+      <button class="btn btn-outline-dark btn-sm" *ngIf="isLoggedIn()" (click)="logout()">
         Logout
       </button>
     </div>

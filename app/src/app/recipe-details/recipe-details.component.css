@@ -1,0 +1,19 @@
+.recipe-details-shell {
+  padding-top: 0.75rem;
+}
+
+.details-image-panel {
+  overflow: hidden;
+  border: 1px solid rgba(31, 41, 55, 0.08);
+  border-radius: 0.9rem;
+  box-shadow: 0 1rem 2.75rem rgba(23, 32, 27, 0.09);
+}
+
+.details-image {
+  max-height: 500px;
+  object-fit: cover;
+}
+
+.list-group-item {
+  background: transparent;
+}
