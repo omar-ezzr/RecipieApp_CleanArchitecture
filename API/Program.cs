@@ -14,6 +14,7 @@ using FluentValidation.AspNetCore;
 using Core.Application.Validators;
 using Infrastructure.Services;
 using Infrastructure.Seed;
+using Core.Application.UseCases.Reviews;
 
 
 
@@ -100,6 +101,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddScoped<IPasswordService, PasswordService>();
 builder.Services.AddScoped<IFavoriteService, FavoriteService>();
+builder.Services.AddScoped<IReviewService, ReviewService>();
 
 
 //validation error

@@ -11,6 +11,7 @@ import { RecipeService } from '../../services/recipe.service';
 import { CategoryService } from '../../services/category.service';
 import { AuthService } from '../../services/auth.service';
 import { ToastrService } from 'ngx-toastr';
+import { FavoriteService } from '../../services/favorite.service';
 @Component({
   selector: 'app-recipes',
   standalone: true,
@@ -27,6 +28,7 @@ export class RecipesComponent implements OnInit {
   filteredRecipes: Recipe[] = [];
   categories: Category[] = [];
   isLoading: boolean = false;
+  favoriteRecipeIds = new Set<string>();
   skeletonCards = Array(12).fill(0);
 
   // ========================
@@ -67,7 +69,9 @@ constructor(
   public auth: AuthService,
   private route: ActivatedRoute,
   private router: Router,
-  private toastr: ToastrService
+  private toastr: ToastrService,
+    private favoriteService: FavoriteService
+
 ) {}
 
   // ========================
@@ -92,6 +96,7 @@ ngOnInit() {
     this.pageSize = +params['pageSize'] || 10;
 
     this.loadRecipes();
+    this.loadFavorites();
   });
 
   this.searchSubject
@@ -384,7 +389,55 @@ resetForm() {
   this.editingId = null;
 }
 
+loadFavorites(): void {
+  this.favoriteService.getMine().subscribe({
+    next: favorites => {
+      this.favoriteRecipeIds = new Set(
+        favorites.map(favorite => favorite.recipeId)
+      );
+    },
+    error: error => {
+      console.error(error);
+    }
+  });
+}
 
+isFavorite(recipeId: string): boolean {
+  return this.favoriteRecipeIds.has(recipeId);
+}
+
+toggleFavorite(recipeId: string, event?: Event): void {
+  event?.stopPropagation();
+
+  const wasFavorite = this.isFavorite(recipeId);
+  const updatedFavorites = new Set(this.favoriteRecipeIds);
+
+  if (wasFavorite) {
+    updatedFavorites.delete(recipeId);
+    this.favoriteRecipeIds = updatedFavorites;
+
+    this.favoriteService.remove(recipeId).subscribe({
+      error: error => {
+        updatedFavorites.add(recipeId);
+        this.favoriteRecipeIds = new Set(updatedFavorites);
+        console.error(error);
+      }
+    });
+
+    return;
+  }
+
+  updatedFavorites.add(recipeId);
+  this.favoriteRecipeIds = updatedFavorites;
+
+  this.favoriteService.add(recipeId).subscribe({
+    error: error => {
+      updatedFavorites.delete(recipeId);
+      this.favoriteRecipeIds = new Set(updatedFavorites);
+      console.error(error);
+    }
+  });
+}
 
 
 }

@@ -333,6 +333,15 @@
             View details
 
           </a>
+          <button
+  type="button"
+  class="btn btn-sm"
+  [class.btn-danger]="isFavorite(recipe.id)"
+  [class.btn-outline-danger]="!isFavorite(recipe.id)"
+  (click)="toggleFavorite(recipe.id, $event)"
+>
+  {{ isFavorite(recipe.id) ? 'Remove favorite' : 'Add favorite' }}
+</button>
           <!-- ADMIN ACTIONS -->
           <div class="d-flex gap-2 mt-3" *ngIf="auth.isAdmin()">
 

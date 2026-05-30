@@ -100,38 +100,68 @@
       </div>
     </div>
 
+<section class="mt-4" *ngIf="recipe">
+  <h3>Reviews</h3>
 
-    <!-- STEPS -->
-    <div class="card soft-card">
-
-      <div class="card-body p-4">
-
-        <h3 class="fw-bold mb-3">
-          Steps
-        </h3>
-
-        <ol *ngIf="recipe.steps?.length">
-
-          <li
-            *ngFor="let step of recipe.steps"
-            class="mb-3">
-
-            {{ step }}
-
-          </li>
-
-        </ol>
-
-        <p
-          *ngIf="!recipe.steps?.length"
-          class="text-muted mb-0">
-
-          No steps available
-
-        </p>
-
-      </div>
+  <form (ngSubmit)="submitReview()" class="mb-4">
+    <div class="mb-3">
+      <label class="form-label">Rating</label>
+      <select
+        class="form-select"
+        [(ngModel)]="newReview.rating"
+        name="rating"
+      >
+        <option [ngValue]="1">1</option>
+        <option [ngValue]="2">2</option>
+        <option [ngValue]="3">3</option>
+        <option [ngValue]="4">4</option>
+        <option [ngValue]="5">5</option>
+      </select>
     </div>
 
+    <div class="mb-3">
+      <label class="form-label">Comment</label>
+      <textarea
+        class="form-control"
+        rows="3"
+        [(ngModel)]="newReview.comment"
+        name="comment"
+        placeholder="Write your review"
+      ></textarea>
+    </div>
+
+    <div class="text-danger mb-2" *ngIf="reviewError">
+      {{ reviewError }}
+    </div>
+
+    <div class="text-success mb-2" *ngIf="reviewSuccess">
+      {{ reviewSuccess }}
+    </div>
+
+    <button type="submit" class="btn btn-primary">
+      Add review
+    </button>
+  </form>
+
+  <div *ngIf="reviews.length === 0" class="text-muted">
+    No reviews yet.
   </div>
-</div>
+
+  <div class="card mb-2" *ngFor="let review of reviews">
+    <div class="card-body">
+      <div class="d-flex justify-content-between">
+        <strong>{{ review.userEmail }}</strong>
+        <span>{{ review.rating }}/5</span>
+      </div>
+
+      <p class="mb-1 mt-2">
+        {{ review.comment }}
+      </p>
+
+      <small class="text-muted">
+        {{ review.createdAt | date:'short' }}
+      </small>
+    </div>
+  </div>
+</section>
+

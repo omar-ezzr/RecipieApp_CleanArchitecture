@@ -20,6 +20,7 @@ public static class DependencyInjection
 
         services.AddScoped<IRecipeRepository, RecipeRepository>();
         services.AddScoped<IFavoriteRepository, FavoriteRepository>();
+        services.AddScoped<IReviewRepository, ReviewRepository>();
 
         return services;
     }

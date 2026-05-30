@@ -21,6 +21,7 @@ public class AppDbContext : DbContext
     
     public DbSet<Users> Users => Set<Users>();
     public DbSet<FavoriteRecipe> FavoriteRecipes { get; set; }
+    public DbSet<RecipeReview> RecipeReviews { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
