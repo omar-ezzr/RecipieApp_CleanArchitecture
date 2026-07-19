@@ -17,6 +17,15 @@
 
       <a
         class="nav-link"
+        routerLink="/admin/accounts"
+        routerLinkActive="active"
+        *ngIf="isAdmin()"
+      >
+        Accounts
+      </a>
+
+      <a
+        class="nav-link"
         routerLink="/login"
         routerLinkActive="active"
         *ngIf="!isLoggedIn()"

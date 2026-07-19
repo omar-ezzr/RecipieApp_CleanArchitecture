@@ -2,7 +2,16 @@ import { Injectable } from '@angular/core';
 
 import { HttpClient } from '@angular/common/http';
 
-import { Observable } from 'rxjs';
+import { Observable, of, throwError } from 'rxjs';
+import { catchError, finalize, map, shareReplay, tap } from 'rxjs/operators';
+
+export interface TokenResponse {
+  accessToken: string;
+  refreshToken: string;
+}
+
+const roleClaim = 'http://schemas.microsoft.com/ws/2008/06/identity/claims/role';
+const nameIdentifierClaim = 'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier';
 
 
 @Injectable({
@@ -12,14 +21,15 @@ import { Observable } from 'rxjs';
 export class AuthService {
 
   private apiUrl = 'http://localhost:5130/api/auth';
+  private activeRefresh$?: Observable<TokenResponse>;
 
 
   constructor(private http: HttpClient) {}
 
 
-  login(data: any): Observable<any> {
+  login(data: any): Observable<TokenResponse> {
 
-    return this.http.post(
+    return this.http.post<TokenResponse>(
       `${this.apiUrl}/login`,
       data
     );
@@ -28,20 +38,62 @@ export class AuthService {
 
   register(data: any): Observable<any> {
 
-    return this.http.post(
+    return this.http.post<TokenResponse>(
       `${this.apiUrl}/register`,
       data
     );
   }
 
 
-  refreshToken(refreshToken: string): Observable<any> {
+  refreshToken(refreshToken: string): Observable<TokenResponse> {
 
-    return this.http.post(
+    return this.http.post<TokenResponse>(
       `${this.apiUrl}/refresh`,
       {
         refreshToken: refreshToken
       }
+    );
+  }
+
+  refreshSession(): Observable<TokenResponse> {
+    const refreshToken = this.getRefreshToken();
+
+    if (!refreshToken) {
+      this.logout();
+      return throwError(() => new Error('Refresh token is missing'));
+    }
+
+    if (!this.activeRefresh$) {
+      this.activeRefresh$ = this.refreshToken(refreshToken).pipe(
+        tap((tokens) => this.saveTokens(tokens.accessToken, tokens.refreshToken)),
+        finalize(() => {
+          this.activeRefresh$ = undefined;
+        }),
+        shareReplay({ bufferSize: 1, refCount: false })
+      );
+    }
+
+    return this.activeRefresh$;
+  }
+
+  restoreSession(): Observable<boolean> {
+    const accessToken = this.getAccessToken();
+
+    if (accessToken && !this.isTokenExpired(accessToken)) {
+      return of(true);
+    }
+
+    if (!this.getRefreshToken()) {
+      this.logout();
+      return of(false);
+    }
+
+    return this.refreshSession().pipe(
+      map(() => true),
+      catchError(() => {
+        this.logout();
+        return of(false);
+      })
     );
   }
 
@@ -81,7 +133,9 @@ export class AuthService {
 
   isLoggedIn(): boolean {
 
-    return !!this.getAccessToken();
+    const token = this.getAccessToken();
+
+    return !!token && !this.isTokenExpired(token);
   }
 
 
@@ -96,27 +150,63 @@ export class AuthService {
     );
   }
 
+  isTokenExpired(token: string): boolean {
+    try {
+      const payloadBase64 = token.split('.')[1];
+
+      if (!payloadBase64) {
+        return true;
+      }
+
+      const payload = JSON.parse(atob(payloadBase64));
+      const expiry = payload.exp;
+
+      if (!expiry) {
+        return true;
+      }
+
+      return Date.now() >= expiry * 1000;
+    } catch {
+      return true;
+    }
+  }
+
 
   isAdmin(): boolean {
+    return this.hasRole('Admin');
+  }
 
+  isOperator(): boolean {
+    return this.hasRole('Operator');
+  }
+
+  canManageRecipes(): boolean {
+    return this.isAdmin() || this.isOperator();
+  }
+
+  hasRole(role: string): boolean {
+    return this.getCurrentRole() === role;
+  }
+
+  getCurrentRole(): string | null {
+    return this.getTokenPayload()?.[roleClaim] ?? null;
+  }
+
+  getCurrentUserId(): string | null {
+    return this.getTokenPayload()?.[nameIdentifierClaim] ?? null;
+  }
+
+  private getTokenPayload(): any | null {
     const token = this.getAccessToken();
 
-    if (!token) return false;
+    if (!token) {
+      return null;
+    }
 
     try {
-
-      const payload = JSON.parse(
-        atob(token.split('.')[1])
-      );
-
-      const role =
-        payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];
-
-      return role === 'Admin';
-
+      return JSON.parse(atob(token.split('.')[1]));
     } catch {
-
-      return false;
+      return null;
     }
   }
 }

@@ -39,7 +39,7 @@
   </div>
 
   <!-- CREATE / EDIT -->
-  <div class="card soft-card mb-4" *ngIf="auth.isAdmin() || editingId">
+  <div class="card soft-card mb-4" *ngIf="auth.canManageRecipes() || editingId">
 
     <div class="card-body p-4 p-lg-5">
 
@@ -120,6 +120,24 @@
 
         </div>
 
+        <!-- DIFFICULTY -->
+        <div class="col-md-6">
+
+          <label class="form-label">Difficulty</label>
+
+          <select
+            class="form-select"
+            [(ngModel)]="newRecipe.difficulty"
+            required>
+
+            <option value="Easy">Easy</option>
+            <option value="Medium">Medium</option>
+            <option value="Hard">Hard</option>
+
+          </select>
+
+        </div>
+
         <!-- DESCRIPTION -->
         <div class="col-12">
 
@@ -141,7 +159,7 @@
 
         <button
           class="btn btn-brand fw-semibold"
-          *ngIf="auth.isAdmin() && !editingId"
+          *ngIf="auth.canManageRecipes() && !editingId"
           (click)="createRecipe()">
 
           Create
@@ -343,7 +361,7 @@
   {{ isFavorite(recipe.id) ? 'Remove favorite' : 'Add favorite' }}
 </button>
           <!-- ADMIN ACTIONS -->
-          <div class="d-flex gap-2 mt-3" *ngIf="auth.isAdmin()">
+          <div class="d-flex gap-2 mt-3" *ngIf="auth.canManageRecipes()">
 
             <button
               class="btn btn-outline-dark btn-sm"

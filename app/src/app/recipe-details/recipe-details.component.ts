@@ -48,8 +48,8 @@ export class RecipeDetailsComponent implements OnInit {
         this.isLoading = false;
         this.loadReviews(data.id);
       },
-      error: (error) => {
-        console.error(error);
+      error: () => {
+        this.reviewError = 'Failed to load recipe.';
         this.isLoading = false;
       }
     });
@@ -60,8 +60,8 @@ export class RecipeDetailsComponent implements OnInit {
       next: reviews => {
         this.reviews = reviews;
       },
-      error: error => {
-        console.error(error);
+      error: () => {
+        this.reviewError = 'Failed to load reviews.';
       }
     });
   }
@@ -95,8 +95,7 @@ export class RecipeDetailsComponent implements OnInit {
         this.loadReviews(this.recipe!.id);
       },
       error: error => {
-        this.reviewError = error.error || 'Failed to add review.';
-        console.error(error);
+        this.reviewError = error.error?.title || error.error || 'Failed to add review.';
       }
     });
   }

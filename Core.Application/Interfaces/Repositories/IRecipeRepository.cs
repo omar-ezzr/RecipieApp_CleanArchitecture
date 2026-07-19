@@ -8,11 +8,13 @@ using Core.Domain.Entities;
 namespace Core.Application.Interfaces
 {
     public interface IRecipeRepository
-    { Task<IEnumerable<Recipie>> GetAllAsync();
-    Task<Recipie?> GetByIdAsync(Guid id);
-    Task AddAsync(Recipie recipie);
-    Task UpdateAsync(Recipie recipie);
-    Task DeleteAsync(Recipie recipie);
-    Task<(List<Recipie>, int)> GetPagedAsync(RecipeQueryParams parameters);
+    {
+        Task<Recipie?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
+        Task AddAsync(Recipie recipie, CancellationToken cancellationToken = default);
+        Task UpdateAsync(Recipie recipie, CancellationToken cancellationToken = default);
+        Task DeleteAsync(Recipie recipie, CancellationToken cancellationToken = default);
+        Task<(List<Recipie> Items, int Total, int Page, int PageSize, int TotalPages)> GetPagedAsync(
+            RecipeQueryParams parameters,
+            CancellationToken cancellationToken = default);
     }
 }

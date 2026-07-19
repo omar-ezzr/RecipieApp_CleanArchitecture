@@ -22,6 +22,7 @@ import { AuthService } from '../services/auth.service';
 @Injectable()
 
 export class ErrorInterceptor implements HttpInterceptor {
+  private logoutInProgress = false;
 
   constructor(
     private auth: AuthService,
@@ -39,43 +40,18 @@ export class ErrorInterceptor implements HttpInterceptor {
 
       catchError((error: HttpErrorResponse) => {
 
-        if (
-          error.status === 401 &&
-          !req.url.includes('/auth/login') &&
-          !req.url.includes('/auth/register') &&
-          !req.url.includes('/auth/refresh')
-        ) {
-
-          const refreshToken =
-            this.auth.getRefreshToken();
-
-          if (!refreshToken) {
-
-            this.forceLogout();
-
-            return throwError(() => error);
-          }
-
-          return this.auth.refreshToken(refreshToken).pipe(
-
-            switchMap((res: any) => {
-
-              this.auth.saveTokens(
-                res.accessToken,
-                res.refreshToken
-              );
-
+        if (error.status === 401 && !this.isAuthEndpoint(req)) {
+          return this.auth.refreshSession().pipe(
+            switchMap((tokens) => {
               const clonedRequest = req.clone({
                 setHeaders: {
-                  Authorization: `Bearer ${res.accessToken}`
+                  Authorization: `Bearer ${tokens.accessToken}`
                 }
               });
 
               return next.handle(clonedRequest);
             }),
-
             catchError((refreshError) => {
-
               this.forceLogout();
 
               return throwError(() => refreshError);
@@ -114,6 +90,11 @@ export class ErrorInterceptor implements HttpInterceptor {
 
 
   private forceLogout() {
+    if (this.logoutInProgress) {
+      return;
+    }
+
+    this.logoutInProgress = true;
 
     this.auth.logout();
 
@@ -124,5 +105,16 @@ export class ErrorInterceptor implements HttpInterceptor {
     this.router.navigate([
       '/login'
     ]);
+  }
+
+  private isAuthEndpoint(req: HttpRequest<any>): boolean {
+    const url = req.url.toLowerCase();
+
+    return url.includes('/api/auth/login') ||
+      url.includes('/api/auth/register') ||
+      url.includes('/api/auth/refresh') ||
+      url.includes('/auth/login') ||
+      url.includes('/auth/register') ||
+      url.includes('/auth/refresh');
   }
 }

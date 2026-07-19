@@ -4,6 +4,7 @@ using Core.Application.DTO.Recipe;
 using Core.Application.Interfaces;
 using Core.Application.Interfaces.Services;
 using Core.Domain.Entities;
+using Core.Domain.Enums;
 
 namespace Core.Application.UseCases.Recipes
 {
@@ -45,25 +46,23 @@ namespace Core.Application.UseCases.Recipes
     };
 }
 
-        // 🔹 GET ALL (use carefully, not for large datasets)
-        public async Task<IEnumerable<RecipieDto>> GetAllAsync()
-        {
-            var recipes = await _repository.GetAllAsync();
-            return recipes.Select(MapToDto);
-        }
-
         // 🔹 GET BY ID
-        public async Task<RecipieDto?> GetByIdAsync(Guid id)
+        public async Task<RecipieDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
         {
-            var recipe = await _repository.GetByIdAsync(id);
+            var recipe = await _repository.GetByIdAsync(id, cancellationToken);
             if (recipe is null) return null;
 
             return MapToDto(recipe);
         }
 
         // 🔹 CREATE
-        public async Task<Result> CreateAsync(CreateRecipeDto dto)
+        public async Task<Result> CreateAsync(CreateRecipeDto dto, CancellationToken cancellationToken = default)
         {
+            if (!TryParseDifficulty(dto.Difficulty, out var difficulty))
+            {
+                return Result.Failure("Difficulty must be Easy, Medium, or Hard");
+            }
+
             var recipe = new Recipie
             {
                 Id = Guid.NewGuid(),
@@ -72,17 +71,22 @@ namespace Core.Application.UseCases.Recipes
                 PreparationTimeMinutes = dto.PreparationTimeMinutes,
                 CategoryId = dto.CategoryId,
                 ImageUrl = dto.ImageUrl,
-                Difficulty = dto.Difficulty // make sure DTO includes this
+                Difficulty = difficulty
             };
 
-            await _repository.AddAsync(recipe);
+            await _repository.AddAsync(recipe, cancellationToken);
             return Result.Success();
         }
 
         // 🔹 UPDATE
-        public async Task<Result> UpdateAsync(Guid id, CreateRecipeDto dto)
+        public async Task<Result> UpdateAsync(Guid id, CreateRecipeDto dto, CancellationToken cancellationToken = default)
         {
-            var recipe = await _repository.GetByIdAsync(id);
+            if (!TryParseDifficulty(dto.Difficulty, out var difficulty))
+            {
+                return Result.Failure("Difficulty must be Easy, Medium, or Hard");
+            }
+
+            var recipe = await _repository.GetByIdAsync(id, cancellationToken);
 
             if (recipe == null)
                 return Result.Failure("Recipe not found");
@@ -92,34 +96,49 @@ namespace Core.Application.UseCases.Recipes
             recipe.PreparationTimeMinutes = dto.PreparationTimeMinutes;
             recipe.CategoryId = dto.CategoryId;
             recipe.ImageUrl = dto.ImageUrl;
-            recipe.Difficulty = dto.Difficulty;
+            recipe.Difficulty = difficulty;
 
-            await _repository.UpdateAsync(recipe);
+            await _repository.UpdateAsync(recipe, cancellationToken);
 
             return Result.Success();
         }
 
         // 🔹 DELETE
-        public async Task<Result> DeleteAsync(Guid id)
+        public async Task<Result> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
         {
-            var recipe = await _repository.GetByIdAsync(id);
+            var recipe = await _repository.GetByIdAsync(id, cancellationToken);
 
             if (recipe == null)
                 return Result.Failure("Recipe not found");
 
-            await _repository.DeleteAsync(recipe);
+            await _repository.DeleteAsync(recipe, cancellationToken);
 
             return Result.Success();
         }
 
         // 🔹 PAGINATION + FILTERING
-        public async Task<(List<RecipieDto>, int)> GetPagedAsync(RecipeQueryParams parameters)
+        public async Task<PagedResult<RecipieDto>> GetPagedAsync(
+            RecipeQueryParams parameters,
+            CancellationToken cancellationToken = default)
         {
-            var (recipes, total) = await _repository.GetPagedAsync(parameters);
+            var paged = await _repository.GetPagedAsync(parameters, cancellationToken);
 
-            var result = recipes.Select(MapToDto).ToList();
+            var result = paged.Items.Select(MapToDto).ToList();
 
-            return (result, total);
+            return new PagedResult<RecipieDto>
+            {
+                Items = result,
+                Total = paged.Total,
+                Page = paged.Page,
+                PageSize = paged.PageSize,
+                TotalPages = paged.TotalPages
+            };
+        }
+
+        private static bool TryParseDifficulty(string? value, out DifficultyLevel difficulty)
+        {
+            return Enum.TryParse(value, true, out difficulty)
+                && Enum.IsDefined(typeof(DifficultyLevel), difficulty);
         }
     }
 }

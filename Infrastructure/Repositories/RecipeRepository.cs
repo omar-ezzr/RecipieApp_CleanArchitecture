@@ -19,56 +19,49 @@ public class RecipeRepository : IRecipeRepository
     // ========================
     // GET ALL
     // ========================
-    public async Task<IEnumerable<Recipie>> GetAllAsync()
-    {
-        return await _context.Recipies
-            .Include(r => r.Category)
-            .ToListAsync();
-    }
-
-    // ========================
-    // GET BY ID
-    // ========================
-    public async Task<Recipie?> GetByIdAsync(Guid id)
+    public async Task<Recipie?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         return await _context.Recipies
             .Include(r => r.Category)
             .Include(r => r.Ingredients)
             .Include(r => r.Steps)
-            .FirstOrDefaultAsync(r => r.Id == id);
+            .AsSplitQuery()
+            .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
     }
 
     // ========================
     // CREATE
     // ========================
-    public async Task AddAsync(Recipie recipie)
+    public async Task AddAsync(Recipie recipie, CancellationToken cancellationToken = default)
     {
         _context.Recipies.Add(recipie);
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(cancellationToken);
     }
 
     // ========================
     // UPDATE
     // ========================
-    public async Task UpdateAsync(Recipie recipie)
+    public async Task UpdateAsync(Recipie recipie, CancellationToken cancellationToken = default)
     {
         _context.Recipies.Update(recipie);
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(cancellationToken);
     }
 
     // ========================
     // DELETE
     // ========================
-    public async Task DeleteAsync(Recipie recipie)
+    public async Task DeleteAsync(Recipie recipie, CancellationToken cancellationToken = default)
     {
         _context.Recipies.Remove(recipie);
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(cancellationToken);
     }
 
     // ========================
     // PAGINATION + FILTERING
     // ========================
-    public async Task<(List<Recipie>, int)> GetPagedAsync(RecipeQueryParams parameters)
+    public async Task<(List<Recipie> Items, int Total, int Page, int PageSize, int TotalPages)> GetPagedAsync(
+        RecipeQueryParams parameters,
+        CancellationToken cancellationToken = default)
     {
         var page = parameters.Page < 1 ? 1 : parameters.Page;
         var pageSize = parameters.PageSize < 1 ? 10 : parameters.PageSize;
@@ -76,8 +69,7 @@ public class RecipeRepository : IRecipeRepository
 
         var query = _context.Recipies
             .Include(r => r.Category)
-            .Include(r => r.Ingredients)
-            .Include(r => r.Steps)
+            .AsNoTracking()
             .AsQueryable();
 
         // ========================
@@ -99,8 +91,9 @@ public class RecipeRepository : IRecipeRepository
         // ========================
         // DIFFICULTY FILTER (safe)
         // ========================
-        if (!string.IsNullOrEmpty(parameters.Difficulty) &&
-            Enum.TryParse<DifficultyLevel>(parameters.Difficulty, true, out var difficulty))
+        if (!string.IsNullOrWhiteSpace(parameters.Difficulty) &&
+            Enum.TryParse<DifficultyLevel>(parameters.Difficulty, true, out var difficulty) &&
+            Enum.IsDefined(typeof(DifficultyLevel), difficulty))
         {
             query = query.Where(r => r.Difficulty == difficulty);
         }
@@ -119,7 +112,7 @@ public class RecipeRepository : IRecipeRepository
         // ========================
         // COUNT
         // ========================
-        var total = await query.CountAsync();
+        var total = await query.CountAsync(cancellationToken);
 
         // ========================
         // PAGINATION
@@ -127,8 +120,10 @@ public class RecipeRepository : IRecipeRepository
         var data = await query
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
-        return (data, total);
+        var totalPages = total == 0 ? 0 : (int)Math.Ceiling(total / (double)pageSize);
+
+        return (data, total, page, pageSize, totalPages);
     }
 }

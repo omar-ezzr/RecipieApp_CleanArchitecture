@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterLinkActive } from '@angular/router';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-navbar',
@@ -11,14 +12,21 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
 })
 export class NavbarComponent {
 
-  constructor(private router: Router) {}
+  constructor(
+    private router: Router,
+    private auth: AuthService
+  ) {}
 
   isLoggedIn(): boolean {
-    return !!localStorage.getItem('accessToken');
+    return this.auth.isLoggedIn();
+  }
+
+  isAdmin(): boolean {
+    return this.auth.isAdmin();
   }
 
   logout() {
-    localStorage.clear();
+    this.auth.logout();
     this.router.navigate(['/login']);
   }
 }

@@ -14,22 +14,33 @@ namespace Infrastructure.Repositories
             _context = context;
         }
 
-        public async Task<bool> ExistsAsync(Guid userId, Guid recipeId)
+        public async Task<bool> ExistsAsync(
+            Guid userId,
+            Guid recipeId,
+            CancellationToken cancellationToken = default)
         {
             return await _context.FavoriteRecipes
-                .AnyAsync(f => f.UserId == userId && f.RecipeId == recipeId);
+                .AsNoTracking()
+                .AnyAsync(f => f.UserId == userId && f.RecipeId == recipeId, cancellationToken);
         }
 
-        public async Task AddAsync(FavoriteRecipe favorite)
+        public async Task AddAsync(FavoriteRecipe favorite, CancellationToken cancellationToken = default)
         {
-            await _context.FavoriteRecipes.AddAsync(favorite);
-            await _context.SaveChangesAsync();
+            await _context.FavoriteRecipes.AddAsync(favorite, cancellationToken);
+            try
+            {
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateException)
+            {
+                throw new InvalidOperationException("Duplicate favorite.", innerException: null);
+            }
         }
 
-        public async Task RemoveAsync(Guid userId, Guid recipeId)
+        public async Task RemoveAsync(Guid userId, Guid recipeId, CancellationToken cancellationToken = default)
         {
             var favorite = await _context.FavoriteRecipes
-                .FirstOrDefaultAsync(f => f.UserId == userId && f.RecipeId == recipeId);
+                .FirstOrDefaultAsync(f => f.UserId == userId && f.RecipeId == recipeId, cancellationToken);
 
             if (favorite == null)
             {
@@ -37,22 +48,26 @@ namespace Infrastructure.Repositories
             }
 
             _context.FavoriteRecipes.Remove(favorite);
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(cancellationToken);
         }
 
-        public async Task<List<FavoriteRecipe>> GetUserFavoritesAsync(Guid userId)
+        public async Task<List<FavoriteRecipe>> GetUserFavoritesAsync(
+            Guid userId,
+            CancellationToken cancellationToken = default)
         {
             return await _context.FavoriteRecipes
                 .Include(f => f.Recipe)
+                .AsNoTracking()
                 .Where(f => f.UserId == userId)
                 .OrderByDescending(f => f.CreatedAt)
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
         }
 
-        public async Task<bool> RecipeExistsAsync(Guid recipeId)
+        public async Task<bool> RecipeExistsAsync(Guid recipeId, CancellationToken cancellationToken = default)
         {
             return await _context.Recipies
-                .AnyAsync(r => r.Id == recipeId);
+                .AsNoTracking()
+                .AnyAsync(r => r.Id == recipeId, cancellationToken);
         }
     }
 }

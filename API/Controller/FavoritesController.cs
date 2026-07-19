@@ -1,9 +1,7 @@
 using Core.Application.Interfaces.Services;
-using Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
-using Microsoft.EntityFrameworkCore;
 
 namespace API.Controller
 {
@@ -13,47 +11,47 @@ namespace API.Controller
     public class FavoritesController : ControllerBase
     {
         private readonly IFavoriteService _favoriteService;
-        private readonly AppDbContext _context;
 
-        public FavoritesController(
-            IFavoriteService favoriteService,
-            AppDbContext context)
+        public FavoritesController(IFavoriteService favoriteService)
         {
             _favoriteService = favoriteService;
-            _context = context;
         }
 
         [HttpPost("{recipeId}")]
-        public async Task<IActionResult> Add(Guid recipeId)
+        public async Task<IActionResult> Add(Guid recipeId, CancellationToken cancellationToken)
         {
-            var userId = await GetCurrentUserIdAsync();
+            var userId = GetCurrentUserId();
 
             if (userId == null)
             {
-                return Unauthorized();
+                return UnauthorizedIdentityProblem();
             }
 
-            var result = await _favoriteService.AddFavoriteAsync(userId.Value, recipeId);
+            var result = await _favoriteService.AddFavoriteAsync(userId.Value, recipeId, cancellationToken);
 
             if (!result.IsSuccess)
             {
-                return BadRequest(result.Error);
+                return Conflict(new ProblemDetails
+                {
+                    Title = result.Error,
+                    Status = StatusCodes.Status409Conflict
+                });
             }
 
             return Ok();
         }
 
         [HttpDelete("{recipeId}")]
-        public async Task<IActionResult> Remove(Guid recipeId)
+        public async Task<IActionResult> Remove(Guid recipeId, CancellationToken cancellationToken)
         {
-            var userId = await GetCurrentUserIdAsync();
+            var userId = GetCurrentUserId();
 
             if (userId == null)
             {
-                return Unauthorized();
+                return UnauthorizedIdentityProblem();
             }
 
-            var result = await _favoriteService.RemoveFavoriteAsync(userId.Value, recipeId);
+            var result = await _favoriteService.RemoveFavoriteAsync(userId.Value, recipeId, cancellationToken);
 
             if (!result.IsSuccess)
             {
@@ -64,31 +62,31 @@ namespace API.Controller
         }
 
         [HttpGet("me")]
-        public async Task<IActionResult> GetMine()
+        public async Task<IActionResult> GetMine(CancellationToken cancellationToken)
         {
-            var userId = await GetCurrentUserIdAsync();
+            var userId = GetCurrentUserId();
 
             if (userId == null)
             {
-                return Unauthorized();
+                return UnauthorizedIdentityProblem();
             }
 
-            var favorites = await _favoriteService.GetUserFavoritesAsync(userId.Value);
+            var favorites = await _favoriteService.GetUserFavoritesAsync(userId.Value, cancellationToken);
 
             return Ok(favorites);
         }
 
         [HttpGet("check/{recipeId}")]
-        public async Task<IActionResult> Check(Guid recipeId)
+        public async Task<IActionResult> Check(Guid recipeId, CancellationToken cancellationToken)
         {
-            var userId = await GetCurrentUserIdAsync();
+            var userId = GetCurrentUserId();
 
             if (userId == null)
             {
-                return Unauthorized();
+                return UnauthorizedIdentityProblem();
             }
 
-            var isFavorite = await _favoriteService.IsFavoriteAsync(userId.Value, recipeId);
+            var isFavorite = await _favoriteService.IsFavoriteAsync(userId.Value, recipeId, cancellationToken);
 
             return Ok(new
             {
@@ -96,19 +94,18 @@ namespace API.Controller
             });
         }
 
-        private async Task<Guid?> GetCurrentUserIdAsync()
+        private Guid? GetCurrentUserId()
         {
-            var email = User.FindFirstValue(ClaimTypes.Name);
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-            if (string.IsNullOrWhiteSpace(email))
-            {
-                return null;
-            }
-
-            var user = await _context.Users
-                .FirstOrDefaultAsync(u => u.Email == email);
-
-            return user?.Id;
+            return Guid.TryParse(userId, out var parsed) ? parsed : null;
         }
+
+        private UnauthorizedObjectResult UnauthorizedIdentityProblem() =>
+            Unauthorized(new ProblemDetails
+            {
+                Title = "Missing or malformed user identity claim",
+                Status = StatusCodes.Status401Unauthorized
+            });
     }
 }

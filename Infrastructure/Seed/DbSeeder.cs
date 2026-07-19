@@ -1,16 +1,25 @@
 using Core.Domain.Entities;
 using Core.Domain.Enums;
+using Core.Domain.Constants;
+using Core.Application.Interfaces.Services;
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace Infrastructure.Seed
 {
     public static class DbSeeder
     {
-        public static async Task SeedAsync(AppDbContext context)
+        public static async Task SeedAsync(
+            AppDbContext context,
+            IConfiguration configuration,
+            IPasswordService passwordService,
+            CancellationToken cancellationToken = default)
         {
-            // prevent duplicate seeding
-            if (await context.Recipies.AnyAsync())
+            await SeedAdminAsync(context, configuration, passwordService, cancellationToken);
+
+            // prevent duplicate recipe seeding
+            if (await context.Recipies.AnyAsync(cancellationToken))
                 return;
 
             // ========================
@@ -42,7 +51,7 @@ namespace Infrastructure.Seed
 
             var categories = new[] { breakfast, lunch, dinner };
 
-            await context.Categories.AddRangeAsync(categories);
+            await context.Categories.AddRangeAsync(categories, cancellationToken);
 
             // ========================
             // 🧠 DATA VARIATION
@@ -125,8 +134,46 @@ Difficulty = (DifficultyLevel)((i % 3) + 1),
             // ========================
             // 💾 SAVE ONCE (IMPORTANT)
             // ========================
-            await context.Recipies.AddRangeAsync(recipes);
-            await context.SaveChangesAsync();
+            await context.Recipies.AddRangeAsync(recipes, cancellationToken);
+            await context.SaveChangesAsync(cancellationToken);
+        }
+
+        private static async Task SeedAdminAsync(
+            AppDbContext context,
+            IConfiguration configuration,
+            IPasswordService passwordService,
+            CancellationToken cancellationToken)
+        {
+            if (await context.Users.AnyAsync(user => user.Role == AppRoles.Admin, cancellationToken))
+            {
+                return;
+            }
+
+            var email = configuration["SeedAdmin:Email"];
+            var password = configuration["SeedAdmin:Password"];
+
+            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+            {
+                return;
+            }
+
+            var normalizedEmail = email.Trim().ToLowerInvariant();
+
+            if (await context.Users.AnyAsync(user => user.Email == normalizedEmail, cancellationToken))
+            {
+                return;
+            }
+
+            context.Users.Add(new Users
+            {
+                Id = Guid.NewGuid(),
+                Email = normalizedEmail,
+                PasswordHash = passwordService.Hash(password),
+                Role = AppRoles.Admin,
+                IsActive = true
+            });
+
+            await context.SaveChangesAsync(cancellationToken);
         }
     }
 }

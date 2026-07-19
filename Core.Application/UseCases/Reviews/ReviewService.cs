@@ -2,6 +2,7 @@ using Core.Application.Common;
 using Core.Application.DTO.Reviews;
 using Core.Application.Interfaces.Repositories;
 using Core.Application.Interfaces.Services;
+using Core.Domain.Constants;
 using Core.Domain.Entities;
 
 namespace Core.Application.UseCases.Reviews
@@ -15,21 +16,24 @@ namespace Core.Application.UseCases.Reviews
             _reviewRepository = reviewRepository;
         }
 
-        public async Task<Result> AddReviewAsync(Guid userId, CreateReviewDto dto)
+        public async Task<Result> AddReviewAsync(
+            Guid userId,
+            CreateReviewDto dto,
+            CancellationToken cancellationToken = default)
         {
             if (dto.Rating < 1 || dto.Rating > 5)
             {
                 return Result.Failure("Rating must be between 1 and 5.");
             }
 
-            var recipeExists = await _reviewRepository.RecipeExistsAsync(dto.RecipeId);
+            var recipeExists = await _reviewRepository.RecipeExistsAsync(dto.RecipeId, cancellationToken);
 
             if (!recipeExists)
             {
                 return Result.Failure("Recipe not found.");
             }
 
-            var alreadyReviewed = await _reviewRepository.ExistsAsync(userId, dto.RecipeId);
+            var alreadyReviewed = await _reviewRepository.ExistsAsync(userId, dto.RecipeId, cancellationToken);
 
             if (alreadyReviewed)
             {
@@ -46,19 +50,30 @@ namespace Core.Application.UseCases.Reviews
                 CreatedAt = DateTime.UtcNow
             };
 
-            await _reviewRepository.AddAsync(review);
+            try
+            {
+                await _reviewRepository.AddAsync(review, cancellationToken);
+            }
+            catch (InvalidOperationException)
+            {
+                return Result.Failure("You already reviewed this recipe.");
+            }
 
             return Result.Success();
         }
 
-        public async Task<Result> UpdateReviewAsync(Guid userId, Guid reviewId, UpdateReviewDto dto)
+        public async Task<Result> UpdateReviewAsync(
+            Guid userId,
+            Guid reviewId,
+            UpdateReviewDto dto,
+            CancellationToken cancellationToken = default)
         {
             if (dto.Rating < 1 || dto.Rating > 5)
             {
                 return Result.Failure("Rating must be between 1 and 5.");
             }
 
-            var review = await _reviewRepository.GetByIdAsync(reviewId);
+            var review = await _reviewRepository.GetByIdAsync(reviewId, cancellationToken);
 
             if (review == null)
             {
@@ -74,35 +89,41 @@ namespace Core.Application.UseCases.Reviews
             review.Comment = dto.Comment;
             review.UpdatedAt = DateTime.UtcNow;
 
-            await _reviewRepository.UpdateAsync(review);
+            await _reviewRepository.UpdateAsync(review, cancellationToken);
 
             return Result.Success();
         }
 
-        public async Task<Result> DeleteReviewAsync(Guid userId, string role, Guid reviewId)
+        public async Task<Result> DeleteReviewAsync(
+            Guid userId,
+            string role,
+            Guid reviewId,
+            CancellationToken cancellationToken = default)
         {
-            var review = await _reviewRepository.GetByIdAsync(reviewId);
+            var review = await _reviewRepository.GetByIdAsync(reviewId, cancellationToken);
 
             if (review == null)
             {
                 return Result.Failure("Review not found.");
             }
 
-            var isAdmin = role == "Admin";
+            var isAdmin = role == AppRoles.Admin;
 
             if (!isAdmin && review.UserId != userId)
             {
                 return Result.Failure("You can only delete your own review.");
             }
 
-            await _reviewRepository.DeleteAsync(review);
+            await _reviewRepository.DeleteAsync(review, cancellationToken);
 
             return Result.Success();
         }
 
-        public async Task<List<ReviewDto>> GetRecipeReviewsAsync(Guid recipeId)
+        public async Task<List<ReviewDto>> GetRecipeReviewsAsync(
+            Guid recipeId,
+            CancellationToken cancellationToken = default)
         {
-            var reviews = await _reviewRepository.GetByRecipeIdAsync(recipeId);
+            var reviews = await _reviewRepository.GetByRecipeIdAsync(recipeId, cancellationToken);
 
             return reviews.Select(r => new ReviewDto
             {

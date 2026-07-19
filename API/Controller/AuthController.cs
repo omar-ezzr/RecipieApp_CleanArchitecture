@@ -8,7 +8,9 @@ using Microsoft.AspNetCore.Authorization;
 using System.Text;
 
 using Core.Application.Interfaces.Services;
+using Core.Domain.Constants;
 using Core.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace API.Controller
 {
@@ -32,21 +34,22 @@ public AuthController(
 
         [AllowAnonymous]
         [HttpPost("login")]
-        public IActionResult Login([FromBody] LoginDto dto)
+        public async Task<IActionResult> Login([FromBody] LoginDto dto, CancellationToken cancellationToken)
         {
-            var user = _context.Users.FirstOrDefault(u => u.Email == dto.Email);
+            var email = NormalizeEmail(dto.Email);
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email, cancellationToken);
 
-            if (user == null || !_passwordService.Verify(dto.Password, user.PasswordHash))
-                return Unauthorized("Invalid credentials");
+            if (user == null || !user.IsActive || !_passwordService.Verify(dto.Password, user.PasswordHash))
+                return Unauthorized("Invalid credentials or inactive account");
 
      
             var accessToken = GenerateJwtToken(user);
             var refreshToken = GenerateRefreshToken();
 
             user.RefreshToken = refreshToken;
-            user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
+            user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(GetRefreshTokenDays());
 
-            _context.SaveChanges();
+            await _context.SaveChangesAsync(cancellationToken);
 
             return Ok(new
             {
@@ -58,21 +61,48 @@ public AuthController(
 
         [AllowAnonymous]
         [HttpPost("refresh")]
-        public IActionResult Refresh(TokenRequestDto request)
+        public async Task<IActionResult> Refresh(TokenRequestDto request, CancellationToken cancellationToken)
         {
-            var user = _context.Users
-                .FirstOrDefault(u => u.RefreshToken == request.RefreshToken);
+            if (string.IsNullOrWhiteSpace(request.RefreshToken))
+            {
+                return Unauthorized(new ProblemDetails
+                {
+                    Title = "Invalid refresh token",
+                    Status = StatusCodes.Status401Unauthorized
+                });
+            }
 
-            if (user == null || user.RefreshTokenExpiryTime < DateTime.UtcNow)
-                return Unauthorized("Invalid refresh token");
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.RefreshToken == request.RefreshToken, cancellationToken);
+
+            if (user == null)
+            {
+                return Unauthorized(new ProblemDetails
+                {
+                    Title = "Invalid refresh token",
+                    Status = StatusCodes.Status401Unauthorized
+                });
+            }
+
+            if (!user.IsActive || user.RefreshTokenExpiryTime < DateTime.UtcNow)
+            {
+                user.RefreshToken = null;
+                user.RefreshTokenExpiryTime = null;
+                await _context.SaveChangesAsync(cancellationToken);
+                return Unauthorized(new ProblemDetails
+                {
+                    Title = "Invalid refresh token",
+                    Status = StatusCodes.Status401Unauthorized
+                });
+            }
 
             var newAccessToken = GenerateJwtToken(user);
             var newRefreshToken = GenerateRefreshToken();
 
             user.RefreshToken = newRefreshToken;
-            user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
+            user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(GetRefreshTokenDays());
 
-            _context.SaveChanges();
+            await _context.SaveChangesAsync(cancellationToken);
 
             return Ok(new
             {
@@ -81,9 +111,10 @@ public AuthController(
             });
         }
         [HttpPost("register")]
-        public IActionResult Register([FromBody] LoginDto dto)
+        public async Task<IActionResult> Register([FromBody] LoginDto dto, CancellationToken cancellationToken)
         {
-            var exists = _context.Users.Any(u => u.Email == dto.Email);
+            var email = NormalizeEmail(dto.Email);
+            var exists = await _context.Users.AnyAsync(u => u.Email == email, cancellationToken);
 
             if (exists)
                 return BadRequest("User already exists");
@@ -91,14 +122,26 @@ public AuthController(
             var user = new Users
             {
                 Id = Guid.NewGuid(),
-                Email = dto.Email,
+                Email = email,
                 PasswordHash = _passwordService.Hash(dto.Password),
-                Role = "User" // default
+                Role = AppRoles.User,
+                IsActive = true
 
             };
 
             _context.Users.Add(user);
-            _context.SaveChanges();
+            try
+            {
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateException)
+            {
+                return Conflict(new ProblemDetails
+                {
+                    Title = "User already exists",
+                    Status = StatusCodes.Status409Conflict
+                });
+            }
 
             return Ok("User created");
         }
@@ -119,6 +162,7 @@ public AuthController(
 
             var claims = new[]
             {
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new Claim(ClaimTypes.Name, user.Email),
                 new Claim(ClaimTypes.Role, user.Role)
             };
@@ -149,6 +193,16 @@ public AuthController(
             return Convert.ToBase64String(randomBytes);
         }
 
+        private int GetRefreshTokenDays()
+        {
+            var days = _configuration.GetValue<int>("Jwt:RefreshTokenDays", 7);
+            return days < 1 ? 7 : days;
+        }
+
+        private static string NormalizeEmail(string email)
+        {
+            return email.Trim().ToLowerInvariant();
+        }
 
     }
 }

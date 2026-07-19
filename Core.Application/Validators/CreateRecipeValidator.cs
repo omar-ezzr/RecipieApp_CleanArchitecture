@@ -1,9 +1,6 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using FluentValidation;
 using Core.Application.DTO.Recipe;
+using Core.Domain.Enums;
 
 namespace Core.Application.Validators
 {
@@ -15,8 +12,14 @@ namespace Core.Application.Validators
         RuleFor(x => x.Title)
             .NotEmpty().WithMessage("Title is required");
 
-      RuleFor(x => x.Description)
-    .NotEmpty().WithMessage("Description is required TEST");
+        RuleFor(x => x.Description)
+            .NotEmpty().WithMessage("Description is required");
+
+        RuleFor(x => x.Difficulty)
+            .NotEmpty().WithMessage("Difficulty is required")
+            .Must(value => Enum.TryParse<DifficultyLevel>(value, true, out var difficulty)
+                && Enum.IsDefined(typeof(DifficultyLevel), difficulty))
+            .WithMessage("Difficulty must be Easy, Medium, or Hard");
     
         RuleFor(x => x.PreparationTimeMinutes)
             .GreaterThan(0).WithMessage("Preparation time must be > 0");

@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
-import { CreateRecipe, Recipe } from '../../models/recipe.model';
+import { CreateRecipe, Difficulty, Recipe } from '../../models/recipe.model';
 import { Category } from '../../models/category.model';
 import { ActivatedRoute, Router } from '@angular/router';
 import { RecipeService } from '../../services/recipe.service';
@@ -36,7 +36,7 @@ export class RecipesComponent implements OnInit {
   // ========================
   searchTerm: string = '';
   selectedCategory: string = '';
-  selectedDifficulty: string = '';
+  selectedDifficulty: Difficulty | '' = '';
   private searchSubject = new Subject<string>();
 
   // ========================
@@ -59,6 +59,7 @@ visiblePages: (number | string)[] = [];
     description: '',
     preparationTimeMinutes: 0,
     categoryId: '',
+    difficulty: 'Easy',
     imageUrl: ''
   };
 
@@ -89,7 +90,7 @@ ngOnInit() {
 
     this.selectedCategory = params['categoryId'] || '';
 
-    this.selectedDifficulty = params['difficulty'] || '';
+    this.selectedDifficulty = this.toDifficulty(params['difficulty']);
 
     this.sortBy = params['sortBy'] || '';
 
@@ -120,7 +121,7 @@ const params = {
   page: this.currentPage,
   pageSize: this.pageSize,
   search: this.searchTerm || undefined,
-  difficulty: this.selectedDifficulty ? Number(this.selectedDifficulty) : undefined,
+  difficulty: this.selectedDifficulty || undefined,
   categoryId: this.selectedCategory || undefined,
   sortBy: this.sortBy || undefined
 };
@@ -132,15 +133,17 @@ const params = {
       this.filteredRecipes = res.items;
 
       this.totalItems = res.total;
-      this.totalPages = Math.ceil(this.totalItems / this.pageSize);
+      this.currentPage = res.page;
+      this.pageSize = res.pageSize;
+      this.totalPages = res.totalPages;
 
       this.generateVisiblePages();
 
       this.isLoading = false;
     },
 
-    error: () => {
-  this.toastr.error('Failed to load recipes');
+    error: (error) => {
+  this.toastr.error(this.getApiError(error, 'Failed to load recipes'));
   this.isLoading = false;
 }
   });
@@ -246,9 +249,9 @@ onSearchChange() {
 
 createRecipe() {
 
-  if (!this.newRecipe.title || !this.newRecipe.categoryId) {
+  if (!this.newRecipe.title || !this.newRecipe.categoryId || !this.newRecipe.difficulty) {
 
-    this.toastr.error('Title and category are required');
+    this.toastr.error('Title, category, and difficulty are required');
 
     return;
   }
@@ -266,9 +269,9 @@ createRecipe() {
       this.resetForm();
     },
 
-    error: () => {
+    error: (error) => {
 
-      this.toastr.error('Failed to create recipe');
+      this.toastr.error(this.getApiError(error, 'Failed to create recipe'));
     }
   });
 }
@@ -287,6 +290,7 @@ startEdit(recipe: Recipe) {
     description: recipe.description,
     preparationTimeMinutes: recipe.preparationTimeMinutes,
     categoryId: recipe.categoryId,
+    difficulty: recipe.difficulty,
     imageUrl: recipe.imageUrl || ''
   };
 }
@@ -311,9 +315,9 @@ updateRecipe() {
       this.resetForm();
     },
 
-    error: () => {
+    error: (error) => {
 
-      this.toastr.error('Failed to update recipe');
+      this.toastr.error(this.getApiError(error, 'Failed to update recipe'));
     }
   });
 }
@@ -353,7 +357,7 @@ deleteRecipe(id: string) {
       this.recipeService.clearCache();
     },
 
-    error: () => {
+    error: (error) => {
 
       // ROLLBACK
       this.filteredRecipes = previousRecipes;
@@ -365,7 +369,7 @@ deleteRecipe(id: string) {
 
       this.generateVisiblePages();
 
-      this.toastr.error('Failed to delete recipe');
+      this.toastr.error(this.getApiError(error, 'Failed to delete recipe'));
     }
   });
 }
@@ -383,6 +387,7 @@ resetForm() {
     description: '',
     preparationTimeMinutes: 0,
     categoryId: '',
+    difficulty: 'Easy',
     imageUrl: ''
   };
 
@@ -397,7 +402,7 @@ loadFavorites(): void {
       );
     },
     error: error => {
-      console.error(error);
+      this.toastr.error(this.getApiError(error, 'Failed to load favorites'));
     }
   });
 }
@@ -420,7 +425,7 @@ toggleFavorite(recipeId: string, event?: Event): void {
       error: error => {
         updatedFavorites.add(recipeId);
         this.favoriteRecipeIds = new Set(updatedFavorites);
-        console.error(error);
+        this.toastr.error(this.getApiError(error, 'Failed to update favorite'));
       }
     });
 
@@ -434,9 +439,43 @@ toggleFavorite(recipeId: string, event?: Event): void {
     error: error => {
       updatedFavorites.delete(recipeId);
       this.favoriteRecipeIds = new Set(updatedFavorites);
-      console.error(error);
+      this.toastr.error(this.getApiError(error, 'Failed to update favorite'));
     }
   });
+}
+
+private getApiError(error: any, fallback: string): string {
+  const validationErrors = error?.error?.errors;
+
+  if (validationErrors) {
+    const firstError = Object.values(validationErrors)
+      .flat()
+      .find((message): message is string => typeof message === 'string');
+
+    if (firstError) {
+      return firstError;
+    }
+  }
+
+  if (typeof error?.error === 'string') {
+    return error.error;
+  }
+
+  if (typeof error?.error?.title === 'string') {
+    return error.error.title;
+  }
+
+  if (typeof error?.error?.message === 'string') {
+    return error.error.message;
+  }
+
+  return fallback;
+}
+
+private toDifficulty(value: string | undefined): Difficulty | '' {
+  return value === 'Easy' || value === 'Medium' || value === 'Hard'
+    ? value
+    : '';
 }
 
 

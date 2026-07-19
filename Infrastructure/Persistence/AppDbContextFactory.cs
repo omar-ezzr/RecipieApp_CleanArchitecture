@@ -24,16 +24,18 @@ public class AppDbContextFactory : IDesignTimeDbContextFactory<AppDbContext>
             ?? Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT")
             ?? "Development";
 
-        var connectionString =
-            ReadConnectionString(Path.Combine(apiPath, "appsettings.json"));
+        var connectionString = ReadConnectionString(Path.Combine(apiPath, "appsettings.json"));
+        var environmentConnectionString = ReadConnectionString(Path.Combine(apiPath, $"appsettings.{environment}.json"));
+        var environmentVariableConnectionString = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection");
 
-        var environmentConnectionString =
-            ReadConnectionString(Path.Combine(apiPath, $"appsettings.{environment}.json"));
-
-        connectionString = environmentConnectionString ?? connectionString;
+        connectionString = FirstNonEmpty(
+            environmentVariableConnectionString,
+            environmentConnectionString,
+            connectionString);
 
         return connectionString
-            ?? "Server=localhost,1433;Database=FoodRecipeDb;User Id=sa;Password=YourStrongPassword123!;TrustServerCertificate=True;";
+            ?? throw new InvalidOperationException(
+                "Connection string 'DefaultConnection' is missing. Set ConnectionStrings__DefaultConnection or use .NET user secrets.");
     }
 
     private static string FindApiPath()
@@ -75,5 +77,10 @@ public class AppDbContextFactory : IDesignTimeDbContextFactory<AppDbContext>
         }
 
         return defaultConnection.GetString();
+    }
+
+    private static string? FirstNonEmpty(params string?[] values)
+    {
+        return values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
     }
 }

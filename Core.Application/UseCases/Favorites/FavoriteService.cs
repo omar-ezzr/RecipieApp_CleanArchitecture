@@ -16,16 +16,19 @@ namespace Core.Application.UseCases.Favorites
             _favoriteRepository = favoriteRepository;
         }
 
-        public async Task<Result> AddFavoriteAsync(Guid userId, Guid recipeId)
+        public async Task<Result> AddFavoriteAsync(
+            Guid userId,
+            Guid recipeId,
+            CancellationToken cancellationToken = default)
         {
-            var recipeExists = await _favoriteRepository.RecipeExistsAsync(recipeId);
+            var recipeExists = await _favoriteRepository.RecipeExistsAsync(recipeId, cancellationToken);
 
             if (!recipeExists)
             {
                 return Result.Failure("Recipe not found.");
             }
 
-            var alreadyExists = await _favoriteRepository.ExistsAsync(userId, recipeId);
+            var alreadyExists = await _favoriteRepository.ExistsAsync(userId, recipeId, cancellationToken);
 
             if (alreadyExists)
             {
@@ -40,28 +43,40 @@ namespace Core.Application.UseCases.Favorites
                 CreatedAt = DateTime.UtcNow
             };
 
-            await _favoriteRepository.AddAsync(favorite);
+            try
+            {
+                await _favoriteRepository.AddAsync(favorite, cancellationToken);
+            }
+            catch (InvalidOperationException)
+            {
+                return Result.Failure("Recipe is already in favorites.");
+            }
 
             return Result.Success();
         }
 
-        public async Task<Result> RemoveFavoriteAsync(Guid userId, Guid recipeId)
+        public async Task<Result> RemoveFavoriteAsync(
+            Guid userId,
+            Guid recipeId,
+            CancellationToken cancellationToken = default)
         {
-            var alreadyExists = await _favoriteRepository.ExistsAsync(userId, recipeId);
+            var alreadyExists = await _favoriteRepository.ExistsAsync(userId, recipeId, cancellationToken);
 
             if (!alreadyExists)
             {
                 return Result.Failure("Favorite not found.");
             }
 
-            await _favoriteRepository.RemoveAsync(userId, recipeId);
+            await _favoriteRepository.RemoveAsync(userId, recipeId, cancellationToken);
 
             return Result.Success();
         }
 
-        public async Task<List<FavoriteRecipeDto>> GetUserFavoritesAsync(Guid userId)
+        public async Task<List<FavoriteRecipeDto>> GetUserFavoritesAsync(
+            Guid userId,
+            CancellationToken cancellationToken = default)
         {
-            var favorites = await _favoriteRepository.GetUserFavoritesAsync(userId);
+            var favorites = await _favoriteRepository.GetUserFavoritesAsync(userId, cancellationToken);
 
             return favorites.Select(f => new FavoriteRecipeDto
             {
@@ -73,9 +88,12 @@ namespace Core.Application.UseCases.Favorites
             }).ToList();
         }
 
-        public async Task<bool> IsFavoriteAsync(Guid userId, Guid recipeId)
+        public async Task<bool> IsFavoriteAsync(
+            Guid userId,
+            Guid recipeId,
+            CancellationToken cancellationToken = default)
         {
-            return await _favoriteRepository.ExistsAsync(userId, recipeId);
+            return await _favoriteRepository.ExistsAsync(userId, recipeId, cancellationToken);
         }
     }
 }

@@ -46,8 +46,6 @@ export class LoginComponent {
 
       next: (res: any) => {
 
-        console.log(res);
-
         this.auth.saveTokens(
           res.accessToken,
           res.refreshToken

@@ -1,3 +1,5 @@
+export type Difficulty = 'Easy' | 'Medium' | 'Hard';
+
 export interface Recipe {
   id: string;
   title: string;
@@ -5,7 +7,7 @@ export interface Recipe {
   preparationTimeMinutes: number;
   categoryId: string;
   category: string;
-  difficulty?: string;
+  difficulty: Difficulty;
   imageUrl?: string;
   ingredients: string[];
 
@@ -17,6 +19,6 @@ export interface CreateRecipe {
   description: string;
   preparationTimeMinutes: number;
   categoryId: string;
-  difficulty?: string;
+  difficulty: Difficulty;
   imageUrl?: string;
 }

@@ -1,37 +1,18 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
-
-function isTokenExpired(token: string): boolean {
-  try {
-    const payloadBase64 = token.split('.')[1];
-
-    if (!payloadBase64) {
-      return true;
-    }
-
-    const payload = JSON.parse(atob(payloadBase64));
-    const expiry = payload.exp;
-
-    if (!expiry) {
-      return true;
-    }
-
-    return Date.now() >= expiry * 1000;
-  } catch {
-    return true;
-  }
-}
+import { map } from 'rxjs/operators';
+import { AuthService } from '../services/auth.service';
 
 export const authGuard: CanActivateFn = () => {
   const router = inject(Router);
-  const token = localStorage.getItem('accessToken');
+  const auth = inject(AuthService);
+  const token = auth.getAccessToken();
 
-  if (!token || isTokenExpired(token)) {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    router.navigate(['/login']);
-    return false;
+  if (token && !auth.isTokenExpired(token)) {
+    return true;
   }
 
-  return true;
+  return auth.restoreSession().pipe(
+    map((restored) => restored ? true : router.createUrlTree(['/login']))
+  );
 };

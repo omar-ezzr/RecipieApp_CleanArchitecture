@@ -1,27 +1,39 @@
-# App
+# Recepes V2 Angular App
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 18.2.21.
+Angular 18 standalone frontend for the Recep V2 recipe application.
 
-## Development server
+## Development Server
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The application will automatically reload if you change any of the source files.
+Run `ng serve` and open `http://localhost:4200/`.
 
-## Code scaffolding
+## Local Dependencies
 
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
+Bootstrap is installed through npm and imported from `src/styles.css`; no Bootstrap CDN is required.
 
 ## Build
 
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
+Run:
 
-## Running unit tests
+```bash
+npm run build
+```
 
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
+## Unit Tests
 
-## Running end-to-end tests
+Run:
 
-Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To use this command, you need to first add a package that implements end-to-end testing capabilities.
+```bash
+npm test -- --watch=false
+```
 
-## Further help
+Karma uses `karma-chrome-launcher`, so the local environment must provide a Chrome or Chromium binary.
 
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+## API Configuration
+
+API service URLs currently target `http://localhost:5130/api/...`, matching the backend HTTP launch profile.
+
+## Auth Behavior
+
+Authentication uses `accessToken` and `refreshToken` in localStorage. Refresh is shared so concurrent `401` responses reuse a single refresh request.
+
+Roles are `User`, `Operator`, and `Admin`. Operators can manage recipes. Admins can also access `/admin/accounts` for account management.

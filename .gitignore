@@ -28,3 +28,17 @@ appsettings.Production.json
 Thumbs.db
 .vscode/
 .idea/
+
+# .NET generated files
+**/bin/
+**/obj/
+
+# Angular generated files
+app/node_modules/
+app/dist/
+app/.angular/
+
+# Local secrets
+.env
+.env.*
+!.env.example

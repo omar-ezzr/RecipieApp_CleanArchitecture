@@ -15,8 +15,9 @@ using Core.Application.Validators;
 using Infrastructure.Services;
 using Infrastructure.Seed;
 using Core.Application.UseCases.Reviews;
-
-
+using Core.Application.UseCases.Users;
+using Core.Domain.Constants;
+using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -96,12 +97,37 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             IssuerSigningKey = jwtSigningKey,
             ClockSkew = TimeSpan.Zero
         };
+        options.Events = new JwtBearerEvents
+        {
+            OnTokenValidated = async context =>
+            {
+                var userIdValue = context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier);
+                var tokenRole = context.Principal?.FindFirstValue(ClaimTypes.Role);
+
+                if (!Guid.TryParse(userIdValue, out var userId) || string.IsNullOrWhiteSpace(tokenRole))
+                {
+                    context.Fail("Invalid user identity.");
+                    return;
+                }
+
+                var db = context.HttpContext.RequestServices.GetRequiredService<AppDbContext>();
+                var user = await db.Users
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(account => account.Id == userId, context.HttpContext.RequestAborted);
+
+                if (user is null || !user.IsActive || user.Role != tokenRole)
+                {
+                    context.Fail("Invalid user identity.");
+                }
+            }
+        };
     });
 
 
 builder.Services.AddScoped<IPasswordService, PasswordService>();
 builder.Services.AddScoped<IFavoriteService, FavoriteService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
+builder.Services.AddScoped<IUserManagementService, UserManagementService>();
 
 
 //validation error
@@ -116,7 +142,6 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-Console.WriteLine(builder.Configuration.GetConnectionString("DefaultConnection"));
 app.UseHttpsRedirection();
 app.UseCors("AllowAngular");
 
@@ -125,11 +150,15 @@ app.UseAuthorization();
 
 app.MapControllers();      
 
-using (var scope = app.Services.CreateScope())
+if (!app.Environment.IsEnvironment("Testing"))
 {
+    using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.Migrate();
-    await DbSeeder.SeedAsync(db);
+    var passwordService = scope.ServiceProvider.GetRequiredService<IPasswordService>();
+    await DbSeeder.SeedAsync(db, builder.Configuration, passwordService);
 }
 
 app.Run();
+
+public partial class Program { }

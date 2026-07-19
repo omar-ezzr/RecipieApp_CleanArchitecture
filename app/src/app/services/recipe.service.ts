@@ -1,13 +1,13 @@
 import { Injectable} from "@angular/core";
 import { HttpClient, HttpParams } from "@angular/common/http";
 import { Observable, of } from "rxjs";
-import { CreateRecipe, Recipe } from "../models/recipe.model";
+import { CreateRecipe, Difficulty, Recipe } from "../models/recipe.model";
 import { tap } from 'rxjs/operators';
 
 export interface RecipeQuery {
   search?: string;
   categoryId?: string;
-  difficulty?: number;
+  difficulty?: Difficulty;
   sortBy?: string;
   page?: number;
   pageSize?: number;
@@ -18,6 +18,7 @@ export interface PagedRecipes {
     total: number;
     page: number;
     pageSize: number;
+    totalPages: number;
 }
 @Injectable({
     providedIn: "root",
@@ -30,8 +31,8 @@ export class RecipeService {
 
     constructor(private http: HttpClient){}
 
-    getAll(): Observable<Recipe[]>{
-        return this.http.get<Recipe[]>(this.apiUrl);
+    getAll(): Observable<PagedRecipes>{
+        return this.http.get<PagedRecipes>(this.apiUrl);
     }
 
     // getFiltered(query: RecipeQuery): Observable<PagedRecipes> {
@@ -82,8 +83,6 @@ return this.http.delete(
   // CACHE HIT
   if (this.cache.has(cacheKey)) {
 
-    console.log('CACHE HIT');
-
     return of(this.cache.get(cacheKey));
   }
 
@@ -124,8 +123,6 @@ if (query.pageSize) {
   ).pipe(
 
     tap(response => {
-
-      console.log('API REQUEST');
 
       this.cache.set(
         cacheKey,
