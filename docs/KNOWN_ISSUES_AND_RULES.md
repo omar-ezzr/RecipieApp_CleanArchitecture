@@ -1,97 +1,106 @@
 # Known Issues And Rules
 
-## Confirmed Bugs
+Last verified: 2026-07-26
+Branch: `main`
+Commit: `1de804620330d10f9ee6b493ecac423f6ab288b2`
 
-No confirmed application bugs remain from the fixed difficulty/auth/test issues. Remaining risks are listed below.
+## Non-Negotiable Rules
+
+| Rule | Reason |
+| --- | --- |
+| Do not expose secrets; use `[REDACTED]`. | `API/appsettings*.json`, user secrets, and environment variables may contain sensitive values. |
+| Preserve `Recipie`, `RecipieDto`, `RecipieStep`, `Recipies`, `Recep`, `Recepes`. | Existing code and migrations depend on these names. |
+| Preserve `API/Controller/RecipesController .cs`. | Filename contains a space and is part of the current tree. |
+| Do not edit migrations manually. | EF migrations and snapshot must remain coordinated. |
+| Do not overwrite dirty source files. | Working tree contains active uncommitted feature work. |
+| Backend authorization is authoritative. | Frontend guards/buttons are UI only. |
+
+## Confirmed Bugs / Inconsistencies
+
+| Severity | File | Evidence | Impact | Recommended correction |
+| --- | --- | --- | --- | --- |
+| High | `Core.Application/DTO/Reviews/ReviewDto.cs` | DTO exposes `UserEmail`; details page displays reviews. | Public email exposure through anonymous review list. | Replace with safe public author DTO/display name. |
+| High | `API/Program.cs` | Runs `db.Database.Migrate()` at startup outside Testing. | Starting API can mutate configured DB unexpectedly. | Move migration to explicit deployment step or gated dev-only path. |
+| Medium | `API/Controller/CategoriesController.cs` | Uses `AppDbContext` directly and returns entities. | Breaks service/repository pattern and leaks entity shape. | Add category service/repository/DTO if category behavior grows. |
+| Medium | `API/Controller/AuthController.cs` | Uses `AppDbContext` directly; errors are mixed strings/ProblemDetails. | Inconsistent architecture and error contract. | Introduce auth service and unified responses. |
+| Medium | `Core.Domain/Entities/RecipeImage.cs` | Entity exists without clear DbSet/config; `Recipie.Images` exists. | Possible shadow FK/migration confusion. | Add explicit mapping or remove in coordinated migration. |
+| Low | `app/src/app/app.module.ts` | Standalone bootstrap uses `main.ts`; module remains. | Maintainer confusion. | Remove only in a coordinated cleanup if verified unused. |
 
 ## Security Risks
 
-| Severity | File path | Evidence | Impact | Recommended correction | Likely affected files |
-|---|---|---|---|---|---|
-| Medium | `API/appsettings.json`, `API/appsettings.Development.json` | Connection string and JWT key are empty placeholders. | API startup fails until local secrets are configured. | Set `ConnectionStrings__DefaultConnection` and `Jwt__Key` through user secrets or environment variables. | local/deployment config |
-| Medium | `API/Program.cs` | JWT issuer/audience validation disabled. | Tokens signed with key are accepted regardless of issuer/audience. | Configure and validate issuer/audience for non-local environments. | `API/Program.cs`, appsettings |
+| Severity | Area | Evidence | Risk | Recommendation |
+| --- | --- | --- | --- | --- |
+| Critical | Secrets | `API/appsettings.json` and development settings are modified; values must not be printed. | Secret leakage through docs/logs. | Use `[REDACTED]`; keep real values in user secrets/env. |
+| High | Review privacy | `ReviewDto.UserEmail` | Public endpoint can expose emails. | Use display name only. |
+| Medium | JWT validation | `Program.cs` disables issuer/audience validation. | Tokens are validated only by signing key/lifetime/user role. | Configure issuer/audience before production. |
+| Medium | CORS | `Program.cs` allows `http://localhost:4200` only. | Correct for local dev, not deploy-ready. | Move allowed origins to config. |
+| Medium | Token storage | `AuthService` stores tokens in `localStorage`. | XSS can read tokens. | Consider httpOnly cookies or stronger XSS controls. |
+| Medium | Account errors | Auth endpoints return strings/ProblemDetails. | Inconsistent client behavior; potential user enumeration through messages. | Standardize auth errors. |
+
+No confirmed raw SQL injection risk was found; repositories use EF LINQ.
 
 ## Backend/Frontend Mismatches
 
-| Severity | File path | Evidence | Impact | Recommended correction | Likely affected files |
-|---|---|---|---|---|---|
-| Low | `app/src/app/models/category.model.ts`, `Core.Domain/Entities/Category.cs` | Angular model omits `description`/`createdAt`. | Safe now, but incomplete if UI later needs fields. | Extend model when consuming fields. | category model/service/components |
+| Area | Evidence | Impact |
+| --- | --- | --- |
+| Reviews | Backend returns `UserEmail`; frontend can display it. | Privacy mismatch with safe author policy. |
+| Categories | Backend entity has `Description`; frontend model only has `id/name`. | Benign unless description UI is added. |
+| Error contracts | Recipe/culture use `ApiErrorResponse`; auth/review/favorite use mixed responses. | Frontend error parsing must handle many shapes. |
+| Culture Admin | Backend Admin endpoints exist; Angular has services but no routed Admin UI. | Management requires API/Swagger/manual calls. |
+| Service URL tests | Service specs assert concrete localhost URL. | Centralized URL changes require spec updates. |
 
 ## Database Risks
 
-| Severity | File path | Evidence | Impact | Recommended correction | Likely affected files |
-|---|---|---|---|---|---|
-| High | `Core.Domain/Entities/RecipeImage.cs`, `Infrastructure/Migrations/AppDbContextModelSnapshot.cs` | Snapshot uses nullable shadow `RecipieId`; entity has `RecipeId`; no DbSet. | Images relationship can persist incorrectly and is hard to query. | Explicitly configure `RecipeImage.RecipeId` FK/table and add migration if feature is needed. | entity, DbContext, configuration, migrations |
-| Medium | `Infrastructure/Persistence/Configurations/IngredientConfiguration.cs` | File defines `RecipieConfiguration : IEntityTypeConfiguration<Recipie>`, not ingredient config. | Duplicate recipe config and misleading file/class name. | Rename/fix when doing DB cleanup; avoid casual runtime changes. | configuration files, migrations |
-| Medium | `API/Program.cs` | `db.Database.Migrate()` runs at startup. | App startup can mutate whichever DB connection string points to. | Keep for local only or gate by environment/explicit flag. | `Program.cs`, deployment config |
-| Low | migration designer files | Early designers show EF ProductVersion `9.0.0`, current packages/snapshot are EF `8.0.0`. | Tooling confusion if regenerating migrations. | Use consistent SDK/packages for future migrations. | csproj, migrations |
-
-## Build Or Configuration Risks
-
-| Severity | File path | Evidence | Impact | Recommended correction | Likely affected files |
-|---|---|---|---|---|---|
-| Medium | `app/package-lock.json` | `npm audit` reports 52 remaining vulnerabilities after safe `npm audit fix`; remaining fixes require `npm audit fix --force` and Angular/build-tool major upgrades. | Development/build tooling and Angular dependencies remain on vulnerable ranges. | Plan a controlled Angular/tooling upgrade instead of force-upgrading blindly. | `app/package.json`, `app/package-lock.json`, Angular source/tests |
-| Low | `app/src/styles.css`, `app/angular.json` | Bootstrap CSS is imported locally and initial bundle is about 705 kB; budget warning is now 750 kB. Build also reports one Bootstrap selector optimizer warning. | Build passes, but Bootstrap contributes most CSS size. | Trim Bootstrap imports if bundle size becomes a product concern. | `app/angular.json`, `app/src/styles.css` |
-| Low | `app/src/app/app.module.ts` | Incomplete `@NgModule` snippet; not imported by `main.ts`. | Confusing unused file. | Remove or complete only during cleanup. | `app.module.ts` |
-
-## Naming Inconsistencies
-
-- Preserve `Recipie`, `RecipieDto`, `RecipieStep`, `Recipies`.
-- Exact odd path: `API/Controller/RecipesController .cs`.
-- `app/interceptors/auth.intercepro.ts` has misspelled filename and duplicates auth interceptor.
-- Frontend brand text uses `Recepes V2`.
-
-## Potentially Unused Files
-
-- `Core.Domain/Class1.cs`
-- `Core.Application/Class1.cs`
-- `Infrastructure/Class1.cs`
-- `Infrastructure/Persistence/DataSeeder.cs`
-- `app/src/app/app.module.ts`
-- `app/src/app/app.component.html`
-- `app/interceptors/auth.intercepro.ts`
-
-## Missing Tests
-
-- Backend application tests exist in `tests/Core.Application.Tests`; API recipe authorization integration tests exist in `tests/API.IntegrationTests`.
-- Angular specs cover core standalone behavior and compile, but runtime execution in this environment is blocked without a Chrome/Chromium binary. CI workflow runs Chrome Headless.
+| Severity | Evidence | Risk | Recommendation |
+| --- | --- | --- | --- |
+| High | Startup migration in `Program.cs` | Accidental DB mutation. | Remove automatic migration from normal runtime. |
+| Medium | `FavoriteRecipeConfiguration` and `RecipeReviewConfiguration` cascade from users/recipes | Deleting users/recipes can remove related favorites/reviews. | Confirm product deletion policy. |
+| Medium | `RecipeImage` incomplete mapping | Shadow FK or unused table risk. | Resolve mapping in a schema cleanup phase. |
+| Medium | Search uses `Contains` | Expensive scans as recipe count grows. | Add search strategy/indexes later. |
 
 ## Performance Risks
 
-- `GET /api/Recipes` delegates to capped paged behavior with page size 100.
-- Recipe search uses `Title.Contains`, with no confirmed index.
-- Seed creates 1,000 recipes at startup when database is empty.
+| Area | Evidence | Risk |
+| --- | --- | --- |
+| Recipe list | `RecipeRepository.GetPagedAsync` includes related entities then materializes. | More data than DTO projection needs. |
+| Reviews | `ReviewRepository.GetByRecipeIdAsync` is unpaged. | Large review lists can grow unbounded. |
+| User search | `UserRepository.GetPagedAsync` uses `Email.Contains`. | Potential scan. |
+| Seeder | `DbSeeder` can seed many recipes when none exist. | Startup can be slow. |
 
 ## Maintainability Risks
 
-- Mixed direct DbContext controller usage and service/repository pattern.
-- Hardcoded API URLs in Angular services.
-- Plain string error responses vary by endpoint.
-- Feature code and docs have spelling variants: Recipe/Recipie/Recep/Recepes.
+- Mixed direct DbContext and service/repository patterns.
+- Plain-string errors in older endpoints.
+- Some formatting/namespaces are inconsistent.
+- Large dirty working tree with application, migration, tests, docs, and generated files.
+- Untracked archives `back.zip` and `front.zip` are present.
 
 ## Areas Requiring Verification
 
-- Whether the current database already contains an Admin user.
-- Whether the project should stay on Angular 18 despite unresolved npm audit findings requiring major upgrades.
-- Whether startup migration is intended outside local development.
+- Whether the uncommitted migrations have been applied to any local database.
+- Whether current appsettings values are valid in the developer environment.
+- Whether any external PerformancePlatform integration exists outside currently inspected identifiers.
+- Whether browser tests pass in an environment with Chrome configured.
 
-## Files That Must Not Be Changed Casually
+## Frontend Redesign Rules And Remaining Issues
 
-- `Infrastructure/Migrations/**`
-- `Infrastructure/Persistence/AppDbContext.cs`
-- `Infrastructure/Persistence/Configurations/**`
-- `API/Program.cs`
-- `API/appsettings*.json`
-- `Core.Domain/Entities/**`
-- `app/src/app/services/auth.service.ts`
-- `app/src/app/interceptors/error.interceptor.ts`
-- `app/src/app/guards/auth.guard.ts`
+Last verified: 2026-07-26 after frontend redesign.
 
-## Route, Angular, Styling, And Secret Rules
+Rules:
 
-- API route convention is `[Route("api/[controller]")]`; document actual controller token routes.
-- Sensitive backend actions must use backend `[Authorize]`/role checks, not only Angular UI checks.
-- Angular uses standalone bootstrap; add standalone imports locally.
-- Keep API URLs coordinated with backend launch settings and CORS.
-- Do not expose connection strings, JWT keys, API keys, tokens, or password hashes. In docs use `[REDACTED]`.
-- Store local secrets in user secrets or environment variables; store deployment secrets in platform secret management.
+- Do not replace the standalone Angular architecture with NgModules.
+- Keep `API_BASE_URL` centralized in `app/src/app/app-api.config.ts`; do not hardcode new API origins in components.
+- Use `app/src/app/core/utils/asset-url.util.ts` for API-relative recipe image paths.
+- Frontend owner/Admin visibility is presentation only; backend authorization remains authoritative.
+- Keep email addresses out of prominent UI. `RecipeDetailsComponent` currently masks review emails because the backend still returns `Review.UserEmail`.
+- Preserve existing routes: `/`, `/recipes`, `/login`, `/register`, `/recipes/:id`, `/create-recipe`, `/my-recipes`, `/admin/accounts`.
+
+Confirmed remaining frontend issues:
+
+| Severity | Area | Evidence | Recommendation |
+| --- | --- | --- | --- |
+| Medium | Test environment | `npm test -- --watch=false` cannot launch Chrome; `CHROME_BIN` unset. | Install/configure Chrome or use a supported headless browser in CI. |
+| Medium | Build budgets | `npm run build` passes but warns on initial bundle and component CSS sizes. | Tune budgets or consolidate/minify component CSS further after product sign-off. |
+| Medium | Review privacy | Backend review DTO returns email; frontend masks it in details page. | Replace backend review author shape with safe display-name DTO. |
+| Low | Bootstrap selector warning | Build warning for `.form-floating>~label` from Bootstrap CSS parsing. | Usually harmless; can be revisited if Bootstrap is removed or upgraded. |
+| Low | Auth display name in navbar | JWT may not contain a display-name claim; navbar falls back to generic text. | Add a stable display-name claim or `/me` profile endpoint later if needed. |

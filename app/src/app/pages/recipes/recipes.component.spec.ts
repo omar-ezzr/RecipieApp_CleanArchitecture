@@ -7,7 +7,8 @@ import { RecipeService } from '../../services/recipe.service';
 import { CategoryService } from '../../services/category.service';
 import { AuthService } from '../../services/auth.service';
 import { FavoriteService } from '../../services/favorite.service';
-import { Recipe } from '../../models/recipe.model';
+import { CuisineService } from '../../services/cuisine.service';
+import { DifficultyLevel, Recipe } from '../../models/recipe.model';
 
 describe('RecipesComponent', () => {
   let component: RecipesComponent;
@@ -23,8 +24,16 @@ describe('RecipesComponent', () => {
     preparationTimeMinutes: 20,
     categoryId: 'cat-1',
     category: 'Dinner',
-    difficulty: 'Medium',
+    cuisineId: 'cuisine-1',
+    cuisineName: 'Moroccan',
+    cuisineSlug: 'moroccan',
+    regionId: 'region-1',
+    regionName: 'Souss-Massa',
+    regionSlug: 'souss-massa',
+    difficulty: DifficultyLevel.Medium,
+    author: { id: 'user-1', displayName: 'User' },
     imageUrl: '',
+    isTraditional: true,
     ingredients: [],
     steps: []
   };
@@ -37,7 +46,12 @@ describe('RecipesComponent', () => {
       'delete',
       'clearCache'
     ]);
-    auth = jasmine.createSpyObj<AuthService>('AuthService', ['isAdmin', 'canManageRecipes']);
+    auth = jasmine.createSpyObj<AuthService>('AuthService', [
+      'isAdmin',
+      'isLoggedIn',
+      'canManageRecipes',
+      'getCurrentUserId'
+    ]);
     favoriteService = jasmine.createSpyObj<FavoriteService>('FavoriteService', ['getMine', 'add', 'remove']);
 
     recipeService.getPaged.and.returnValue(of({
@@ -49,13 +63,16 @@ describe('RecipesComponent', () => {
     }));
     favoriteService.getMine.and.returnValue(of([]));
     auth.isAdmin.and.returnValue(false);
-    auth.canManageRecipes.and.returnValue(false);
+    auth.isLoggedIn.and.returnValue(true);
+    auth.canManageRecipes.and.returnValue(true);
+    auth.getCurrentUserId.and.returnValue('user-1');
 
     await TestBed.configureTestingModule({
       imports: [RecipesComponent],
       providers: [
         { provide: RecipeService, useValue: recipeService },
         { provide: CategoryService, useValue: { getAll: () => of([]) } },
+        { provide: CuisineService, useValue: { getAll: () => of([{ id: 'cuisine-1', name: 'Moroccan', slug: 'moroccan', countryCode: 'MA', isActive: true }]), getRegions: () => of([{ id: 'region-1', name: 'Souss-Massa', slug: 'souss-massa', cuisineId: 'cuisine-1', cuisineName: 'Moroccan', isActive: true }]) } },
         { provide: AuthService, useValue: auth },
         { provide: FavoriteService, useValue: favoriteService },
         { provide: ActivatedRoute, useValue: { queryParams: of({}) } },
@@ -103,13 +120,13 @@ describe('RecipesComponent', () => {
   it('initializes edit form with existing difficulty', () => {
     component.startEdit(recipe);
 
-    expect(component.newRecipe.difficulty).toBe('Medium');
+    expect(component.newRecipe.difficulty).toBe(DifficultyLevel.Medium);
   });
 
   it('preserves edit difficulty when updating other fields', () => {
     component.startEdit(recipe);
     component.newRecipe.title = 'Updated soup';
-    recipeService.update.and.returnValue(of({}));
+    recipeService.update.and.returnValue(of(recipe));
 
     component.updateRecipe();
 
@@ -117,7 +134,7 @@ describe('RecipesComponent', () => {
       'recipe-1',
       jasmine.objectContaining({
         title: 'Updated soup',
-        difficulty: 'Medium'
+        difficulty: DifficultyLevel.Medium
       })
     );
   });
@@ -129,33 +146,65 @@ describe('RecipesComponent', () => {
       description: 'Warm',
       preparationTimeMinutes: 20,
       categoryId: 'cat-1',
+      cuisineId: '',
+      regionId: null,
       difficulty: '' as any,
-      imageUrl: ''
+      imageUrl: '',
+      isTraditional: false,
+      ingredients: [{ name: 'Salt', quantity: '1 tsp' }],
+      steps: [{ stepNumber: 1, instruction: 'Cook' }]
     };
 
     component.createRecipe();
 
     expect(recipeService.create).not.toHaveBeenCalled();
-    expect(toastr.error).toHaveBeenCalledWith('Title, category, and difficulty are required');
+    expect(toastr.error).toHaveBeenCalledWith('Title, category, cuisine, and difficulty are required');
   });
 
-  it('hides recipe-management controls for normal users', () => {
-    auth.canManageRecipes.and.returnValue(false);
-    fixture.detectChanges();
+  it('resets region when cuisine filter changes', () => {
+    component.selectedCuisine = 'cuisine-1';
+    component.selectedRegion = 'region-1';
 
-    const compiled = fixture.nativeElement as HTMLElement;
+    component.onCuisineFilterChange();
 
-    expect(compiled.textContent).not.toContain('Edit Recipe');
+    expect(component.selectedRegion).toBe('');
   });
 
-  it('shows recipe-management controls for operators', () => {
-    auth.canManageRecipes.and.returnValue(true);
+  it('shows recipe creation controls for authenticated normal users', () => {
+    auth.isLoggedIn.and.returnValue(true);
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
 
     expect(compiled.textContent).toContain('Create Recipe');
+  });
+
+  it('allows owners to manage their recipes', () => {
+    auth.getCurrentUserId.and.returnValue('user-1');
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+
     expect(compiled.textContent).toContain('Edit');
+    expect(component.canManageRecipe(recipe)).toBeTrue();
+  });
+
+  it('hides edit and delete controls from other normal users', () => {
+    auth.getCurrentUserId.and.returnValue('other-user');
+    auth.isAdmin.and.returnValue(false);
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    expect(component.canManageRecipe(recipe)).toBeFalse();
+    expect(compiled.textContent).not.toContain('Edit');
+  });
+
+  it('allows admins to manage any recipe', () => {
+    auth.getCurrentUserId.and.returnValue('other-user');
+    auth.isAdmin.and.returnValue(true);
+
+    expect(component.canManageRecipe(recipe)).toBeTrue();
   });
 
   it('rolls back favorite toggle after API failure', () => {

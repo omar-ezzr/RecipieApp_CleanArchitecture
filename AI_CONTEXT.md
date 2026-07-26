@@ -1,193 +1,189 @@
-# AI Context: Recipe App V2 / Recep V2
+# RecepieV3 AI Context
 
-## Project
+Last verified: 2026-07-26
+Branch: `main`
+Commit: `1de804620330d10f9ee6b493ecac423f6ab288b2`
+Working tree: dirty. Many backend/frontend/test changes for recipe ownership and cuisine/region support are uncommitted. Treat them as active work and do not overwrite them.
 
-Confirmed project names in repository text are mixed: solution file `Recep.sln`, frontend brand text `Recepes V2`, and user-provided name `Recipe App V2 / Recep V2`. This context preserves existing identifiers and spellings such as `Recipie`, `RecipieDto`, `RecipieStep`, and `Recipies`.
+This document is the entry point for future AI agents and developers. It describes the repository as inspected from code, not from product intentions. Documentation must reflect implemented code. Planned behavior must be labeled as planned or recommended.
 
-Business purpose: authenticated recipe browsing and administration app. Users can register, log in, browse recipes, view details, favorite recipes, and add reviews. Operator users can manage recipes. Admin users can manage recipes and user accounts.
+## Project Identity
 
-## Implemented Scope
+RecepieV3 / Recep V2 is a full-stack social recipe application. Current code supports authenticated users publishing recipes, favoriting recipes, rating/reviewing recipes, and exploring recipes by category, difficulty, cuisine, region, and traditional metadata.
 
-Confirmed implemented features:
+Important naming rules:
 
-- Registration, login, JWT access tokens, refresh tokens, client logout.
-- Recipe list, detail page, server-side search, category filter, difficulty filter, sorting, pagination.
-- Recipe create/update/delete backend endpoints require `Admin` or `Operator`.
-- Admin account-management endpoints and `/admin/accounts` require `Admin`.
-- Category loading.
-- Favorites for current authenticated user.
-- Reviews for recipes, including create/update/delete backend and create/list UI.
-- Swagger in development.
-- EF Core startup migration and seed of 1,000 sample recipes when no recipes exist.
-- The unsafe external performance logging integration was removed from the working tree.
+- Preserve `Recipie`, `RecipieDto`, `RecipieStep`, `Recipies`, `Recep`, and `Recepes`.
+- Preserve the existing controller filename `API/Controller/RecipesController .cs`; it contains a space before `.cs`.
+- Do not rename domain, DTO, migration, route, or Angular symbols casually.
 
-Not found: dashboards, uploads, SignalR/realtime, notifications, charts, Docker, backend tests, e2e tests.
+## Current Architecture
 
-## Tech Stack
+| Area | Evidence | Notes |
+| --- | --- | --- |
+| Solution | `Recep.sln` | Projects: `API`, `Core.Application`, `Core.Domain`, `Infrastructure`, and test projects under `tests/`. |
+| Backend API | `API/Program.cs`, `API/Controller/` | ASP.NET Core Web API with controllers, JWT bearer auth, Swagger, CORS, EF migrations/seeding at startup outside Testing. |
+| Domain | `Core.Domain/Entities/`, `Core.Domain/Enums/` | Entities are simple EF-oriented classes; `BaseEntity` contains `Id` and `CreatedAt`. |
+| Application | `Core.Application/UseCases/`, `Core.Application/Interfaces/`, `Core.Application/DTO/`, `Core.Application/Validators/` | Service layer, repository interfaces, DTOs, FluentValidation, `Result` and `ServiceResult` conventions. |
+| Infrastructure | `Infrastructure/Persistence/`, `Infrastructure/Repositories/`, `Infrastructure/Seed/` | EF Core SQL Server context, configurations, migrations, repository implementations, seed data. |
+| Frontend | `app/src/app/` | Angular 18 standalone components with route guards, interceptors, services, and template-driven forms. |
+| Tests | `tests/`, Angular `*.spec.ts` | Backend xUnit/SQLite tests exist. Angular Karma tests compile but require Chrome at runtime. |
 
-- .NET SDK: `8.0.129` from `dotnet --version`.
-- Backend target framework: `net8.0` in `API/API.csproj`, `Infrastructure/Infrastructure.csproj`, `Core.Application/Core.Application.csproj`, `Core.Domain/Core.Domain.csproj`.
-- ASP.NET Core Web API with controllers.
-- Entity Framework Core SQL Server packages `8.0.0`; `Microsoft.EntityFrameworkCore.Design` in `API/API.csproj` has version string `8.00`.
-- JWT bearer auth: `Microsoft.AspNetCore.Authentication.JwtBearer` `8.0.0`, `System.IdentityModel.Tokens.Jwt` `8.17.0`.
-- FluentValidation: `FluentValidation.AspNetCore` `11.3.1`, `FluentValidation` `12.1.1`.
-- Swagger: `Swashbuckle.AspNetCore` `7.0.0`.
-- Angular CLI and Angular packages: `18.2.x` in `app/package.json`; Angular CLI README says `18.2.21`.
-- Node: `v20.20.2`; npm: `10.8.2`.
-- Toaster: `ngx-toastr` `18.0.0`.
+Dependency direction mostly follows `API -> Core.Application -> Core.Domain` and `Infrastructure -> Core.Application/Core.Domain`. Some controllers still use `AppDbContext` directly, notably `API/Controller/AuthController.cs` and `API/Controller/CategoriesController.cs`.
 
-## Concise Project Tree
+## Repository Tree
 
 ```text
-Recep.sln
-API/
-  API.csproj
-  API.http
-  Program.cs
-  appsettings.json
-  appsettings.Development.json
-  Controller/
-    AuthController.cs
-    CategoriesController.cs
-    FavoritesController.cs
-    RecipesController .cs
-    ReviewsController.cs
-  Properties/
-    launchSettings.json
-Core.Domain/
-  Common/BaseEntity.cs
-  Entities/
-  Enums/DifficultyLevel.cs
-Core.Application/
-  Common/Result.cs
-  DTO/
-  Interfaces/
-  UseCases/
-  Validators/
-Infrastructure/
-  DependencyInjection.cs
-  Persistence/
-    AppDbContext.cs
-    AppDbContextFactory.cs
-    DataSeeder.cs
-    Configurations/
-  Repositories/
-  Seed/DbSeeder.cs
-  services/PasswordService.cs
-  Migrations/
-app/
-  package.json
-  angular.json
-  interceptors/auth.intercepro.ts
-  src/
-    main.ts
-    styles.css
-    app/
-      app.config.ts
-      app.routes.ts
-      guards/
-      interceptors/
-      models/
-      services/
-      login/
-      pages/register/
-      pages/recipes/
-      recipe-details/
-      shared/navbar/
-docs/
+API/                         ASP.NET Core API, controllers, startup, options, responses
+Core.Application/            DTOs, interfaces, services/use cases, validators, common result types
+Core.Domain/                 Entities, enums, constants, BaseEntity
+Infrastructure/              EF DbContext, configurations, migrations, repositories, seeders
+app/                         Angular 18 standalone frontend
+tests/                       Backend unit and integration tests
+docs/                        Context documentation
+README.md                    General repository readme
+Recep.sln                    .NET solution
 ```
 
-## Architecture
+Generated/dependency directories such as `bin/`, `obj/`, `node_modules/`, `dist/`, `.angular/`, and `.git/` should not be used as source evidence except for build diagnostics.
 
-Backend:
+## Backend Summary
 
-- `API` hosts controllers, auth setup, CORS, Swagger, middleware, startup migration/seed.
-- `Core.Domain` contains entities/enums.
-- `Core.Application` contains DTOs, service interfaces, repository interfaces, validators, and use-case services.
-- `Infrastructure` contains `AppDbContext`, EF configurations, repositories, password hashing, migrations, and seeders.
+JWT authentication is configured in `API/Program.cs`. Tokens are generated in `API/Controller/AuthController.cs` and include `ClaimTypes.NameIdentifier`, `ClaimTypes.Name`, and `ClaimTypes.Role`.
 
-Frontend:
+Recipe publishing is implemented in:
 
-- Angular standalone bootstrap from `app/src/main.ts` into standalone `AppComponent`.
-- Providers live in `app/src/app/app.config.ts`.
-- Routes live in `app/src/app/app.routes.ts`.
-- Services use hardcoded `http://localhost:5130/api/...`.
-- Auth state is stored in `localStorage` keys `accessToken` and `refreshToken`.
+- `API/Controller/RecipesController .cs`
+- `Core.Application/UseCases/Recipes/RecipeService.cs`
+- `Infrastructure/Repositories/RecipeRepository.cs`
+- `Core.Domain/Entities/Recipie.cs`
 
-Database:
+Culture discovery is implemented in:
 
-- `Infrastructure/Persistence/AppDbContext.cs` uses SQL Server.
-- DbSets: `Recipies`, `Categories`, `Ingredients`, `RecipeSteps`, `Users`, `FavoriteRecipes`, `RecipeReviews`.
-- Table names include `Recipes`, `Categories`, `Ingredients`, `RecipeSteps`, `Users`, `FavoriteRecipes`, `RecipeReviews`, and `RecipeImage`.
+- `Core.Domain/Entities/Cuisine.cs`
+- `Core.Domain/Entities/Region.cs`
+- `API/Controller/CuisinesController.cs`
+- `API/Controller/RegionsController.cs`
+- `Core.Application/UseCases/Cuisines/CuisineService.cs`
+- `Core.Application/UseCases/Regions/RegionService.cs`
 
-## Authentication Flow
+Admin account management is implemented in `API/Controller/AdminUsersController.cs` and `Core.Application/UseCases/Users/UserManagementService.cs`.
 
-```mermaid
-sequenceDiagram
-  participant UI as Angular UI
-  participant Auth as AuthService
-  participant API as AuthController
-  participant DB as AppDbContext
-  UI->>Auth: login(email,password)
-  Auth->>API: POST /api/auth/login
-  API->>DB: find Users by Email
-  API->>API: BCrypt verify password
-  API->>DB: save refresh token + expiry
-  API-->>Auth: accessToken, refreshToken
-  Auth->>UI: save localStorage tokens
-  UI->>API: Bearer access token on later calls
-```
+## Frontend Summary
 
-JWT claims confirmed in `API/Controller/AuthController.cs`: `ClaimTypes.NameIdentifier` = user ID, `ClaimTypes.Name` = user email, `ClaimTypes.Role` = user role. JWT validation in `API/Program.cs` validates signing key, lifetime, active account status, and current database role, with issuer/audience validation disabled and `ClockSkew = TimeSpan.Zero`.
+Angular bootstrap uses standalone APIs in `app/src/main.ts` and `app/src/app/app.config.ts`. Routes are declared in `app/src/app/app.routes.ts`.
 
-## Authorization And Roles
+Implemented pages include:
 
-- Role values are strings on `Users.Role`; centralized constants are in `Core.Domain/Constants/AppRoles.cs`.
-- Public registration always creates active `User` accounts.
-- Recipe management endpoints require `Admin` or `Operator`: `POST /api/Recipes`, `PUT /api/Recipes/{id}`, `DELETE /api/Recipes/{id}`.
-- Account management endpoints require `Admin`: `/api/admin/users`.
-- Reviews delete allows Admin or owner inside `ReviewService`; no `[Authorize(Roles="Admin")]` policy is used there.
+- Recipes explore/list: `app/src/app/pages/recipes/`
+- Recipe details: `app/src/app/recipe-details/`
+- Create recipe: `app/src/app/pages/create-recipe/`
+- My Recipes: `app/src/app/pages/my-recipes/`
+- Login/register: `app/src/app/login/`, `app/src/app/pages/register/`
+- Admin accounts: `app/src/app/pages/admin/accounts/`
+
+API base URL is centralized in `app/src/app/app-api.config.ts` as `http://localhost:5130/api`.
+
+Frontend redesign status verified on 2026-07-26:
+
+- `app/src/styles.css` defines the editorial paper/forest-green design system.
+- `app/src/app/app.component.*` provides the skip link, main landmark, footer, and shell.
+- `app/src/app/shared/navbar/*` provides the responsive RECIPIE navbar.
+- `app/src/app/shared/components/` contains reusable recipe card, skeleton, empty-state, loading, and page-header primitives.
+- Explore, recipe details, create recipe, My Recipes, login/register, and Admin accounts pages were redesigned while preserving the existing routes and service calls.
+- `npm run build` passes with budget warnings; `npm test -- --watch=false` compiles but cannot launch Chrome in the current environment.
+
+## Database Summary
+
+Active context: `Infrastructure/Persistence/AppDbContext.cs`.
+
+Provider registration: `Infrastructure/DependencyInjection.cs` uses SQL Server with `ConnectionStrings:DefaultConnection`.
+
+Configured tables include `Users`, `Recipes`, `Categories`, `Ingredients`, `RecipeSteps`, `FavoriteRecipes`, `RecipeReviews`, `Cuisines`, and `Regions`.
+
+Uncommitted migrations currently present:
+
+- `Infrastructure/Migrations/20260726135722_AddRecipeOwnershipAndUserDisplayName.cs`
+- `Infrastructure/Migrations/20260726145257_AddCuisineAndRegionSupport.cs`
+
+Do not create or modify migrations during documentation-only work.
+
+## Authentication Summary
+
+Registration (`POST /api/Auth/register`) creates active `User` accounts with a public `DisplayName`. Login (`POST /api/Auth/login`) validates password hashes via `Infrastructure/services/PasswordService.cs`, stores a refresh token on `Users`, and returns access/refresh tokens. Refresh (`POST /api/Auth/refresh`) rotates refresh tokens.
+
+Frontend tokens are stored in `localStorage` under `accessToken` and `refreshToken` by `app/src/app/services/auth.service.ts`. `AuthInterceptor` adds bearer tokens and `ErrorInterceptor` attempts refresh on 401.
 
 ## Main Workflows
 
-- Register: Angular register form -> `POST /api/auth/register` -> BCrypt password hash -> `Users`.
-- Login: Angular login form -> `POST /api/auth/login` -> localStorage tokens.
-- Refresh: guard/interceptor use a shared refresh operation; concurrent 401 responses reuse one `POST /api/auth/refresh`, store new tokens, and retry queued/original requests. Inactive accounts cannot refresh.
-- Browse: guarded `/recipes` route -> `GET /api/recipes/paged` with query params -> recipe cards.
-- Details: guarded `/recipes/:id` -> `GET /api/recipes/{id}` and `GET /api/reviews/recipe/{recipeId}`.
-- Favorites: recipe list loads `/api/favorites/me`, toggles `/api/favorites/{recipeId}`.
-- Operator/Admin create/edit/delete: UI checks decoded role claim with `canManageRecipes()`; backend enforces Admin or Operator for recipe create/update/delete.
-- Admin accounts: `/admin/accounts` calls `/api/admin/users` to list, create, change role/status, and delete eligible accounts.
+| Workflow | Implemented path |
+| --- | --- |
+| Register/login | `AuthController`, `AuthService`, login/register components |
+| Browse recipes | `/recipes`, `RecipesController.GetPaged`, `RecipeService.GetPagedAsync` |
+| Create recipe | `/create-recipe`, `RecipesController.Create`, owner from JWT |
+| Manage own recipes | `/my-recipes`, `GET /api/Recipes/me`, owner/Admin update/delete |
+| Favorite recipes | `FavoritesController`, `FavoriteService`, frontend favorite buttons |
+| Review recipes | `ReviewsController`, `ReviewService`, recipe details review form |
+| Manage accounts | `/admin/accounts`, `AdminUsersController`, Admin role only |
+| Explore culture | cuisine/region endpoints and recipe filters |
 
-## API Conventions
+## Implemented Features
 
-- Controller route template: `[Route("api/[controller]")]`.
-- Most frontend calls use lowercase controller segments such as `/api/auth`; ASP.NET Core route matching accepts them case-insensitively.
-- Authorization header: `Authorization: Bearer {accessToken}`.
-- Pagination response from `RecipesController.GetPaged`: `items`, `total`, normalized `page`, normalized `pageSize`, and `totalPages`.
-- Error responses are mostly plain strings or empty status results, not a standardized error contract.
+- JWT login, refresh, and route guarding.
+- Registration with `DisplayName`.
+- Recipe list, search, filtering, sorting, and pagination.
+- Recipe details with ingredients, steps, favorites, and reviews.
+- User-owned recipe create/update/delete with Admin override.
+- My Recipes page.
+- Cuisine and region entities, public read endpoints, Admin write endpoints.
+- Cultural recipe metadata and filters.
+- Admin account management.
+- Backend xUnit tests for auth, ownership, cuisine/region, favorites, reviews, and difficulty behavior.
 
-## Important Configuration
+## Missing Or Incomplete Features
 
-- `API/Properties/launchSettings.json`: HTTP `http://localhost:5130`, HTTPS `https://localhost:7002;http://localhost:5130`.
-- `API/Program.cs`: CORS policy `AllowAngular` only allows `http://localhost:4200`.
-- `API/appsettings.json` and `API/appsettings.Development.json` contain empty placeholders for `DefaultConnection` and `Jwt:Key`; local values must come from .NET user secrets or environment variables such as `ConnectionStrings__DefaultConnection` and `Jwt__Key`.
-- Optional first Admin bootstrap uses `SeedAdmin:Email` and `SeedAdmin:Password` from user secrets or environment variables; committed config contains empty placeholders only.
-- `Infrastructure/Persistence/AppDbContextFactory.cs` no longer contains a fallback password-bearing connection string and throws when configuration is missing.
-- External performance logging files, registration, middleware, and configuration were removed.
+- No social feeds, follows, notifications, sharing workflow, uploads, localization, real-time features, Redis, RabbitMQ, Kafka, GraphQL, microservices, or load balancing were found.
+- No Angular Admin UI for cuisine/region management was found; backend endpoints exist.
+- `RecipeReviewDto` exposes `UserEmail`; recipe author DTOs avoid email.
+- `RecipeImage` exists but has incomplete/ambiguous EF mapping and no active DbSet or UI workflow.
+- Angular browser tests require Chrome; compilation can pass while Karma cannot launch without `CHROME_BIN`.
+- `app/src/app/app.module.ts` exists but standalone bootstrap is used, so it appears unused.
 
-## Commands
+## Critical Known Issues
 
-Backend:
+- `API/appsettings.json` and `API/appsettings.Development.json` are modified in the working tree. Never copy their values into docs or logs; use `[REDACTED]`.
+- `Program.cs` runs `db.Database.Migrate()` during startup outside Testing. This can mutate the configured database when the API starts.
+- `CategoriesController` and `AuthController` bypass the service/repository pattern and use `AppDbContext` directly.
+- Review responses expose user email via `Core.Application/DTO/Reviews/ReviewDto.cs`.
+- The working tree includes untracked archives `back.zip` and `front.zip` and an `images/` directory.
+
+## Security Rules
+
+- Never expose connection strings, JWT keys, passwords, password hashes, refresh tokens, API keys, or user secrets.
+- Replace any sensitive value in docs with `[REDACTED]`.
+- Backend authorization is the source of truth; frontend button visibility is UI only.
+- Ownership-sensitive code must use `ClaimTypes.NameIdentifier`, not frontend-supplied ownership.
+- Do not log complete configuration or connection strings.
+
+## Files Not To Change Casually
+
+- `API/Controller/RecipesController .cs`
+- `Core.Domain/Entities/Recipie.cs`
+- `Core.Application/DTO/Recipe/RecipieDto.cs`
+- `Infrastructure/Migrations/`
+- `Infrastructure/Migrations/AppDbContextModelSnapshot.cs`
+- `API/appsettings.json`
+- `API/appsettings.Development.json`
+- Any uncommitted PerformancePlatform-related work if it appears later.
+
+## Build And Test Commands
+
+From repository root:
 
 ```bash
 dotnet restore
 dotnet build Recep.sln
 dotnet test Recep.sln
-dotnet run --project API/API.csproj
-dotnet ef migrations add <Name> --project Infrastructure --startup-project API
-dotnet user-secrets set "SeedAdmin:Email" "admin@example.com" --project API/API.csproj
-dotnet user-secrets set "SeedAdmin:Password" "ReplaceWithAStrongPassword123" --project API/API.csproj
 ```
 
 Frontend:
@@ -197,68 +193,32 @@ cd app
 npm install
 npm run build
 npm test -- --watch=false
-npm start
 ```
 
-Database:
+Documentation inventory:
 
-- Startup applies migrations automatically via `db.Database.Migrate()` in `API/Program.cs`.
-- Startup optionally seeds the first Admin independently when `SeedAdmin` values are configured and no Admin exists. Recipe seed still runs only if `Recipies.AnyAsync()` is false.
-- Do not run destructive database reset commands unless the user explicitly requests them.
-
-## Validation Summary
-
-- `dotnet --version`: succeeded, `8.0.129`.
-- `dotnet restore`: succeeded.
-- `dotnet build Recep.sln`: succeeded, 0 warnings, 0 errors.
-- `dotnet test Recep.sln`: succeeded; includes `tests/Core.Application.Tests` and `tests/API.IntegrationTests`.
-- `node --version`: succeeded, `v20.20.2`.
-- `npm --version`: succeeded, `10.8.2`.
-- `npm install` from `app/`: succeeded, packages up to date.
-- `npm run build` from `app/`: succeeded.
-- `node node_modules/typescript/bin/tsc -p tsconfig.spec.json --noEmit` from `app/`: succeeded.
-- `npm test -- --watch=false --browsers=ChromeHeadless` from `app/`: not executed in this environment because no Chrome/Chromium executable was available.
-- `.github/workflows/ci.yml` runs Angular tests with Chrome Headless in CI.
-
-## Current Limitations And Fragile Areas
-
-- Local secrets are required before running the API; empty placeholders are committed intentionally.
-- Backend application tests exist under `tests/Core.Application.Tests`; API authorization integration tests exist under `tests/API.IntegrationTests`.
-- No committed Admin credentials; use `SeedAdmin` user secrets or environment variables to bootstrap the first Admin.
-- `RecipeImage` is an entity but has no DbSet and its relationship uses shadow nullable `RecipieId`, while the entity also has `RecipeId`.
-- Duplicate/confusing EF recipe configuration in `IngredientConfiguration.cs` and `RecipeConfiguration.cs`.
-- `CreateRecipeDto` has no ingredients or steps; created recipes cannot create nested ingredients/steps through API.
-- `GET /api/recipes` delegates to paged behavior with page size 100 and does not include ingredients/steps.
-- `app/src/app/app.module.ts` is incomplete and likely unused.
-
-## Rules Future AI Assistants Must Respect
-
-- Preserve existing spellings: `Recipie`, `RecipieDto`, `RecipieStep`, `Recipies`.
-- Preserve exact unusual paths, especially `API/Controller/RecipesController .cs`.
-- Do not expose secrets in docs or logs; use `[REDACTED]`.
-- Do not change runtime behavior while doing documentation-only work.
-- Before changing API contracts, update backend DTOs/controllers/services, Angular models/services/components, tests, and docs together.
-- Do not casually remove startup migrations/seeding without understanding local database workflow.
-
-## Safe New Feature Procedure
-
-1. Read `AI_CONTEXT.md`, `docs/API_ENDPOINTS.md`, and the feature-specific section in `docs/FEATURES_CONTEXT.md`.
-2. Locate the layer files from `docs/CHANGE_GUIDE.md`.
-3. Add or update domain/entity fields only with matching EF configuration and migration.
-4. Add DTOs and validators before exposing controller actions.
-5. Update Angular model/service call, then UI route/component.
-6. Validate backend route/method/payload against Angular service.
-7. Run `dotnet build Recep.sln`, `dotnet test Recep.sln`, `cd app && npm run build`, and relevant tests.
-8. Update context docs for any behavioral or contract change.
+```bash
+find . -maxdepth 2 -type f \( -name "AI_CONTEXT.md" -o -path "./docs/*.md" \) | sort
+```
 
 ## Documentation Index
 
-- [Project Overview](docs/PROJECT_OVERVIEW.md)
-- [Backend Context](docs/BACKEND_CONTEXT.md)
-- [Frontend Context](docs/FRONTEND_CONTEXT.md)
-- [Database Context](docs/DATABASE_CONTEXT.md)
-- [API Endpoints](docs/API_ENDPOINTS.md)
-- [Features Context](docs/FEATURES_CONTEXT.md)
-- [Change Guide](docs/CHANGE_GUIDE.md)
-- [Known Issues And Rules](docs/KNOWN_ISSUES_AND_RULES.md)
-- [Recent Changes Context](docs/RECENT_CHANGES_CONTEXT.md)
+- `docs/PROJECT_OVERVIEW.md`
+- `docs/BACKEND_CONTEXT.md`
+- `docs/FRONTEND_CONTEXT.md`
+- `docs/DATABASE_CONTEXT.md`
+- `docs/API_ENDPOINTS.md`
+- `docs/FEATURES_CONTEXT.md`
+- `docs/KNOWN_ISSUES_AND_RULES.md`
+- `docs/RECENT_CHANGES_CONTEXT.md`
+- `docs/CHANGE_GUIDE.md`
+
+## Instructions For Future Agents
+
+1. Inspect the current working tree before editing.
+2. Treat uncommitted source changes as active user work.
+3. Do not modify app behavior while doing documentation tasks.
+4. Verify every architecture or feature statement against source files.
+5. Keep docs synchronized with implemented code, not intended behavior.
+6. Do not create migrations unless explicitly asked.
+7. Preserve misspelled established names.

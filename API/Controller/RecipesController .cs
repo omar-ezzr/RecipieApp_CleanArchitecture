@@ -5,6 +5,9 @@ using Core.Domain.Constants;
 using Core.Domain.Enums;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using Core.Application.Common;
+using API.Extensions;
+using API.Responses;
 namespace API.Controllers;
 
 [ApiController]
@@ -42,11 +45,31 @@ public class RecipesController : ControllerBase
             (!Enum.TryParse<DifficultyLevel>(parameters.Difficulty, true, out var difficulty) ||
              !Enum.IsDefined(typeof(DifficultyLevel), difficulty)))
         {
-            ModelState.AddModelError("difficulty", "Difficulty must be Easy, Medium, or Hard.");
-            return ValidationProblem(ModelState);
+            return BadRequest(Error("validation_failed", "Difficulty must be Easy, Medium, or Hard."));
         }
 
         var result = await _service.GetPagedAsync(parameters, cancellationToken);
+
+        return Ok(result);
+    }
+
+    [Authorize]
+    [HttpGet("me")]
+    public async Task<IActionResult> GetMine(
+        [FromQuery] RecipeQueryParams parameters,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetCurrentUserId(out var currentUserId))
+        {
+            return UnauthorizedIdentityProblem();
+        }
+
+        if (!IsValidDifficultyFilter(parameters.Difficulty))
+        {
+            return BadRequest(Error("validation_failed", "Difficulty must be Easy, Medium, or Hard."));
+        }
+
+        var result = await _service.GetMineAsync(parameters, currentUserId, cancellationToken);
 
         return Ok(result);
     }
@@ -66,38 +89,101 @@ public class RecipesController : ControllerBase
     }
 
     // POST: api/recipes
-    [Authorize(Roles = $"{AppRoles.Admin},{AppRoles.Operator}")]
+    [Authorize]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateRecipeDto dto, CancellationToken cancellationToken)
     {
-        var result = await _service.CreateAsync(dto, cancellationToken);
+        if (!TryGetCurrentUserId(out var currentUserId))
+        {
+            return UnauthorizedIdentityProblem();
+        }
+
+        var result = await _service.CreateAsync(dto, currentUserId, cancellationToken);
 
         if (!result.IsSuccess)
-            return BadRequest(result.Error);
+            return ToActionResult(result);
 
-        return Ok();
+        return CreatedAtAction(nameof(GetById), new { id = result.Value!.Id }, result.Value);
     }
-    [Authorize(Roles = $"{AppRoles.Admin},{AppRoles.Operator}")]
+    [Authorize]
 
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(Guid id,[FromBody] CreateRecipeDto dto, CancellationToken cancellationToken)
     {
+        if (!TryGetCurrentUserId(out var currentUserId))
+        {
+            return UnauthorizedIdentityProblem();
+        }
 
-        var result = await _service.UpdateAsync(id, dto, cancellationToken);
+        var result = await _service.UpdateAsync(id, dto, currentUserId, IsAdmin(), cancellationToken);
         if (!result.IsSuccess)
-        return BadRequest(result.Error);
-        return Ok();
+        return ToActionResult(result);
+        return Ok(result.Value);
     }
-    [Authorize(Roles = $"{AppRoles.Admin},{AppRoles.Operator}")]
+    [Authorize]
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _service.DeleteAsync(id, cancellationToken);
+        if (!TryGetCurrentUserId(out var currentUserId))
+        {
+            return UnauthorizedIdentityProblem();
+        }
+
+        var result = await _service.DeleteAsync(id, currentUserId, IsAdmin(), cancellationToken);
 
         if (!result.IsSuccess)
-            return NotFound(result.Error);
+            return ToActionResult(result);
 
-        return Ok();
+        return NoContent();
+    }
+
+    private bool TryGetCurrentUserId(out Guid currentUserId)
+    {
+        return User.TryGetCurrentUserId(out currentUserId);
+    }
+
+    private bool IsAdmin() => User.IsInRole(AppRoles.Admin);
+
+    private IActionResult ToActionResult(ServiceResult result)
+    {
+        return result.ErrorType switch
+        {
+            ServiceErrorType.NotFound => NotFound(Error("recipe_not_found", "Recipe was not found.")),
+            ServiceErrorType.Forbidden => Forbid(),
+            ServiceErrorType.Validation => BadRequest(Error("validation_failed", result.Error ?? "The request is invalid.")),
+            ServiceErrorType.Conflict => Conflict(Error("conflict", result.Error ?? "Conflict.")),
+            _ => BadRequest(Error("bad_request", result.Error ?? "The request is invalid."))
+        };
+    }
+
+    private IActionResult ToActionResult<T>(ServiceResult<T> result)
+    {
+        return result.ErrorType switch
+        {
+            ServiceErrorType.NotFound => NotFound(Error("recipe_not_found", "Recipe was not found.")),
+            ServiceErrorType.Forbidden => Forbid(),
+            ServiceErrorType.Validation => BadRequest(Error("validation_failed", result.Error ?? "The request is invalid.")),
+            ServiceErrorType.Conflict => Conflict(Error("conflict", result.Error ?? "Conflict.")),
+            _ => BadRequest(Error("bad_request", result.Error ?? "The request is invalid."))
+        };
+    }
+
+    private UnauthorizedObjectResult UnauthorizedIdentityProblem() =>
+        Unauthorized(Error("invalid_identity", "Missing or malformed user identity claim"));
+
+    private ApiErrorResponse Error(string code, string message) =>
+        new()
+        {
+            Code = code,
+            Message = message,
+            TraceId = HttpContext.TraceIdentifier
+        };
+
+    private static bool IsValidDifficultyFilter(string? difficulty)
+    {
+        return string.IsNullOrWhiteSpace(difficulty)
+            || (Enum.TryParse<DifficultyLevel>(difficulty, true, out var parsed)
+                && Enum.IsDefined(typeof(DifficultyLevel), parsed));
     }
 }

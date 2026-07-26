@@ -1,0 +1,52 @@
+.recipe-card-skeleton {
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-paper-light);
+}
+
+.sk-image,
+.sk-body span,
+.sk-body strong,
+.sk-body p {
+  display: block;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, var(--color-sage-100), #f6f4ea, var(--color-sage-100));
+  background-size: 220% 100%;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+.sk-image {
+  aspect-ratio: 4 / 3;
+}
+
+.sk-body {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+}
+
+.sk-body span {
+  width: 44%;
+  height: 0.8rem;
+}
+
+.sk-body strong {
+  width: 78%;
+  height: 1.5rem;
+}
+
+.sk-body p {
+  width: 100%;
+  height: 0.9rem;
+}
+
+.sk-body .short {
+  width: 62%;
+}
+
+@keyframes pulse {
+  to {
+    background-position: -220% 0;
+  }
+}

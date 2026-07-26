@@ -1,0 +1,54 @@
+<article class="recipe-card">
+  <a class="recipe-image-link" [routerLink]="['/recipes', recipe.id]" [attr.aria-label]="'View ' + recipe.title">
+    <img
+      class="recipe-card-image"
+      [src]="imageUrl()"
+      [alt]="recipe.title"
+      width="640"
+      height="480"
+      loading="lazy">
+  </a>
+
+  <div class="recipe-card-body">
+    <p class="recipe-culture ui-label">
+      {{ recipe.cuisineName }}
+      <span *ngIf="recipe.regionName"> / {{ recipe.regionName }}</span>
+    </p>
+
+    <h2 class="recipe-title">
+      <a [routerLink]="['/recipes', recipe.id]">{{ recipe.title }}</a>
+    </h2>
+
+    <p class="recipe-summary">{{ recipe.description || 'A recipe shared by the community.' }}</p>
+
+    <p class="recipe-author" *ngIf="recipe.author">
+      By <span>{{ recipe.author.displayName }}</span>
+    </p>
+
+    <div class="recipe-card-meta">
+      <span>{{ recipe.preparationTimeMinutes }} min</span>
+      <span>{{ difficultyLabel(recipe.difficulty) }}</span>
+      <span>{{ recipe.category }}</span>
+      <span *ngIf="recipe.isTraditional">Traditional</span>
+    </div>
+
+    <div class="recipe-card-actions">
+      <a class="btn btn-text-app" [routerLink]="['/recipes', recipe.id]">Read recipe</a>
+
+      <button
+        *ngIf="showFavorite"
+        type="button"
+        class="btn btn-icon-text"
+        [class.is-active]="isFavorite"
+        (click)="favoriteToggled.emit(recipe)">
+        <span aria-hidden="true">{{ isFavorite ? '♥' : '♡' }}</span>
+        {{ isFavorite ? 'Saved' : 'Save' }}
+      </button>
+    </div>
+
+    <div class="recipe-manage-actions" *ngIf="canManage && showManageActions">
+      <button type="button" class="btn btn-secondary-app btn-sm" (click)="edit.emit(recipe)">Edit</button>
+      <button type="button" class="btn btn-danger-app btn-sm" (click)="delete.emit(recipe)">Delete</button>
+    </div>
+  </div>
+</article>

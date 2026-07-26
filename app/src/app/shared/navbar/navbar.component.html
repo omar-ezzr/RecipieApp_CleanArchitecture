@@ -1,48 +1,85 @@
-<nav class="navbar navbar-expand-lg app-navbar">
-  <div class="container">
-    <a class="navbar-brand" routerLink="/recipes">
-      <span class="brand-mark">R2</span>
-      <span>Recepes V2</span>
+<nav class="app-navbar" aria-label="Primary navigation">
+  <div class="nav-shell">
+    <a class="brand-link" routerLink="/recipes" (click)="closeMenu()">
+      <span class="brand-word">RECIPIE</span>
+      <span class="brand-subtitle">Stories from every kitchen</span>
     </a>
 
-    <div class="navbar-nav ms-auto align-items-center gap-2">
-      <a
-        class="nav-link"
-        routerLink="/recipes"
-        routerLinkActive="active"
-        *ngIf="isLoggedIn()"
-      >
-        Recipes
-      </a>
+    <button
+      type="button"
+      class="menu-button"
+      aria-label="Toggle navigation menu"
+      aria-controls="primary-navigation"
+      [attr.aria-expanded]="isMenuOpen"
+      (click)="toggleMenu()">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
 
-      <a
-        class="nav-link"
-        routerLink="/admin/accounts"
-        routerLinkActive="active"
-        *ngIf="isAdmin()"
-      >
-        Accounts
-      </a>
+    <div id="primary-navigation" class="nav-panel" [class.is-open]="isMenuOpen">
+      <div class="nav-links">
+        <a
+          class="nav-link"
+          routerLink="/recipes"
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="{ exact: true }"
+          (click)="closeMenu()">
+          Explore
+        </a>
 
-      <a
-        class="nav-link"
-        routerLink="/login"
-        routerLinkActive="active"
-        *ngIf="!isLoggedIn()"
-      >
-        Login
-      </a>
-      <a
-        class="btn btn-brand btn-sm fw-semibold"
-        routerLink="/register"
-        *ngIf="!isLoggedIn()"
-      >
-        Register
-      </a>
+        <a
+          class="nav-link"
+          routerLink="/create-recipe"
+          routerLinkActive="active"
+          *ngIf="isLoggedIn()"
+          (click)="closeMenu()">
+          Create
+        </a>
 
-      <button class="btn btn-outline-dark btn-sm" *ngIf="isLoggedIn()" (click)="logout()">
-        Logout
-      </button>
+        <a
+          class="nav-link"
+          routerLink="/my-recipes"
+          routerLinkActive="active"
+          *ngIf="isLoggedIn()"
+          (click)="closeMenu()">
+          My Recipes
+        </a>
+
+        <a
+          class="nav-link"
+          routerLink="/admin/accounts"
+          routerLinkActive="active"
+          *ngIf="isAdmin()"
+          (click)="closeMenu()">
+          Admin
+        </a>
+      </div>
+
+      <div class="nav-actions">
+        <span class="user-pill" *ngIf="isLoggedIn()">{{ displayName() }}</span>
+
+        <a
+          class="nav-link"
+          routerLink="/login"
+          routerLinkActive="active"
+          *ngIf="!isLoggedIn()"
+          (click)="closeMenu()">
+          Login
+        </a>
+
+        <a
+          class="btn btn-primary-app btn-sm"
+          routerLink="/register"
+          *ngIf="!isLoggedIn()"
+          (click)="closeMenu()">
+          Register
+        </a>
+
+        <button type="button" class="btn btn-secondary-app btn-sm" *ngIf="isLoggedIn()" (click)="logout()">
+          Logout
+        </button>
+      </div>
     </div>
   </div>
 </nav>

@@ -18,6 +18,8 @@ public class AppDbContext : DbContext
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<Ingredient> Ingredients => Set<Ingredient>();
     public DbSet<RecipieStep> RecipeSteps => Set<RecipieStep>();
+    public DbSet<Cuisine> Cuisines => Set<Cuisine>();
+    public DbSet<Region> Regions => Set<Region>();
     
     public DbSet<Users> Users => Set<Users>();
     public DbSet<FavoriteRecipe> FavoriteRecipes { get; set; }

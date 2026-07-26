@@ -13,6 +13,7 @@ describe('AppComponent', () => {
           provide: AuthService,
           useValue: {
             isLoggedIn: () => false,
+            isAdmin: () => false,
             logout: () => undefined
           }
         }

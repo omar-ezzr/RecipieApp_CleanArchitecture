@@ -22,11 +22,35 @@ public class RecipeRepository : IRecipeRepository
     public async Task<Recipie?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         return await _context.Recipies
+            .Include(r => r.User)
             .Include(r => r.Category)
+            .Include(r => r.Cuisine)
+            .Include(r => r.Region)
             .Include(r => r.Ingredients)
             .Include(r => r.Steps)
             .AsSplitQuery()
             .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
+    }
+
+    public async Task<bool> CategoryExistsAsync(Guid categoryId, CancellationToken cancellationToken = default)
+    {
+        return await _context.Categories
+            .AsNoTracking()
+            .AnyAsync(category => category.Id == categoryId, cancellationToken);
+    }
+
+    public async Task<bool> CuisineExistsAsync(Guid cuisineId, CancellationToken cancellationToken = default)
+    {
+        return await _context.Cuisines
+            .AsNoTracking()
+            .AnyAsync(cuisine => cuisine.Id == cuisineId && cuisine.IsActive, cancellationToken);
+    }
+
+    public async Task<Region?> GetActiveRegionAsync(Guid regionId, CancellationToken cancellationToken = default)
+    {
+        return await _context.Regions
+            .AsNoTracking()
+            .FirstOrDefaultAsync(region => region.Id == regionId && region.IsActive, cancellationToken);
     }
 
     // ========================
@@ -43,7 +67,6 @@ public class RecipeRepository : IRecipeRepository
     // ========================
     public async Task UpdateAsync(Recipie recipie, CancellationToken cancellationToken = default)
     {
-        _context.Recipies.Update(recipie);
         await _context.SaveChangesAsync(cancellationToken);
     }
 
@@ -68,7 +91,10 @@ public class RecipeRepository : IRecipeRepository
         pageSize = Math.Min(pageSize, 100); // protect server
 
         var query = _context.Recipies
+            .Include(r => r.User)
             .Include(r => r.Category)
+            .Include(r => r.Cuisine)
+            .Include(r => r.Region)
             .AsNoTracking()
             .AsQueryable();
 
@@ -83,10 +109,30 @@ public class RecipeRepository : IRecipeRepository
         // ========================
         // CATEGORY FILTER (safe)
         // ========================
-     if (parameters.CategoryId.HasValue)
+        if (parameters.CategoryId.HasValue)
 {
     query = query.Where(r => r.CategoryId == parameters.CategoryId.Value);
 }
+
+        if (parameters.UserId.HasValue)
+        {
+            query = query.Where(r => r.UserId == parameters.UserId.Value);
+        }
+
+        if (parameters.CuisineId.HasValue)
+        {
+            query = query.Where(r => r.CuisineId == parameters.CuisineId.Value);
+        }
+
+        if (parameters.RegionId.HasValue)
+        {
+            query = query.Where(r => r.RegionId == parameters.RegionId.Value);
+        }
+
+        if (parameters.IsTraditional.HasValue)
+        {
+            query = query.Where(r => r.IsTraditional == parameters.IsTraditional.Value);
+        }
 
         // ========================
         // DIFFICULTY FILTER (safe)

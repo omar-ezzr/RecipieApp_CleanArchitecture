@@ -1,169 +1,142 @@
 # Backend Context
 
-## Project Structure
+Last verified: 2026-07-26
+Branch: `main`
+Commit: `1de804620330d10f9ee6b493ecac423f6ab288b2`
+Working tree: dirty; includes uncommitted Phase 1/2 source and test changes.
 
-```text
-API/
-  Controller/
-  Middleware/
-  Services/
-  Program.cs
-  appsettings*.json
-Core.Application/
-  Common/
-  DTO/
-  Interfaces/
-  UseCases/
-  Validators/
-Core.Domain/
-  Common/
-  Entities/
-  Enums/
-Infrastructure/
-  Persistence/
-  Repositories/
-  Seed/
-  services/
-  Migrations/
-```
+## Startup And Middleware
 
-## Controllers And Endpoints
+Configured in `API/Program.cs`.
 
-- `API/Controller/AuthController.cs`: registration, login, refresh token creation, JWT claims.
-- `API/Controller/RecipesController .cs`: recipe list/detail/create/update/delete. Exact filename includes a space before `.cs`.
-- `API/Controller/AdminUsersController.cs`: Admin-only account management at route `api/admin/users`.
-- `API/Controller/CategoriesController.cs`: category list.
-- `API/Controller/FavoritesController.cs`: current-user favorites.
-- `API/Controller/ReviewsController.cs`: review create/list/update/delete.
+Middleware and startup order:
 
-Complete endpoint table is in `docs/API_ENDPOINTS.md`.
+1. `AddControllers()`
+2. Custom `ApiBehaviorOptions.InvalidModelStateResponseFactory` returning `ApiErrorResponse`
+3. Swagger/OpenAPI with bearer definition
+4. `AddInfrastructure(builder.Configuration)`
+5. Application service registrations
+6. CORS policy `AllowAngular` for `http://localhost:4200`
+7. JWT bearer authentication
+8. FluentValidation auto-validation
+9. `app.UseSwagger()` and `UseSwaggerUI()` in Development
+10. `UseHttpsRedirection()`
+11. `UseCors("AllowAngular")`
+12. `UseAuthentication()`
+13. `UseAuthorization()`
+14. `MapControllers()`
+15. Outside `Testing`, `db.Database.Migrate()` then `DbSeeder.SeedAsync(...)`
 
-## Controller Responsibilities And Dependencies
-
-- `AuthController`: depends on `AppDbContext`, `IPasswordService`, `IConfiguration`; hashes/verifies passwords, issues JWT access tokens, stores refresh tokens on `Users`.
-- `RecipesController`: depends on `IRecipeService`; delegates recipe reads and mutations.
-- `CategoriesController`: depends directly on `AppDbContext`; returns all categories.
-- `FavoritesController`: depends on `IFavoriteService`; resolves current user from `ClaimTypes.NameIdentifier`.
-- `ReviewsController`: depends on `IReviewService`; resolves current user from `ClaimTypes.NameIdentifier`, delegates review ownership/admin checks to service.
-- `AdminUsersController`: depends on `IUserManagementService`; maps service validation/not-found/conflict outcomes to JSON `{ "message": "..." }`.
-
-## DTOs And Validation
-
-- Auth: `Core.Application/DTO/Auth/LoginDtos.cs`, `TokenRequestDto.cs`.
-- Recipe: `Core.Application/DTO/Recipe/CreateRecipeDto.cs`, `RecipieDto.cs`, `Core.Application/DTO/RecipeQueryParams.cs`.
-- Favorites: `Core.Application/DTO/Favorites/FavoriteRecipeDto.cs`.
-- Reviews: `Core.Application/DTO/Reviews/CreateReviewDto.cs`, `ReviewDto.cs`, `UpdateReviewDto.cs`.
-- User accounts: `Core.Application/DTO/Users/UserAccountDto.cs`, `CreateUserAccountDto.cs`, `UpdateUserRoleDto.cs`, `UpdateUserStatusDto.cs`, `UserQueryParameters.cs`, `PagedUsersDto.cs`.
-- FluentValidation: `Core.Application/Validators/CreateRecipeValidator.cs` validates title, description, difficulty string (`Easy`, `Medium`, `Hard`), positive preparation time, and non-empty category ID for `CreateRecipeDto`.
-- Account validators: `CreateUserAccountValidator`, `UpdateUserRoleValidator`, `UpdateUserStatusValidator`.
-- Review rating validation is implemented manually in `Core.Application/UseCases/Reviews/ReviewService.cs`.
-
-## Interfaces And Implementations
-
-- `IRecipeService` -> `RecipeService`.
-- `IFavoriteService` -> `FavoriteService`.
-- `IReviewService` -> `ReviewService`.
-- `IUserManagementService` -> `UserManagementService`.
-- `IPasswordService` -> `PasswordService`.
-- `IRecipeRepository` -> `RecipeRepository`.
-- `IFavoriteRepository` -> `FavoriteRepository`.
-- `IReviewRepository` -> `ReviewRepository`.
-- `IUserRepository` -> `UserRepository`.
-
-## Application Services
-
-- `Core.Application/UseCases/Recipes/RecipeService.cs`: maps `Recipie` to `RecipieDto`, creates/updates/deletes recipe entities, delegates paging/filtering to repository.
-- `Core.Application/UseCases/Favorites/FavoriteService.cs`: verifies recipe existence, prevents duplicate favorites, maps favorites to DTOs.
-- `Core.Application/UseCases/Reviews/ReviewService.cs`: validates rating, prevents duplicate user review per recipe, enforces owner/admin delete and owner-only update.
-- `Core.Application/UseCases/Users/UserManagementService.cs`: normalizes account emails, hashes Admin-created passwords, enforces role/status/delete safety rules, invalidates refresh tokens on role/status changes.
-
-## Repository Layer
-
-- `Infrastructure/Repositories/RecipeRepository.cs`: projects paged recipe lists without loading ingredients/steps, loads detailed collections for detail reads, applies search, category, difficulty, sorting, and page-size cap of 100.
-- `Infrastructure/Repositories/FavoriteRepository.cs`: queries unique `(UserId, RecipeId)` favorites and includes recipe for favorite DTO mapping.
-- `Infrastructure/Repositories/ReviewRepository.cs`: includes user for review DTO email.
-- `Infrastructure/Repositories/UserRepository.cs`: paged account query, lookup, active Admin count, related favorite/review existence checks, and account persistence.
+Risk: API startup mutates the configured database outside Testing.
 
 ## Dependency Injection
 
-`Infrastructure/DependencyInjection.cs` registers:
+| Registration | File |
+| --- | --- |
+| `AppDbContext` SQL Server | `Infrastructure/DependencyInjection.cs` |
+| Repositories | `Infrastructure/DependencyInjection.cs` |
+| `IPasswordService -> PasswordService` | `API/Program.cs` |
+| `IRecipeService -> RecipeService` | `API/Program.cs` |
+| `IFavoriteService -> FavoriteService` | `API/Program.cs` |
+| `IReviewService -> ReviewService` | `API/Program.cs` |
+| `IUserManagementService -> UserManagementService` | `API/Program.cs` |
+| `ICuisineService -> CuisineService` | `API/Program.cs` |
+| `IRegionService -> RegionService` | `API/Program.cs` |
+| FluentValidation validators | `API/Program.cs` |
+| `AdminSeedOptions` | `API/Program.cs`, `API/Options/AdminSeedOptions.cs` |
 
-- `AppDbContext` using SQL Server and `DefaultConnection`.
-- `IRecipeRepository`, `IFavoriteRepository`, `IReviewRepository`, `IUserRepository`.
+## Authentication
 
-`API/Program.cs` registers:
+Files:
 
-- Controllers and Swagger.
-- Infrastructure.
-- `IRecipeService`, `IFavoriteService`, `IReviewService`, `IUserManagementService`.
-- `IPasswordService`.
-- FluentValidation auto-validation and `CreateRecipeValidator`.
-
-## Middleware Pipeline
-
-Confirmed order in `API/Program.cs`:
-
-1. Swagger/SwaggerUI only in development.
-2. HTTPS redirection.
-3. CORS policy `AllowAngular`.
-4. Authentication.
-5. Authorization.
-6. Map controllers.
-7. Create scope, `db.Database.Migrate()`, `DbSeeder.SeedAsync(db, configuration, passwordService)`.
-
-## Authentication And Authorization
-
-- JWT bearer scheme configured in `API/Program.cs`.
-- Issuer and audience validation disabled.
-- Lifetime and signing key validation enabled.
-- `ClockSkew = TimeSpan.Zero`.
-- JWT key from `Jwt:Key`; app throws if missing.
-- Claims in `AuthController.GenerateJwtToken`:
-  - `ClaimTypes.NameIdentifier`: user ID.
-  - `ClaimTypes.Name`: user email.
-  - `ClaimTypes.Role`: user role.
-- `OnTokenValidated` in `API/Program.cs` rejects tokens when the account no longer exists, is inactive, or has a different current database role.
-- Role names are centralized in `Core.Domain/Constants/AppRoles.cs`.
-- Recipe mutations use Admin-or-Operator authorization.
-- Account-management endpoints use Admin authorization.
-
-## CORS And Swagger
-
-- CORS policy name `AllowAngular` allows origin `http://localhost:4200`, any header, any method.
-- Swagger document `v1` with JWT bearer security definition is enabled only when `app.Environment.IsDevelopment()`.
-
-## Database Startup And Seed
-
-- Startup applies migrations automatically using `db.Database.Migrate()`.
-- Startup calls active seeder `Infrastructure/Seed/DbSeeder.cs`.
-- Optional first Admin bootstrap reads `SeedAdmin:Email` and `SeedAdmin:Password` from configuration/user secrets/environment and only runs when no Admin exists.
-- Older seeder `Infrastructure/Persistence/DataSeeder.cs` exists but is not called.
-
-## Logging
-
-- Standard ASP.NET logging in appsettings.
-- Standard ASP.NET Core logging remains. The previous external performance middleware and sensitive connection-string console output were removed.
-
-## Commonly Modified Backend Files
-
-- `API/Controller/*.cs`
+- `API/Controller/AuthController.cs`
 - `API/Program.cs`
-- `Core.Application/DTO/**`
-- `Core.Application/Interfaces/**`
-- `Core.Application/UseCases/**`
-- `Core.Application/Validators/CreateRecipeValidator.cs`
-- `Core.Domain/Entities/**`
-- `Core.Domain/Enums/DifficultyLevel.cs`
-- `Infrastructure/Persistence/AppDbContext.cs`
-- `Infrastructure/Persistence/Configurations/**`
-- `Infrastructure/Repositories/**`
-- `Infrastructure/Seed/DbSeeder.cs`
-- `Infrastructure/Migrations/**`
+- `Infrastructure/services/PasswordService.cs`
+- `Core.Domain/Entities/Users.cs`
+- `Core.Domain/Constants/AppRoles.cs`
 
-## Known Backend Risks
+Implemented flow:
 
-- `API/appsettings*.json` contain empty placeholders; use user secrets or environment variables for `ConnectionStrings__DefaultConnection` and `Jwt__Key`.
-- Runtime migrations can change databases at API startup.
-- Backend application tests exist in `tests/Core.Application.Tests`.
-- Duplicate/confusing recipe EF configurations.
-- `RecipeImage` mapping is suspicious and not exposed by API.
+- Register normal users through `POST /api/Auth/register`.
+- Login through `POST /api/Auth/login`.
+- Refresh through `POST /api/Auth/refresh`.
+- Password hashing uses BCrypt in `PasswordService`.
+- Refresh tokens are stored on `Users.RefreshToken` with expiry.
+- JWT claims include:
+  - `ClaimTypes.NameIdentifier`
+  - `ClaimTypes.Name`
+  - `ClaimTypes.Role`
+- JWT validation in `Program.cs` also checks that the user exists, is active, and still has the token role.
+
+Issuer and audience validation are disabled in `Program.cs`; lifetime and signing key validation are enabled.
+
+## Controllers
+
+| Controller | File | Route prefix | Auth | Dependencies | Notes |
+| --- | --- | --- | --- | --- | --- |
+| `AuthController` | `API/Controller/AuthController.cs` | `/api/Auth` | Login/refresh/register allow anonymous by action or absence of class auth | `AppDbContext`, `IPasswordService`, `IConfiguration` | Direct DbContext usage. |
+| `RecipesController` | `API/Controller/RecipesController .cs` | `/api/Recipes` | Controller and actions use `[Authorize]` | `IRecipeService` | Filename includes space. Owner/Admin enforcement is in service. |
+| `CategoriesController` | `API/Controller/CategoriesController.cs` | `/api/Categories` | No auth attribute | `AppDbContext` | Direct DbContext usage; returns EF categories. |
+| `FavoritesController` | `API/Controller/FavoritesController.cs` | `/api/Favorites` | `[Authorize]` | `IFavoriteService` | Current user from `ClaimTypes.NameIdentifier`. |
+| `ReviewsController` | `API/Controller/ReviewsController.cs` | `/api/Reviews` | Create/update/delete authorized; get by recipe anonymous | `IReviewService` | Review DTO exposes `UserEmail`. |
+| `AdminUsersController` | `API/Controller/AdminUsersController.cs` | `/api/admin/users` | `[Authorize(Roles = AppRoles.Admin)]` | `IUserManagementService` | Admin account management. |
+| `CuisinesController` | `API/Controller/CuisinesController.cs` | `/api/Cuisines` | GET anonymous; write Admin | `ICuisineService` | Returns DTOs, not EF entities. |
+| `RegionsController` | `API/Controller/RegionsController.cs` | `/api/Regions` | GET anonymous; write Admin | `IRegionService` | Returns DTOs, not EF entities. |
+
+## Services
+
+| Interface | Implementation | Responsibilities | Authorization |
+| --- | --- | --- | --- |
+| `IRecipeService` | `Core.Application/UseCases/Recipes/RecipeService.cs` | Recipe create/update/delete/list/details, owner assignment, ingredients/steps mapping, category/cuisine/region validation, DTO mapping. | Enforces owner-or-Admin on update/delete. |
+| `ICuisineService` | `Core.Application/UseCases/Cuisines/CuisineService.cs` | List/get/create/update/delete cuisines, slug generation, duplicate checks, blocked deletion. | Controller restricts writes to Admin. |
+| `IRegionService` | `Core.Application/UseCases/Regions/RegionService.cs` | Get/create/update/delete regions, parent cuisine validation, slug uniqueness inside cuisine, blocked deletion. | Controller restricts writes to Admin. |
+| `IFavoriteService` | `Core.Application/UseCases/Favorites/FavoriteService.cs` | Add/remove/list/check favorites. | Controller requires authenticated user; service uses supplied user ID. |
+| `IReviewService` | `Core.Application/UseCases/Reviews/ReviewService.cs` | Add/update/delete/list reviews, duplicate review/rating validation. | Owner update/delete; Admin can delete other reviews. |
+| `IUserManagementService` | `Core.Application/UseCases/Users/UserManagementService.cs` | Admin user list/create/role/status/delete. | Controller Admin-only; service protects final Admin and self changes. |
+
+Result conventions:
+
+- Older favorite/review methods use `Core.Application/Common/Result.cs`.
+- Newer recipe/culture/user management methods use `Core.Application/Common/ServiceResult.cs` with `ServiceErrorType`.
+
+## Repositories
+
+| Interface | Implementation | Entity | Query behavior |
+| --- | --- | --- | --- |
+| `IRecipeRepository` | `Infrastructure/Repositories/RecipeRepository.cs` | `Recipie` | Details include user/category/cuisine/region/ingredients/steps; paged list uses `AsNoTracking`, filters before count/pagination, then materializes entities. |
+| `ICuisineRepository` | `Infrastructure/Repositories/CuisineRepository.cs` | `Cuisine` | Public list projects `CuisineDto` with counts; duplicate checks use `AnyAsync`; deletes blocked by service. |
+| `IRegionRepository` | `Infrastructure/Repositories/RegionRepository.cs` | `Region` | Lists by cuisine with `AsNoTracking`, projections and counts. |
+| `IFavoriteRepository` | `Infrastructure/Repositories/FavoriteRepository.cs` | `FavoriteRecipe` | Unique user/recipe checks; favorites include `Recipe` only. |
+| `IReviewRepository` | `Infrastructure/Repositories/ReviewRepository.cs` | `RecipeReview` | Reviews include `User`; list is unpaged per recipe. |
+| `IUserRepository` | `Infrastructure/Repositories/UserRepository.cs` | `Users` | Paged user management with `AsNoTracking`; role/status/search filters. |
+
+Potential risks:
+
+- `RecipeRepository.GetPagedAsync` materializes entities with includes rather than projecting only DTO fields.
+- `ReviewRepository.GetByRecipeIdAsync` returns all reviews for a recipe without pagination.
+- `CuisineRepository.ExistsByNameAsync` lowercases the column expression.
+
+## Validation
+
+`CreateRecipeValidator` in `Core.Application/Validators/CreateRecipeValidator.cs` validates:
+
+- title/description required and max lengths
+- preparation time range
+- defined `DifficultyLevel`
+- non-empty category and cuisine IDs
+- image URL absolute HTTP/HTTPS when supplied
+- cultural metadata lengths
+- ingredient and step counts/field lengths
+- unique, sequential step numbers
+
+User management validators are in `Core.Application/Validators/`.
+
+Registration display-name validation is currently implemented directly in `AuthController`, not a FluentValidation validator.
+
+## Error Handling
+
+Model validation returns `ApiErrorResponse` from `API/Responses/ApiErrorResponse.cs` for invalid model state. Recipe and culture controllers map `ServiceResult` to status codes. Older auth/favorite/review endpoints still return a mix of strings, `ProblemDetails`, `BadRequest`, `Conflict`, and `Unauthorized`.
+
+## External Calls
+
+No confirmed runtime PerformancePlatform middleware or HTTP integration was found. Seed data references external image URLs but does not fetch them during seeding.

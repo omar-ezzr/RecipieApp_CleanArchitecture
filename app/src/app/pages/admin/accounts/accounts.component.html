@@ -1,129 +1,114 @@
 <section class="page-shell accounts-page">
-  <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
+  <header class="accounts-header">
     <div>
-      <p class="text-uppercase text-warning fw-bold small mb-2">Admin</p>
-      <h1 class="h2 fw-bold mb-1">Account Management</h1>
-      <p class="text-secondary mb-0">Manage application accounts, roles, and active status.</p>
+      <p class="ui-label">Admin</p>
+      <h1 class="page-title">Account management</h1>
+      <p>Manage application accounts, roles, and active status.</p>
     </div>
-
-    <button type="button" class="btn btn-brand fw-semibold" (click)="showCreateForm = !showCreateForm">
-      {{ showCreateForm ? 'Close' : 'Create account' }}
+    <button type="button" class="btn btn-primary-app" (click)="showCreateForm = !showCreateForm">
+      {{ showCreateForm ? 'Close form' : 'Create account' }}
     </button>
-  </div>
+  </header>
 
-  <form class="card soft-card mb-4" *ngIf="showCreateForm" (ngSubmit)="createAccount()">
-    <div class="card-body p-4">
-      <div class="row g-3">
-        <div class="col-md-4">
-          <label class="form-label" for="accountEmail">Email</label>
-          <input id="accountEmail" name="email" type="email" class="form-control" required [(ngModel)]="createRequest.email">
-        </div>
-        <div class="col-md-4">
-          <label class="form-label" for="accountPassword">Password</label>
-          <input id="accountPassword" name="password" type="password" class="form-control" required [(ngModel)]="createRequest.password">
-        </div>
-        <div class="col-md-4">
-          <label class="form-label" for="accountRole">Role</label>
-          <select id="accountRole" name="role" class="form-select" [(ngModel)]="createRequest.role">
-            <option *ngFor="let role of roles" [value]="role">{{ role }}</option>
-          </select>
-        </div>
-      </div>
-      <div class="mt-3">
-        <button type="submit" class="btn btn-brand fw-semibold">Create</button>
-      </div>
+  <form class="admin-panel" *ngIf="showCreateForm" (ngSubmit)="createAccount()">
+    <h2>Create account</h2>
+    <div class="admin-grid">
+      <label>
+        <span class="form-label">Email</span>
+        <input id="accountEmail" name="email" type="email" class="form-control" autocomplete="email" required [(ngModel)]="createRequest.email">
+      </label>
+      <label>
+        <span class="form-label">Password</span>
+        <input id="accountPassword" name="password" type="password" class="form-control" autocomplete="new-password" required [(ngModel)]="createRequest.password">
+      </label>
+      <label>
+        <span class="form-label">Role</span>
+        <select id="accountRole" name="role" class="form-select" [(ngModel)]="createRequest.role">
+          <option *ngFor="let role of roles" [value]="role">{{ role }}</option>
+        </select>
+      </label>
     </div>
+    <button type="submit" class="btn btn-primary-app">Create</button>
   </form>
 
-  <div class="card soft-card mb-4">
-    <div class="card-body p-3 p-md-4">
-      <div class="row g-3 align-items-end">
-        <div class="col-md-5">
-          <label class="form-label" for="accountSearch">Search email</label>
-          <input id="accountSearch" class="form-control" [(ngModel)]="search" (input)="applyFilters()" placeholder="name@example.com">
-        </div>
-        <div class="col-md-3">
-          <label class="form-label" for="roleFilter">Role</label>
-          <select id="roleFilter" class="form-select" [(ngModel)]="selectedRole" (change)="applyFilters()">
-            <option value="">All</option>
-            <option *ngFor="let role of roles" [value]="role">{{ role }}</option>
-          </select>
-        </div>
-        <div class="col-md-3">
-          <label class="form-label" for="statusFilter">Status</label>
-          <select id="statusFilter" class="form-select" [(ngModel)]="selectedStatus" (change)="applyFilters()">
-            <option value="">All</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-          </select>
-        </div>
-      </div>
+  <section class="admin-panel">
+    <h2>Find accounts</h2>
+    <div class="admin-grid">
+      <label>
+        <span class="form-label">Search email</span>
+        <input id="accountSearch" class="form-control" [(ngModel)]="search" (input)="applyFilters()" placeholder="name@example.com">
+      </label>
+      <label>
+        <span class="form-label">Role</span>
+        <select id="roleFilter" class="form-select" [(ngModel)]="selectedRole" (change)="applyFilters()">
+          <option value="">All roles</option>
+          <option *ngFor="let role of roles" [value]="role">{{ role }}</option>
+        </select>
+      </label>
+      <label>
+        <span class="form-label">Status</span>
+        <select id="statusFilter" class="form-select" [(ngModel)]="selectedStatus" (change)="applyFilters()">
+          <option value="">All statuses</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
+      </label>
     </div>
-  </div>
+  </section>
 
   <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
-  <div class="text-center py-5" *ngIf="isLoading">
+  <div class="admin-loading" *ngIf="isLoading">
     <div class="spinner-border" aria-label="Loading accounts"></div>
   </div>
 
-  <div class="card soft-card" *ngIf="!isLoading && accounts.length > 0">
-    <div class="table-responsive">
-      <table class="table align-middle mb-0">
-        <thead>
-          <tr>
-            <th>Email</th>
-            <th>Role</th>
-            <th>Status</th>
-            <th class="text-end">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let account of accounts">
-            <td>{{ account.email }}</td>
-            <td>
-              <select
-                class="form-select form-select-sm role-select"
-                [ngModel]="account.role"
-                (ngModelChange)="changeRole(account, $event)"
-                [disabled]="isCurrentUser(account)">
-                <option *ngFor="let role of roles" [value]="role">{{ role }}</option>
-              </select>
-            </td>
-            <td>
-              <span class="badge" [class.text-bg-success]="account.isActive" [class.text-bg-secondary]="!account.isActive">
-                {{ account.isActive ? 'Active' : 'Inactive' }}
-              </span>
-            </td>
-            <td class="text-end">
-              <button
-                type="button"
-                class="btn btn-outline-dark btn-sm me-2"
-                [disabled]="isCurrentUser(account)"
-                (click)="toggleStatus(account)">
+  <section class="accounts-table-wrap" *ngIf="!isLoading && accounts.length > 0">
+    <table class="accounts-table">
+      <thead>
+        <tr>
+          <th>Email</th>
+          <th>Role</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let account of accounts; trackBy: trackAccount">
+          <td data-label="Email">{{ account.email }}</td>
+          <td data-label="Role">
+            <select
+              class="form-select form-select-sm role-select"
+              [ngModel]="account.role"
+              (ngModelChange)="changeRole(account, $event)"
+              [disabled]="isCurrentUser(account)">
+              <option *ngFor="let role of roles" [value]="role">{{ role }}</option>
+            </select>
+          </td>
+          <td data-label="Status">
+            <span class="status-badge" [class.inactive]="!account.isActive">{{ account.isActive ? 'Active' : 'Inactive' }}</span>
+          </td>
+          <td data-label="Actions">
+            <div class="row-actions">
+              <button type="button" class="btn btn-secondary-app btn-sm" [disabled]="isCurrentUser(account)" (click)="toggleStatus(account)">
                 {{ account.isActive ? 'Deactivate' : 'Activate' }}
               </button>
-              <button
-                type="button"
-                class="btn btn-outline-danger btn-sm"
-                [disabled]="isCurrentUser(account)"
-                (click)="deleteAccount(account)">
+              <button type="button" class="btn btn-danger-app btn-sm" [disabled]="isCurrentUser(account)" (click)="deleteAccount(account)">
                 Delete
               </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <div class="admin-empty" *ngIf="!isLoading && accounts.length === 0 && !errorMessage">
+    <h2>No accounts found</h2>
+    <p>Try a different search, role, or status filter.</p>
   </div>
 
-  <div class="empty-state text-center py-5" *ngIf="!isLoading && accounts.length === 0 && !errorMessage">
-    <h2 class="h4">No accounts found</h2>
-    <p class="text-secondary mb-0">Try a different search, role, or status filter.</p>
-  </div>
-
-  <div class="d-flex justify-content-center align-items-center gap-2 mt-4" *ngIf="totalPages > 1">
-    <button class="btn btn-outline-dark" [disabled]="page === 1" (click)="goToPage(page - 1)">Prev</button>
-    <span class="fw-semibold">Page {{ page }} of {{ totalPages }}</span>
-    <button class="btn btn-outline-dark" [disabled]="page === totalPages" (click)="goToPage(page + 1)">Next</button>
-  </div>
+  <nav class="accounts-pagination" *ngIf="totalPages > 1" aria-label="Account pagination">
+    <button class="btn btn-secondary-app" [disabled]="page === 1" (click)="goToPage(page - 1)">Previous</button>
+    <span>Page {{ page }} of {{ totalPages }}</span>
+    <button class="btn btn-secondary-app" [disabled]="page === totalPages" (click)="goToPage(page + 1)">Next</button>
+  </nav>
 </section>

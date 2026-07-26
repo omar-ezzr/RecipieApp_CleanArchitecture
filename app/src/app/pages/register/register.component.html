@@ -1,38 +1,63 @@
-<section class="auth-shell">
-  <div class="card soft-card">
-    <div class="card-body p-4 p-md-5">
-      <div class="mb-4">
-        <p class="text-uppercase text-warning fw-bold small mb-2">Join the kitchen</p>
-        <h1 class="h3 mb-1">Create account</h1>
-        <p class="text-secondary mb-0">Save and manage your favorite recipes.</p>
-      </div>
+<section class="auth-page page-shell">
+  <aside class="auth-brand-panel">
+    <p class="ui-label">Join the table</p>
+    <h1 class="page-title">Share recipes with a public cooking name.</h1>
+    <p class="body-copy">Create an account to publish dishes, save favorites, and write reviews.</p>
+    <div class="botanical-print" aria-hidden="true"></div>
+  </aside>
 
-      <div class="mb-3">
-        <label class="form-label" for="registerEmail">Email</label>
-        <input
-          id="registerEmail"
-          class="form-control form-control-lg"
-          type="email"
-          [(ngModel)]="email"
-          placeholder="you@example.com"
-        />
-      </div>
-
-      <div class="mb-4">
-        <label class="form-label" for="registerPassword">Password</label>
-        <input
-          id="registerPassword"
-          class="form-control form-control-lg"
-          [(ngModel)]="password"
-          type="password"
-          placeholder="Choose a password"
-        />
-      </div>
-
-      <button class="btn btn-warning btn-lg w-100 fw-semibold" (click)="register()">Register</button>
-
-      <div *ngIf="message" class="alert alert-success mt-4 mb-0">{{ message }}</div>
-      <div *ngIf="error" class="alert alert-danger mt-4 mb-0">{{ error }}</div>
+  <form class="auth-form surface-card" (ngSubmit)="register()">
+    <div>
+      <p class="ui-label">Register</p>
+      <h2>Create account</h2>
+      <p>Your display name is the public name shown with recipes.</p>
     </div>
-  </div>
+
+    <label>
+      <span class="form-label">Display name</span>
+      <input
+        id="registerDisplayName"
+        class="form-control"
+        type="text"
+        maxlength="100"
+        [(ngModel)]="displayName"
+        name="displayName"
+        autocomplete="name"
+        required>
+    </label>
+
+    <label>
+      <span class="form-label">Email</span>
+      <input
+        id="registerEmail"
+        class="form-control"
+        type="email"
+        [(ngModel)]="email"
+        name="email"
+        autocomplete="email"
+        required>
+    </label>
+
+    <label>
+      <span class="form-label">Password</span>
+      <input
+        id="registerPassword"
+        class="form-control"
+        [(ngModel)]="password"
+        name="password"
+        type="password"
+        autocomplete="new-password"
+        required>
+    </label>
+
+    <button class="btn btn-primary-app w-100" type="submit">Register</button>
+
+    <div *ngIf="message" class="alert alert-success">{{ message }}</div>
+    <div *ngIf="error" class="alert alert-danger">{{ error }}</div>
+
+    <p class="auth-switch">
+      Already have an account?
+      <a routerLink="/login">Sign in</a>
+    </p>
+  </form>
 </section>

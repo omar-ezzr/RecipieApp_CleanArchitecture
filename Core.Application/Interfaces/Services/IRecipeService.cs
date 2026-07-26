@@ -7,8 +7,9 @@ namespace Core.Application.Interfaces.Services;
 public interface IRecipeService
 {
 Task<RecipieDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
-Task<Result> CreateAsync(CreateRecipeDto dto, CancellationToken cancellationToken = default);
-Task<Result> UpdateAsync(Guid id, CreateRecipeDto dto, CancellationToken cancellationToken = default);
-Task<Result> DeleteAsync(Guid id, CancellationToken cancellationToken = default);
+Task<ServiceResult<RecipieDto>> CreateAsync(CreateRecipeDto dto, Guid currentUserId, CancellationToken cancellationToken = default);
+Task<ServiceResult<RecipieDto>> UpdateAsync(Guid id, CreateRecipeDto dto, Guid currentUserId, bool isAdmin, CancellationToken cancellationToken = default);
+Task<ServiceResult> DeleteAsync(Guid id, Guid currentUserId, bool isAdmin, CancellationToken cancellationToken = default);
 Task<PagedResult<RecipieDto>> GetPagedAsync(RecipeQueryParams parameters, CancellationToken cancellationToken = default);
+Task<PagedResult<RecipieDto>> GetMineAsync(RecipeQueryParams parameters, Guid currentUserId, CancellationToken cancellationToken = default);
 }

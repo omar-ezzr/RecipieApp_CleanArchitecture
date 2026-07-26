@@ -59,6 +59,28 @@ public sealed class RecipeRepositoryTests
 
         context.Categories.Add(category);
 
+        var user = new Users
+        {
+            Id = Guid.NewGuid(),
+            DisplayName = "Owner",
+            Email = "owner@example.com",
+            PasswordHash = "hash",
+            Role = "User",
+            IsActive = true
+        };
+
+        context.Users.Add(user);
+
+        var cuisine = new Cuisine
+        {
+            Id = Guid.NewGuid(),
+            Name = "Moroccan",
+            Slug = "moroccan",
+            CountryCode = "MA"
+        };
+
+        context.Cuisines.Add(cuisine);
+
         for (var i = 1; i <= 45; i++)
         {
             context.Recipies.Add(new Recipie
@@ -69,6 +91,8 @@ public sealed class RecipeRepositoryTests
                 PreparationTimeMinutes = i,
                 Difficulty = DifficultyLevel.Easy,
                 CategoryId = category.Id,
+                CuisineId = cuisine.Id,
+                UserId = user.Id,
                 CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddMinutes(i)
             });
         }

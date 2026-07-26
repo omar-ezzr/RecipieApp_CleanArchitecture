@@ -131,6 +131,10 @@ export class AccountsComponent implements OnInit {
     return this.auth.getCurrentUserId() === account.id;
   }
 
+  trackAccount(_index: number, account: UserAccount): string {
+    return account.id;
+  }
+
   get totalPages(): number {
     return this.total === 0 ? 0 : Math.ceil(this.total / this.pageSize);
   }

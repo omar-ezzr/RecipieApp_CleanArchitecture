@@ -1,38 +1,47 @@
-<section class="auth-shell">
-  <div class="card soft-card">
-    <div class="card-body p-4 p-md-5">
-      <div class="mb-4">
-        <p class="text-uppercase text-warning fw-bold small mb-2">Welcome back</p>
-        <h1 class="h3 mb-1">Login</h1>
-        <p class="text-secondary mb-0">Sign in to manage your recipes.</p>
-      </div>
+<section class="auth-page page-shell">
+  <aside class="auth-brand-panel">
+    <p class="ui-label">Welcome back</p>
+    <h1 class="page-title">Return to your kitchen notes.</h1>
+    <p class="body-copy">Sign in to publish recipes, keep favorites, and continue sharing cooking traditions.</p>
+    <div class="botanical-print" aria-hidden="true"></div>
+  </aside>
 
-      <div class="mb-3">
-        <label class="form-label" for="loginEmail">Email</label>
-        <input
-          id="loginEmail"
-          type="email"
-          class="form-control form-control-lg"
-          placeholder="you@example.com"
-          [(ngModel)]="email"
-          required
-        />
-      </div>
-
-      <div class="mb-4">
-        <label class="form-label" for="loginPassword">Password</label>
-        <input
-          id="loginPassword"
-          type="password"
-          class="form-control form-control-lg"
-          placeholder="Your password"
-          [(ngModel)]="password"
-          required
-        />
-      </div>
-
-      <button class="btn btn-warning btn-lg w-100 fw-semibold" (click)="login()">Login</button>
-
+  <form class="auth-form surface-card" (ngSubmit)="login()">
+    <div>
+      <p class="ui-label">Login</p>
+      <h2>Sign in</h2>
+      <p>Use your account to manage recipes and reviews.</p>
     </div>
-  </div>
+
+    <label>
+      <span class="form-label">Email</span>
+      <input
+        id="loginEmail"
+        type="email"
+        class="form-control"
+        [(ngModel)]="email"
+        name="email"
+        autocomplete="email"
+        required>
+    </label>
+
+    <label>
+      <span class="form-label">Password</span>
+      <input
+        id="loginPassword"
+        type="password"
+        class="form-control"
+        [(ngModel)]="password"
+        name="password"
+        autocomplete="current-password"
+        required>
+    </label>
+
+    <button class="btn btn-primary-app w-100" type="submit">Login</button>
+
+    <p class="auth-switch">
+      New to Recipie?
+      <a routerLink="/register">Create an account</a>
+    </p>
+  </form>
 </section>

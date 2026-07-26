@@ -6,6 +6,8 @@ import { authGuard } from './guards/auth.guard';
 import { adminGuard } from './guards/admin.guard';
 import { RecipeDetailsComponent } from './recipe-details/recipe-details.component';
 import { AccountsComponent } from './pages/admin/accounts/accounts.component';
+import { CreateRecipeComponent } from './pages/create-recipe/create-recipe.component';
+import { MyRecipesComponent } from './pages/my-recipes/my-recipes.component';
 
 export const routes: Routes = [
   {
@@ -29,6 +31,16 @@ export const routes: Routes = [
   {
     path: 'recipes/:id',
     component: RecipeDetailsComponent,
+    canActivate: [authGuard]
+  },
+  {
+    path: 'create-recipe',
+    component: CreateRecipeComponent,
+    canActivate: [authGuard]
+  },
+  {
+    path: 'my-recipes',
+    component: MyRecipesComponent,
     canActivate: [authGuard]
   },
   {

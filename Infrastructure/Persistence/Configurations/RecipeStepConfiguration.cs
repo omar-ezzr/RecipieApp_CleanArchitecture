@@ -21,5 +21,10 @@ public class RecipeStepConfiguration : IEntityTypeConfiguration<RecipieStep>
 
         builder.Property(s => s.RecipeId)
             .IsRequired();
+
+        builder.HasOne<Recipie>()
+            .WithMany(r => r.Steps)
+            .HasForeignKey(s => s.RecipeId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

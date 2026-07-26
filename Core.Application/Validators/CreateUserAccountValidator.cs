@@ -13,6 +13,10 @@ public sealed class CreateUserAccountValidator : AbstractValidator<CreateUserAcc
             .EmailAddress()
             .MaximumLength(320);
 
+        RuleFor(dto => dto.DisplayName)
+            .MaximumLength(100)
+            .When(dto => !string.IsNullOrWhiteSpace(dto.DisplayName));
+
         RuleFor(dto => dto.Password)
             .NotEmpty()
             .MinimumLength(8)

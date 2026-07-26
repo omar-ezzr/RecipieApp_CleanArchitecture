@@ -4,6 +4,7 @@ import { of } from 'rxjs';
 import { RecipeDetailsComponent } from './recipe-details.component';
 import { RecipeService } from '../services/recipe.service';
 import { ReviewService } from '../services/review.service';
+import { DifficultyLevel } from '../models/recipe.model';
 
 describe('RecipeDetailsComponent', () => {
   let component: RecipeDetailsComponent;
@@ -31,8 +32,16 @@ describe('RecipeDetailsComponent', () => {
               preparationTimeMinutes: 20,
               categoryId: 'cat-1',
               category: 'Dinner',
-              difficulty: 'Easy',
+              cuisineId: 'cuisine-1',
+              cuisineName: 'Moroccan',
+              cuisineSlug: 'moroccan',
+              regionId: 'region-1',
+              regionName: 'Souss-Massa',
+              regionSlug: 'souss-massa',
+              difficulty: DifficultyLevel.Easy,
+              author: { id: 'user-1', displayName: 'User' },
               imageUrl: '',
+              isTraditional: true,
               ingredients: [],
               steps: []
             })

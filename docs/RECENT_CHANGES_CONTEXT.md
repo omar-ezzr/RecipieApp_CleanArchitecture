@@ -1,70 +1,98 @@
 # Recent Changes Context
 
-## Git State
-
-- Current branch: `main`.
-- `git diff --cached` is empty.
-- Working tree contains coordinated backend, frontend, documentation, migration, and test changes for difficulty handling, refresh behavior, authorization, secrets cleanup, pagination, Bootstrap, validation coverage, and Phase 1 account management.
-
-## Uncommitted Changes
-
-Confirmed by `git diff` and file inspection:
-
-- Phase 1 did not add or remove PerformancePlatform files; no PerformancePlatform runtime references were present in the inspected tree.
-- New backend tests were added under `tests/Core.Application.Tests` and `tests/API.IntegrationTests`.
-- A CI workflow was added at `.github/workflows/ci.yml` for backend and Angular Chrome Headless validation.
-- Phase 1 added Admin account-management API/UI, centralized roles, `Users.IsActive`, and optional first-Admin bootstrap through secrets/configuration.
+Last verified: 2026-07-26
+Branch: `main`
+Commit: `1de804620330d10f9ee6b493ecac423f6ab288b2`
 
 ## Recent Commits
 
-`git log --oneline -10`:
+Latest commits from `git log --oneline -10`:
 
 ```text
-72f121f feat: add recipe ratings and reviews
-168baf9 feat: add backend favorite recipes
-f8750fb fix: complete v3 phase 1 security and bug fixes
+1de8046 feat: add account and role management phase 1
+d563459 feat: add recipe ratings and reviews
+15d32ff feat: add backend favorite recipes
+fd31a58 fix: complete v3 phase 1 security and bug fixes
+cb4b9bb feat: implement client-side filtering (search, category, difficulty) and fix category mismatch bug
+06102d9 feat: implement client-side filtering (search, category, difficulty) and fix category mismatch bug
+0b2d8f2 Create README.md
+60a9fdc initial fullstack commit
 ```
 
-`git log --stat -5` showed:
+## Current Working Tree
 
-- `72f121f`: added review controller/service/repository/entity/migration and Angular review/favorite-related files.
-- `168baf9`: added backend favorite recipes, migration, repository/service/controller, and updated solution.
-- `f8750fb`: initial broad solution/app import with auth, recipes, EF, Angular app, routes, services, and styles.
+The working tree is dirty. Important source changes include:
 
-## Files Recently Changed By Commits
+- Recipe ownership and display-name work across API, application, domain, infrastructure, Angular, migrations, and tests.
+- Cuisine/region cultural discovery work across backend and frontend.
+- Test projects `tests/Recep.UnitTests/` and `tests/Recep.IntegrationTests/`.
+- Uncommitted migration files:
+  - `Infrastructure/Migrations/20260726135722_AddRecipeOwnershipAndUserDisplayName.cs`
+  - `Infrastructure/Migrations/20260726145257_AddCuisineAndRegionSupport.cs`
+- Documentation files were deleted before this documentation task and recreated by this task.
+- Generated `bin/` and `obj/` files are also dirty and should be ignored for source review unless diagnosing builds.
+- Untracked files include `back.zip`, `front.zip`, and `images/`.
 
-- Backend review files: `API/Controller/ReviewsController.cs`, `Core.Application/UseCases/Reviews/ReviewService.cs`, `Infrastructure/Repositories/ReviewRepository.cs`, `Core.Domain/Entities/RecipeReview.cs`, review DTOs/interfaces/migration.
-- Backend favorite files: `API/Controller/FavoritesController.cs`, favorite DTO/interface/service/repository/entity/migration.
-- Frontend recipe details and services: `app/src/app/recipe-details/*`, `app/src/app/services/review.service.ts`, `app/src/app/services/favorite.service.ts`, `app/src/app/pages/recipes/*`.
+No staged changes were reported by `git diff --cached --stat` during inspection.
 
-## Incomplete Or Partial Work
+## Recently Added Or Modified Feature Areas
 
-- There is no visible UI for review update/delete although service/backend support exists.
-- There are no committed Admin credentials; configure `SeedAdmin:Email` and `SeedAdmin:Password` to bootstrap the first Admin.
-- `API/API.http` now targets `GET /api/categories`.
-- Local Angular test execution requires Chrome/Chromium; this environment does not provide one.
+| Area | Evidence |
+| --- | --- |
+| Account management | Committed in `1de8046`; files include `AdminUsersController`, `UserManagementService`, Angular admin accounts page. |
+| Favorites | Committed in `15d32ff`; files include `FavoritesController`, `FavoriteService`, `FavoriteRepository`. |
+| Reviews | Committed in `d563459`; files include `ReviewsController`, `ReviewService`, `RecipeReview`. |
+| Recipe ownership | Uncommitted; files include `Recipie.UserId`, `Users.Recipes`, `RecipeService`, `RecipesController .cs`. |
+| Admin seed | Uncommitted; files include `DbSeeder.cs`, `AdminSeedOptions.cs`. |
+| Cuisine/region support | Uncommitted; files include `Cuisine.cs`, `Region.cs`, controllers/services/repos/configurations/migration/frontend services/models. |
+| Angular recipe publishing | Uncommitted; files include `pages/create-recipe/`, `pages/my-recipes/`, recipes/detail updates. |
 
-## Cleanup Marker Findings
+## Validation History
 
-Repository search found no source cleanup markers requiring action.
+Prior validation from the active dirty tree indicated:
 
-## Documentation That May Be Outdated
+- `dotnet restore`: passed.
+- `dotnet build Recep.sln`: passed.
+- `dotnet test Recep.sln`: passed with backend tests.
+- `npm install`: completed with reported vulnerabilities.
+- `npm run build`: passed with CSS/Bootstrap selector warnings.
+- `npm test -- --watch=false`: failed because Chrome binary was unavailable.
 
-- `app/README.md` was updated with local Bootstrap, auth token, and test notes.
-- No root README was found.
-- Context documentation did not exist before this task.
+These commands must be rerun after documentation changes before claiming current results.
 
-## Validation Results During Documentation Task
+## Frontend Redesign Validation - 2026-07-26
 
-- `dotnet restore`: succeeded.
-- `dotnet build Recep.sln`: succeeded with 0 warnings and 0 errors.
-- `dotnet test Recep.sln`: succeeded with `tests/Core.Application.Tests` and `tests/API.IntegrationTests`.
-- `npm install`: succeeded.
-- `npm run build`: succeeded.
-- `node node_modules/typescript/bin/tsc -p tsconfig.spec.json --noEmit`: succeeded.
-- `npm test -- --watch=false --browsers=ChromeHeadless`: not executed because no Chrome/Chromium binary exists in this environment.
-- `npm audit fix`: applied compatible fixes; 52 vulnerabilities remain and require major-version force upgrades.
+Commands executed from the current dirty tree:
 
-## Likely Next Development Step
+| Command | Result | Notes |
+| --- | --- | --- |
+| `dotnet build Recep.sln` | Passed | 0 warnings, 0 errors. |
+| `dotnet test Recep.sln` | Passed | 57 total backend tests passed across 4 test projects. |
+| `cd app && npm install` | Passed | Dependencies already up to date; npm reported 54 vulnerabilities. |
+| `cd app && npm run build` | Passed with warnings | Initial bundle exceeded 768 kB by 23.87 kB; several component CSS files exceeded 2 kB warning budget but stayed below 4 kB error budget; Bootstrap selector warning remained. |
+| `cd app && npm test -- --watch=false` | Failed due environment | Angular browser bundle compiled; Karma failed because no Chrome binary was available and `CHROME_BIN` was unset. |
 
-Based only on repository evidence, the highest-priority next task is a controlled Angular/tooling dependency upgrade plan to address remaining `npm audit` findings.
+Frontend redesign source changes include:
+
+- `app/src/styles.css`: global editorial design system.
+- `app/src/app/app.component.*`: shell, skip link, footer.
+- `app/src/app/shared/navbar/*`: responsive editorial navbar.
+- `app/src/app/shared/components/*`: reusable recipe cards, skeletons, empty/loading/page header primitives.
+- `app/src/app/pages/recipes/*`: redesigned Explore page.
+- `app/src/app/recipe-details/*`: redesigned recipe detail article.
+- `app/src/app/pages/create-recipe/*`: redesigned publishing form.
+- `app/src/app/pages/my-recipes/*`: redesigned user recipe library.
+- `app/src/app/login/*` and `app/src/app/pages/register/*`: redesigned auth pages.
+- `app/src/app/pages/admin/accounts/*`: redesigned Admin account management.
+- `app/src/index.html`: browser title changed from `Recepes V2` to `RECIPIE`.
+
+Regression searches after redesign:
+
+- `grep -R "picsum.photos" app/src --line-number`: no matches.
+- `grep -R "Recepes V2" app/src --line-number`: no matches.
+- `grep -R "style=\"" app/src/app --include="*.html" --line-number`: no matches.
+- `grep -R "http://localhost:5130" app/src/app --line-number`: matches remain in `app-api.config.ts` and existing service specs only.
+
+## Documentation State
+
+This documentation set is intended to describe the actual code in the dirty tree, not just committed code. Future agents should re-run Git inspection and update `Last verified` sections when code changes.

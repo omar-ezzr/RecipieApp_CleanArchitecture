@@ -4,18 +4,26 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
-import { CreateRecipe, Difficulty, Recipe } from '../../models/recipe.model';
+import { CreateRecipe, Difficulty, DifficultyLevel, Recipe } from '../../models/recipe.model';
 import { Category } from '../../models/category.model';
+import { Cuisine } from '../../models/cuisine.model';
+import { Region } from '../../models/region.model';
 import { ActivatedRoute, Router } from '@angular/router';
 import { RecipeService } from '../../services/recipe.service';
 import { CategoryService } from '../../services/category.service';
+import { CuisineService } from '../../services/cuisine.service';
 import { AuthService } from '../../services/auth.service';
 import { ToastrService } from 'ngx-toastr';
 import { FavoriteService } from '../../services/favorite.service';
+import { API_BASE_URL } from '../../app-api.config';
+import { resolveAssetUrl } from '../../core/utils/asset-url.util';
+import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
+import { RecipeCardComponent } from '../../shared/components/recipe-card/recipe-card.component';
+import { RecipeCardSkeletonComponent } from '../../shared/components/recipe-card-skeleton/recipe-card-skeleton.component';
 @Component({
   selector: 'app-recipes',
   standalone: true,
-imports: [CommonModule, FormsModule, RouterModule],
+imports: [CommonModule, FormsModule, RouterModule, EmptyStateComponent, RecipeCardComponent, RecipeCardSkeletonComponent],
   templateUrl: './recipes.component.html',
   styleUrls: ['./recipes.component.css']
 })
@@ -27,17 +35,25 @@ export class RecipesComponent implements OnInit {
   recipes: Recipe[] = [];
   filteredRecipes: Recipe[] = [];
   categories: Category[] = [];
+  cuisines: Cuisine[] = [];
+  regions: Region[] = [];
+  editRegions: Region[] = [];
   isLoading: boolean = false;
   favoriteRecipeIds = new Set<string>();
   skeletonCards = Array(12).fill(0);
+  filtersOpen = false;
 
   // ========================
   //  FILTER STATE
   // ========================
   searchTerm: string = '';
   selectedCategory: string = '';
+  selectedCuisine: string = '';
+  selectedRegion: string = '';
+  isTraditionalOnly = false;
   selectedDifficulty: Difficulty | '' = '';
   private searchSubject = new Subject<string>();
+  private editFromQueryId: string | null = null;
 
   // ========================
   //  FORM STATE
@@ -59,14 +75,23 @@ visiblePages: (number | string)[] = [];
     description: '',
     preparationTimeMinutes: 0,
     categoryId: '',
-    difficulty: 'Easy',
-    imageUrl: ''
+    cuisineId: '',
+    regionId: null,
+    difficulty: DifficultyLevel.Easy,
+    imageUrl: '',
+    traditionalName: null,
+    originDescription: null,
+    isTraditional: false,
+    servingOccasion: null,
+    ingredients: [{ name: '', quantity: '' }],
+    steps: [{ stepNumber: 1, instruction: '' }]
   };
 
   
 constructor(
   private recipeService: RecipeService,
   private categoryService: CategoryService,
+  private cuisineService: CuisineService,
   public auth: AuthService,
   private route: ActivatedRoute,
   private router: Router,
@@ -81,6 +106,7 @@ constructor(
 ngOnInit() {
 
   this.loadCategories();
+  this.loadCuisines();
 
   this.route.queryParams.subscribe(params => {
 
@@ -89,12 +115,22 @@ ngOnInit() {
     this.searchTerm = params['search'] || '';
 
     this.selectedCategory = params['categoryId'] || '';
+    this.selectedCuisine = params['cuisineId'] || '';
+    this.selectedRegion = params['regionId'] || '';
+    this.isTraditionalOnly = params['isTraditional'] === 'true';
 
     this.selectedDifficulty = this.toDifficulty(params['difficulty']);
 
     this.sortBy = params['sortBy'] || '';
 
     this.pageSize = +params['pageSize'] || 10;
+    this.editFromQueryId = params['edit'] || null;
+
+    if (this.selectedCuisine) {
+      this.loadRegions(this.selectedCuisine);
+    } else {
+      this.regions = [];
+    }
 
     this.loadRecipes();
     this.loadFavorites();
@@ -123,6 +159,9 @@ const params = {
   search: this.searchTerm || undefined,
   difficulty: this.selectedDifficulty || undefined,
   categoryId: this.selectedCategory || undefined,
+  cuisineId: this.selectedCuisine || undefined,
+  regionId: this.selectedRegion || undefined,
+  isTraditional: this.isTraditionalOnly ? true : undefined,
   sortBy: this.sortBy || undefined
 };
   this.recipeService.getPaged(params).subscribe({
@@ -131,6 +170,15 @@ const params = {
 
       this.recipes = res.items;
       this.filteredRecipes = res.items;
+
+      if (this.editFromQueryId) {
+        const recipeToEdit = this.recipes.find(recipe => recipe.id === this.editFromQueryId);
+
+        if (recipeToEdit) {
+          this.startEdit(recipeToEdit);
+          this.editFromQueryId = null;
+        }
+      }
 
       this.totalItems = res.total;
       this.currentPage = res.page;
@@ -158,6 +206,9 @@ updateQueryParams() {
       page: this.currentPage,
       search: this.searchTerm || null,
       categoryId: this.selectedCategory || null,
+      cuisineId: this.selectedCuisine || null,
+      regionId: this.selectedRegion || null,
+      isTraditional: this.isTraditionalOnly ? true : null,
       difficulty: this.selectedDifficulty || null,
       sortBy: this.sortBy || null,
       pageSize: this.pageSize
@@ -220,6 +271,30 @@ error: () => {
 }    });
   }
 
+  loadCuisines() {
+    this.cuisineService.getAll().subscribe({
+      next: (data) => this.cuisines = data,
+      error: () => {
+        this.toastr.error('Failed to load cuisines');
+      }
+    });
+  }
+
+  loadRegions(cuisineId: string, forEdit = false) {
+    this.cuisineService.getRegions(cuisineId).subscribe({
+      next: (data) => {
+        if (forEdit) {
+          this.editRegions = data;
+        } else {
+          this.regions = data;
+        }
+      },
+      error: () => {
+        this.toastr.error('Failed to load regions');
+      }
+    });
+  }
+
   // ========================
   //  FILTER LOGIC (FIXED)
   // ========================
@@ -228,6 +303,70 @@ error: () => {
 applyFilters() {
   this.currentPage = 1;
   this.updateQueryParams();
+}
+
+onCuisineFilterChange() {
+  this.selectedRegion = '';
+  this.currentPage = 1;
+
+  if (this.selectedCuisine) {
+    this.loadRegions(this.selectedCuisine);
+  } else {
+    this.regions = [];
+  }
+
+  this.updateQueryParams();
+}
+
+selectCuisine(cuisineId: string) {
+  this.selectedCuisine = cuisineId;
+  this.onCuisineFilterChange();
+}
+
+clearCuisineFilter() {
+  this.selectedCuisine = '';
+  this.onCuisineFilterChange();
+}
+
+clearAllFilters() {
+  this.searchTerm = '';
+  this.selectedCategory = '';
+  this.selectedCuisine = '';
+  this.selectedRegion = '';
+  this.selectedDifficulty = '';
+  this.isTraditionalOnly = false;
+  this.sortBy = '';
+  this.currentPage = 1;
+  this.regions = [];
+  this.updateQueryParams();
+}
+
+clearSearch() {
+  this.searchTerm = '';
+  this.onSearchChange();
+}
+
+toggleFilters() {
+  this.filtersOpen = !this.filtersOpen;
+}
+
+onRegionFilterChange() {
+  this.currentPage = 1;
+  this.updateQueryParams();
+}
+
+onTraditionalFilterChange() {
+  this.currentPage = 1;
+  this.updateQueryParams();
+}
+
+onEditCuisineChange() {
+  this.newRecipe.regionId = null;
+  this.editRegions = [];
+
+  if (this.newRecipe.cuisineId) {
+    this.loadRegions(this.newRecipe.cuisineId, true);
+  }
 }
 
 
@@ -249,24 +388,28 @@ onSearchChange() {
 
 createRecipe() {
 
-  if (!this.newRecipe.title || !this.newRecipe.categoryId || !this.newRecipe.difficulty) {
+  if (!this.auth.isLoggedIn()) {
+    this.toastr.error('Please log in to create a recipe');
 
-    this.toastr.error('Title, category, and difficulty are required');
+    return;
+  }
+
+  if (!this.newRecipe.title || !this.newRecipe.categoryId || !this.newRecipe.cuisineId || !this.newRecipe.difficulty) {
+
+    this.toastr.error('Title, category, cuisine, and difficulty are required');
 
     return;
   }
 
   this.recipeService.create(this.newRecipe).subscribe({
 
-    next: () => {
+    next: (recipe) => {
 
       this.toastr.success('Recipe created successfully');
 
       this.recipeService.clearCache();
 
-      this.loadRecipes();
-
-      this.resetForm();
+      this.router.navigate(['/recipes', recipe.id]);
     },
 
     error: (error) => {
@@ -282,6 +425,11 @@ createRecipe() {
 // ========================
 
 startEdit(recipe: Recipe) {
+  if (!this.canManageRecipe(recipe)) {
+    this.toastr.error('You can only edit recipes you created');
+
+    return;
+  }
 
   this.editingId = recipe.id;
 
@@ -290,9 +438,25 @@ startEdit(recipe: Recipe) {
     description: recipe.description,
     preparationTimeMinutes: recipe.preparationTimeMinutes,
     categoryId: recipe.categoryId,
+    cuisineId: recipe.cuisineId,
+    regionId: recipe.regionId || null,
     difficulty: recipe.difficulty,
-    imageUrl: recipe.imageUrl || ''
+    imageUrl: recipe.imageUrl || '',
+    traditionalName: recipe.traditionalName || null,
+    originDescription: recipe.originDescription || null,
+    isTraditional: recipe.isTraditional,
+    servingOccasion: recipe.servingOccasion || null,
+    ingredients: recipe.ingredients?.length
+      ? recipe.ingredients.map(ingredient => ({ ...ingredient }))
+      : [{ name: '', quantity: '' }],
+    steps: recipe.steps?.length
+      ? recipe.steps.map(step => ({ ...step }))
+      : [{ stepNumber: 1, instruction: '' }]
   };
+
+  if (this.newRecipe.cuisineId) {
+    this.loadRegions(this.newRecipe.cuisineId, true);
+  }
 }
 
 
@@ -327,7 +491,15 @@ updateRecipe() {
 // DELETE (OPTIMISTIC)
 // ========================
 
-deleteRecipe(id: string) {
+deleteRecipe(recipeOrId: Recipe | string) {
+  const id = typeof recipeOrId === 'string' ? recipeOrId : recipeOrId.id;
+  const recipe = this.recipes.find(r => r.id === id);
+
+  if (recipe && !this.canManageRecipe(recipe)) {
+    this.toastr.error('You can only delete recipes you created');
+
+    return;
+  }
 
   if (!confirm('Delete this recipe?')) return;
 
@@ -387,11 +559,20 @@ resetForm() {
     description: '',
     preparationTimeMinutes: 0,
     categoryId: '',
-    difficulty: 'Easy',
-    imageUrl: ''
+    cuisineId: '',
+    regionId: null,
+    difficulty: DifficultyLevel.Easy,
+    imageUrl: '',
+    traditionalName: null,
+    originDescription: null,
+    isTraditional: false,
+    servingOccasion: null,
+    ingredients: [{ name: '', quantity: '' }],
+    steps: [{ stepNumber: 1, instruction: '' }]
   };
 
   this.editingId = null;
+  this.editRegions = [];
 }
 
 loadFavorites(): void {
@@ -409,6 +590,33 @@ loadFavorites(): void {
 
 isFavorite(recipeId: string): boolean {
   return this.favoriteRecipeIds.has(recipeId);
+}
+
+canManageRecipe(recipe: Recipe): boolean {
+  const currentUserId = this.auth.getCurrentUserId();
+
+  return this.auth.isAdmin() || (!!currentUserId && recipe.author?.id === currentUserId);
+}
+
+difficultyLabel(value: DifficultyLevel): Difficulty {
+  switch (value) {
+    case DifficultyLevel.Easy:
+      return 'Easy';
+    case DifficultyLevel.Medium:
+      return 'Medium';
+    case DifficultyLevel.Hard:
+      return 'Hard';
+    default:
+      return 'Easy';
+  }
+}
+
+difficultyValue(value: Difficulty): DifficultyLevel {
+  return DifficultyLevel[value];
+}
+
+resolveImageUrl(path: string | null | undefined): string {
+  return resolveAssetUrl(path, API_BASE_URL);
 }
 
 toggleFavorite(recipeId: string, event?: Event): void {
@@ -442,6 +650,26 @@ toggleFavorite(recipeId: string, event?: Event): void {
       this.toastr.error(this.getApiError(error, 'Failed to update favorite'));
     }
   });
+}
+
+toggleFavoriteRecipe(recipe: Recipe): void {
+  this.toggleFavorite(recipe.id);
+}
+
+trackRecipe(_index: number, recipe: Recipe): string {
+  return recipe.id;
+}
+
+trackCuisine(_index: number, cuisine: Cuisine): string {
+  return cuisine.id;
+}
+
+trackRegion(_index: number, region: Region): string {
+  return region.id;
+}
+
+trackPage(index: number, page: number | string): number | string {
+  return page === '...' ? `ellipsis-${index}` : page;
 }
 
 private getApiError(error: any, fallback: string): string {

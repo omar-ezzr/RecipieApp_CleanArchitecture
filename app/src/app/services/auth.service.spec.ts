@@ -89,16 +89,15 @@ describe('AuthService', () => {
     expect(localStorage.getItem('refreshToken')).toBeNull();
   });
 
-  it('reads user id and role claims and allows recipe management for operators', () => {
+  it('reads user id and role claims and allows recipe management for authenticated users', () => {
     localStorage.setItem('accessToken', createToken({
       'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier': 'user-1',
-      'http://schemas.microsoft.com/ws/2008/06/identity/claims/role': 'Operator',
+      'http://schemas.microsoft.com/ws/2008/06/identity/claims/role': 'User',
       exp: Math.floor(Date.now() / 1000) + 300
     }));
 
     expect(service.getCurrentUserId()).toBe('user-1');
-    expect(service.getCurrentRole()).toBe('Operator');
-    expect(service.isOperator()).toBeTrue();
+    expect(service.getCurrentRole()).toBe('User');
     expect(service.canManageRecipes()).toBeTrue();
   });
 });

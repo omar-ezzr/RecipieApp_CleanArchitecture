@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "SxLnovTQ+axh92ptQv5moRopi6HTVyaNa/0Rv9cjGx8CRRFDbzRBOEsWYOyoECExsJpJ06yQ3samfeNc9id56Q==",
+  "dgSpecHash": "j7Wch/wqkWw=",
   "success": true,
-  "projectFilePath": "/mnt/data2/dotnetAngular/Recepi/Core.Domain/Core.Domain.csproj",
+  "projectFilePath": "/mnt/data/dev/Dotnet/Recepie/RecepieV3/Core.Domain/Core.Domain.csproj",
   "expectedPackageFiles": [],
   "logs": []
 }

@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "kjveoR7zYdS9hZ9SAYR91AC5yCKYtdPVPwai8bl+bdjskaNTelf0sDaBoPLhSeRka1stQ2i8AFFuUflwzE5jbA==",
+  "dgSpecHash": "m21aHbF6Td8=",
   "success": true,
-  "projectFilePath": "/mnt/data2/dotnetAngular/Recepi/API/API.csproj",
+  "projectFilePath": "/mnt/data/dev/Dotnet/Recepie/RecepieV3/API/API.csproj",
   "expectedPackageFiles": [
     "/home/omar-zaroili/.nuget/packages/azure.core/1.25.0/azure.core.1.25.0.nupkg.sha512",
     "/home/omar-zaroili/.nuget/packages/azure.identity/1.7.0/azure.identity.1.7.0.nupkg.sha512",
@@ -84,7 +84,8 @@
     "/home/omar-zaroili/.nuget/packages/system.text.json/8.0.0/system.text.json.8.0.0.nupkg.sha512",
     "/home/omar-zaroili/.nuget/packages/system.threading.channels/6.0.0/system.threading.channels.6.0.0.nupkg.sha512",
     "/home/omar-zaroili/.nuget/packages/system.threading.tasks.extensions/4.5.4/system.threading.tasks.extensions.4.5.4.nupkg.sha512",
-    "/home/omar-zaroili/.nuget/packages/system.windows.extensions/6.0.0/system.windows.extensions.6.0.0.nupkg.sha512"
+    "/home/omar-zaroili/.nuget/packages/system.windows.extensions/6.0.0/system.windows.extensions.6.0.0.nupkg.sha512",
+    "/home/omar-zaroili/.nuget/packages/microsoft.netcore.app.host.linux-x64/8.0.29/microsoft.netcore.app.host.linux-x64.8.0.29.nupkg.sha512"
   ],
   "logs": []
 }

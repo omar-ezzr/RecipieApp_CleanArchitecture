@@ -1,0 +1,149 @@
+<section class="page-shell publish-page">
+  <header class="publish-header">
+    <p class="ui-label">Publish recipe</p>
+    <h1 class="page-title">Share a recipe from your kitchen</h1>
+    <p class="body-copy">Tell the story, origin, ingredients, and method so another cook can follow it with confidence.</p>
+    <a class="btn btn-secondary-app" routerLink="/my-recipes">My Recipes</a>
+  </header>
+
+  <form class="publish-layout" (ngSubmit)="submit()">
+    <div class="publish-sections">
+      <section class="form-section">
+        <div>
+          <p class="ui-label">1. Recipe identity</p>
+          <h2>What are you sharing?</h2>
+        </div>
+        <div class="form-grid">
+          <label class="full-span">
+            <span class="form-label">Title</span>
+            <input id="title" class="form-control" name="title" [(ngModel)]="recipe.title" required maxlength="200" autocomplete="off">
+          </label>
+          <label class="full-span">
+            <span class="form-label">Description</span>
+            <textarea id="description" class="form-control" name="description" [(ngModel)]="recipe.description" required maxlength="5000"></textarea>
+          </label>
+          <label>
+            <span class="form-label">Category</span>
+            <select id="category" class="form-select" name="categoryId" [(ngModel)]="recipe.categoryId" required>
+              <option value="">Select category</option>
+              <option *ngFor="let category of categories" [value]="category.id">{{ category.name }}</option>
+            </select>
+          </label>
+          <label>
+            <span class="form-label">Preparation time</span>
+            <input id="preparationTime" class="form-control" type="number" min="1" name="preparationTimeMinutes" [(ngModel)]="recipe.preparationTimeMinutes" required>
+          </label>
+          <label>
+            <span class="form-label">Difficulty</span>
+            <select id="difficulty" class="form-select" name="difficulty" [(ngModel)]="recipe.difficulty" required>
+              <option [ngValue]="DifficultyLevel.Easy">Easy</option>
+              <option [ngValue]="DifficultyLevel.Medium">Medium</option>
+              <option [ngValue]="DifficultyLevel.Hard">Hard</option>
+            </select>
+          </label>
+        </div>
+      </section>
+
+      <section class="form-section">
+        <div>
+          <p class="ui-label">2. Cultural origin</p>
+          <h2>Where does it come from?</h2>
+        </div>
+        <div class="form-grid">
+          <label>
+            <span class="form-label">Cuisine</span>
+            <select id="cuisine" class="form-select" name="cuisineId" [(ngModel)]="recipe.cuisineId" (change)="onCuisineChange()" required>
+              <option value="">Select cuisine</option>
+              <option *ngFor="let cuisine of cuisines" [value]="cuisine.id">{{ cuisine.name }} ({{ cuisine.countryCode }})</option>
+            </select>
+          </label>
+          <label>
+            <span class="form-label">Region</span>
+            <select id="region" class="form-select" name="regionId" [(ngModel)]="recipe.regionId" [disabled]="!recipe.cuisineId">
+              <option [ngValue]="null">No region</option>
+              <option *ngFor="let region of regions" [value]="region.id">{{ region.name }}</option>
+            </select>
+          </label>
+          <label>
+            <span class="form-label">Traditional name</span>
+            <input id="traditionalName" class="form-control" name="traditionalName" [(ngModel)]="recipe.traditionalName" maxlength="200">
+          </label>
+          <label>
+            <span class="form-label">Serving occasion</span>
+            <input id="servingOccasion" class="form-control" name="servingOccasion" [(ngModel)]="recipe.servingOccasion" maxlength="200">
+          </label>
+          <label class="traditional-toggle">
+            <input id="isTraditional" type="checkbox" name="isTraditional" [(ngModel)]="recipe.isTraditional">
+            <span>Traditional recipe</span>
+          </label>
+          <label class="full-span">
+            <span class="form-label">Origin description</span>
+            <textarea id="originDescription" class="form-control" name="originDescription" [(ngModel)]="recipe.originDescription" maxlength="2000"></textarea>
+          </label>
+        </div>
+      </section>
+
+      <section class="form-section">
+        <div class="section-action-row">
+          <div>
+            <p class="ui-label">3. Ingredients</p>
+            <h2>What goes in?</h2>
+          </div>
+          <button class="btn btn-secondary-app btn-sm" type="button" (click)="addIngredient()">Add ingredient</button>
+        </div>
+        <div class="dynamic-row ingredient-row" *ngFor="let ingredient of recipe.ingredients; let i = index; trackBy: trackIngredient">
+          <input class="form-control" [name]="'ingredientName' + i" [(ngModel)]="ingredient.name" placeholder="Ingredient name" required maxlength="150" [attr.aria-label]="'Ingredient ' + (i + 1) + ' name'">
+          <input class="form-control" [name]="'ingredientQuantity' + i" [(ngModel)]="ingredient.quantity" placeholder="Quantity" required maxlength="100" [attr.aria-label]="'Ingredient ' + (i + 1) + ' quantity'">
+          <button class="btn btn-danger-app" type="button" [disabled]="recipe.ingredients.length === 1" (click)="removeIngredient(i)">Remove</button>
+        </div>
+      </section>
+
+      <section class="form-section">
+        <div class="section-action-row">
+          <div>
+            <p class="ui-label">4. Method</p>
+            <h2>How should it be cooked?</h2>
+          </div>
+          <button class="btn btn-secondary-app btn-sm" type="button" (click)="addStep()">Add step</button>
+        </div>
+        <div class="dynamic-row step-row" *ngFor="let step of recipe.steps; let i = index; trackBy: trackStep">
+          <span class="step-number">{{ i + 1 }}</span>
+          <input class="form-control" [name]="'stepInstruction' + i" [(ngModel)]="step.instruction" placeholder="Instruction" required maxlength="1000" [attr.aria-label]="'Step ' + (i + 1) + ' instruction'">
+          <button class="btn btn-danger-app" type="button" [disabled]="recipe.steps.length === 1" (click)="removeStep(i)">Remove</button>
+        </div>
+      </section>
+
+      <section class="form-section">
+        <div>
+          <p class="ui-label">5. Image and final details</p>
+          <h2>Give it a visual anchor</h2>
+        </div>
+        <label>
+          <span class="form-label">Image URL</span>
+          <input id="imageUrl" class="form-control" name="imageUrl" [(ngModel)]="recipe.imageUrl">
+        </label>
+      </section>
+
+      <div class="alert alert-danger" *ngIf="error">{{ error }}</div>
+
+      <div class="publish-actions">
+        <button class="btn btn-primary-app" type="submit" [disabled]="isSubmitting">
+          {{ isSubmitting ? 'Publishing...' : 'Publish recipe' }}
+        </button>
+        <a class="btn btn-secondary-app" routerLink="/recipes">Cancel</a>
+      </div>
+    </div>
+
+    <aside class="recipe-preview">
+      <p class="ui-label">Preview</p>
+      <img [src]="previewImageUrl()" [alt]="recipe.title || 'Recipe preview'" width="480" height="360">
+      <h2>{{ recipe.title || 'Untitled recipe' }}</h2>
+      <p>{{ recipe.description || 'Add a short story about the dish, its origin, and why it belongs on the table.' }}</p>
+      <dl>
+        <div><dt>Ingredients</dt><dd>{{ recipe.ingredients.length }}</dd></div>
+        <div><dt>Steps</dt><dd>{{ recipe.steps.length }}</dd></div>
+        <div><dt>Time</dt><dd>{{ recipe.preparationTimeMinutes }} min</dd></div>
+      </dl>
+    </aside>
+  </form>
+</section>

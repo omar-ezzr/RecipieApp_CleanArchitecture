@@ -66,6 +66,7 @@ public sealed class UserManagementService : IUserManagementService
         var user = new UserEntity
         {
             Id = Guid.NewGuid(),
+            DisplayName = NormalizeDisplayName(dto.DisplayName, email),
             Email = email,
             PasswordHash = _passwordService.Hash(dto.Password),
             Role = role,
@@ -200,6 +201,7 @@ public sealed class UserManagementService : IUserManagementService
         return new UserAccountDto
         {
             Id = user.Id,
+            DisplayName = user.DisplayName,
             Email = user.Email,
             Role = user.Role,
             IsActive = user.IsActive
@@ -215,5 +217,14 @@ public sealed class UserManagementService : IUserManagementService
     private static string NormalizeEmail(string email)
     {
         return email.Trim().ToLowerInvariant();
+    }
+
+    private static string NormalizeDisplayName(string? displayName, string normalizedEmail)
+    {
+        var value = string.IsNullOrWhiteSpace(displayName)
+            ? normalizedEmail.Split('@')[0]
+            : displayName.Trim();
+
+        return value.Length <= 100 ? value : value[..100];
     }
 }

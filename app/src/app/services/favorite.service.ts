@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { API_BASE_URL } from '../app-api.config';
 
 export interface FavoriteRecipe {
   id: string;
@@ -14,7 +15,7 @@ export interface FavoriteRecipe {
   providedIn: 'root'
 })
 export class FavoriteService {
-  private apiUrl = 'http://localhost:5130/api/favorites';
+  private apiUrl = `${API_BASE_URL}/favorites`;
 
   constructor(private http: HttpClient) {}
 

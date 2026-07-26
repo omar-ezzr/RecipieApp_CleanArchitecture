@@ -1,143 +1,131 @@
 # Database Context
 
+Last verified: 2026-07-26
+Branch: `main`
+Commit: `1de804620330d10f9ee6b493ecac423f6ab288b2`
+
 ## DbContext
 
-- Name: `AppDbContext`.
-- Path: `Infrastructure/Persistence/AppDbContext.cs`.
-- Provider: SQL Server via `options.UseSqlServer(configuration.GetConnectionString("DefaultConnection"))` in `Infrastructure/DependencyInjection.cs`.
-- Design-time factory: `Infrastructure/Persistence/AppDbContextFactory.cs`.
+Active context: `Infrastructure/Persistence/AppDbContext.cs`
+Provider registration: `Infrastructure/DependencyInjection.cs` uses SQL Server through `UseSqlServer(configuration.GetConnectionString("DefaultConnection"))`.
+Design-time factory: `Infrastructure/Persistence/AppDbContextFactory.cs` reads `ConnectionStrings:DefaultConnection` from environment or appsettings files. Values are sensitive and must be documented only as `[REDACTED]`.
 
-## DbSets
+Registered `DbSet`s:
 
-- `DbSet<Recipie> Recipies`
-- `DbSet<Category> Categories`
-- `DbSet<Ingredient> Ingredients`
-- `DbSet<RecipieStep> RecipeSteps`
-- `DbSet<Users> Users`
-- `DbSet<FavoriteRecipe> FavoriteRecipes`
-- `DbSet<RecipeReview> RecipeReviews`
+- `Recipies`
+- `Categories`
+- `Ingredients`
+- `RecipeSteps`
+- `Cuisines`
+- `Regions`
+- `Users`
+- `FavoriteRecipes`
+- `RecipeReviews`
 
-`RecipeImage` exists as an entity but has no DbSet.
+`RecipeImage` exists as an entity but is not registered as a DbSet.
 
-## Entities And Important Fields
+## Entities
 
-- `BaseEntity` (`Core.Domain/Common/BaseEntity.cs`): `Id`, `CreatedAt`.
-- `Category`: `Id`, `Name`, `Description`, `CreatedAt`, `Recipes`.
-- `Recipie`: `Id`, `Title`, `Description`, `PreparationTimeMinutes`, `Difficulty`, `CategoryId`, `Category`, `ImageUrl`, `Ingredients`, `Steps`, `Images`, `CreatedAt`.
-- `Ingredient`: `Id`, `Name`, `Quantity`, `RecipeId`, `CreatedAt`.
-- `RecipieStep`: `Id`, `StepNumber`, `Instruction`, `RecipeId`, `CreatedAt`.
-- `RecipeImage`: `Id`, `Url`, `IsMain`, `RecipeId`, `CreatedAt`.
-- `Users`: `Id`, `Email`, `PasswordHash`, `Role`, `IsActive`, `RefreshToken`, `RefreshTokenExpiryTime`.
-- `FavoriteRecipe`: `Id`, `UserId`, `User`, `RecipeId`, `Recipe`, `CreatedAt`.
-- `RecipeReview`: `Id`, `RecipeId`, `Recipe`, `UserId`, `User`, `Rating`, `Comment`, `CreatedAt`, `UpdatedAt`.
+| Entity | Path | Primary key | Important fields | Relationships |
+| --- | --- | --- | --- | --- |
+| `Users` | `Core.Domain/Entities/Users.cs` | `Id` | `DisplayName`, `Email`, `PasswordHash`, `Role`, `IsActive`, refresh token fields | One user has many `Recipie` through `Users.Recipes`; favorites/reviews reference users. |
+| `Recipie` | `Core.Domain/Entities/Recipie.cs` | `Id` from `BaseEntity` | Title, description, prep time, difficulty, image URL, user/category/cuisine/region IDs, traditional fields | Belongs to `Users`, `Category`, required `Cuisine`, optional `Region`; has ingredients, steps, images. |
+| `Category` | `Core.Domain/Entities/Category.cs` | `Id` from `BaseEntity` | Name, description | One category has many recipes. |
+| `Ingredient` | `Core.Domain/Entities/Ingredient.cs` | `Id` from `BaseEntity` | Name, quantity, `RecipeId` | Belongs to `Recipie` via configuration. |
+| `RecipieStep` | `Core.Domain/Entities/RecipieStep.cs` | `Id` from `BaseEntity` | Step number, instruction, `RecipeId` | Belongs to `Recipie` via configuration. |
+| `Cuisine` | `Core.Domain/Entities/Cuisine.cs` | `Id` from `BaseEntity` | Name, slug, description, country code, image URL, active flag | One cuisine has many regions and recipes. |
+| `Region` | `Core.Domain/Entities/Region.cs` | `Id` from `BaseEntity` | Name, slug, description, cuisine ID, image URL, active flag | Belongs to cuisine; can have many recipes. |
+| `FavoriteRecipe` | `Core.Domain/Entities/FavoriteRecipe.cs` | `Id` | User ID, recipe ID, created date | Join-like entity for user favorites. |
+| `RecipeReview` | `Core.Domain/Entities/RecipeReview.cs` | `Id` | Recipe ID, user ID, rating, comment, created/updated dates | User writes review for recipe. |
+| `RecipeImage` | `Core.Domain/Entities/RecipeImage.cs` | `Id` from `BaseEntity` | URL, is main, recipe ID | Suspicious/incomplete mapping. |
 
-## Tables, Keys, Relationships
+## EF Configurations
 
-- `Categories`: PK `Id`; one category has many `Recipes`.
-- `Recipes`: PK `Id`; FK `CategoryId` -> `Categories.Id`, cascade delete.
-- `Ingredients`: PK `Id`; FK `RecipeId` -> `Recipes.Id`, cascade delete.
-- `RecipeSteps`: PK `Id`; FK `RecipeId` -> `Recipes.Id`, cascade delete.
-- `RecipeImage`: PK `Id`; current snapshot has nullable shadow FK `RecipieId` -> `Recipes.Id`, no cascade configured; entity also has required-looking `RecipeId` property not used by relationship.
-- `Users`: PK `Id`; unique index on normalized `Email`; `IsActive` defaults to true.
-- `FavoriteRecipes`: PK `Id`; FK `UserId` -> `Users.Id` cascade, FK `RecipeId` -> `Recipes.Id` cascade; unique index `(UserId, RecipeId)`.
-- `RecipeReviews`: PK `Id`; FK `UserId` -> `Users.Id` cascade, FK `RecipeId` -> `Recipes.Id` cascade; unique index `(UserId, RecipeId)`.
+| File | Class | Entity | Main mapping |
+| --- | --- | --- | --- |
+| `Infrastructure/Persistence/Configurations/UserConfiguration.cs` | `UserConfiguration` | `Users` | Table `Users`, required email/display/password/role/active, unique email, display max 100. |
+| `Infrastructure/Persistence/Configurations/RecipeConfiguration.cs` | `RecipeConfiguration` | `Recipie` | Table `Recipes`, required title/description, owner FK restrict, cuisine/region FK restrict, cultural field lengths, owner/culture indexes. |
+| `Infrastructure/Persistence/Configurations/CategoryConfiguration.cs` | `CategoryConfiguration` | `Category` | Table `Categories`, required name max 100. |
+| `Infrastructure/Persistence/Configurations/IngredientConfiguration.cs` | `IngredientConfiguration` | `Ingredient` | Table `Ingredients`, required name/quantity/recipe ID, cascade from recipe. |
+| `Infrastructure/Persistence/Configurations/RecipeStepConfiguration.cs` | `RecipeStepConfiguration` | `RecipieStep` | Table `RecipeSteps`, required step number/instruction/recipe ID, cascade from recipe. |
+| `Infrastructure/Persistence/Configurations/CuisineConfiguration.cs` | `CuisineConfiguration` | `Cuisine` | Table `Cuisines`, required name/slug/country code, unique slug, active default true. |
+| `Infrastructure/Persistence/Configurations/RegionConfiguration.cs` | `RegionConfiguration` | `Region` | Table `Regions`, cuisine FK restrict, unique `(CuisineId, Slug)`, active default true. |
+| `Infrastructure/Persistence/Configurations/FavoriteRecipeConfiguration.cs` | `FavoriteRecipeConfiguration` | `FavoriteRecipe` | Table `FavoriteRecipes`, unique `(UserId, RecipeId)`, cascade delete from user/recipe. |
+| `Infrastructure/Persistence/Configurations/RecipeReviewConfiguration.cs` | `RecipeReviewConfiguration` | `RecipeReview` | Table `RecipeReviews`, unique `(UserId, RecipeId)`, cascade delete from user/recipe. |
 
-## Entity Configurations
-
-- `Infrastructure/Persistence/Configurations/CategoryConfiguration.cs`: table `Categories`, required `Name` max 100.
-- `Infrastructure/Persistence/Configurations/RecipeConfiguration.cs`: table `Recipes`, required `Title` max 200, required `Description`, cascade ingredients and steps.
-- `Infrastructure/Persistence/Configurations/IngredientConfiguration.cs`: suspicious: class is `RecipieConfiguration` and configures `Recipie`, not `Ingredient`.
-- `Infrastructure/Persistence/Configurations/RecipeStepConfiguration.cs`: table `RecipeSteps`, required `StepNumber`, required `Instruction` max 1000, required `RecipeId`.
-- `Infrastructure/Persistence/Configurations/FavoriteRecipeConfiguration.cs`: table `FavoriteRecipes`, unique `(UserId, RecipeId)`, cascade to user and recipe.
-- `Infrastructure/Persistence/Configurations/RecipeReviewConfiguration.cs`: table `RecipeReviews`, required rating, comment max 1000, unique `(UserId, RecipeId)`, cascade to user and recipe.
-
-## Enums Stored In Database
-
-- `DifficultyLevel` in `Core.Domain/Enums/DifficultyLevel.cs`: `Easy = 1`, `Medium = 2`, `Hard = 3`.
-- Stored as integer column `Recipes.Difficulty`.
-
-## Migration List
-
-Chronological migrations:
-
-1. `20260117180238_InitialCreate`: creates `Categories`, `Recipes`, `Ingredients`, `RecipeImage`, `RecipeSteps`.
-2. `20260331145205_AddUserTable`: creates `Users` with `Email`, `PasswordHash`.
-3. `20260404173423_AddUserRole`: adds `Users.Role`.
-4. `20260404181947_AddRefreshToken`: adds `Users.RefreshToken`, `Users.RefreshTokenExpiryTime`.
-5. `20260421141546_AddImageUrl`: adds nullable `Recipes.ImageUrl`.
-6. `20260528184235_AddFavoriteRecipes`: creates `FavoriteRecipes` with unique user/recipe index.
-7. `20260530143913_AddRecipeReviews`: creates `RecipeReviews` with unique user/recipe index.
-8. `20260719140841_AddUniqueUserEmailIndex`: normalizes existing emails, guards duplicate normalized emails, changes `Users.Email` to max 320, and creates unique email index.
-9. `20260719153431_AddUserAccountManagement`: adds non-nullable `Users.IsActive` with default `true`.
-
-## Seed Process
-
-Active seed:
-
-- `Infrastructure/Seed/DbSeeder.cs`
-- Called from `API/Program.cs`.
-- Admin bootstrap runs independently when `SeedAdmin:Email` and `SeedAdmin:Password` are configured and no Admin exists.
-- Recipe seed does nothing if any recipe exists.
-- Creates 3 categories: Breakfast, Lunch, Dinner.
-- Creates 1,000 recipes with 2 ingredients and 2 steps each.
-- Uses `DifficultyLevel` values 1-3 and `picsum.photos` image URLs.
-- Optional Admin bootstrap normalizes email, hashes password, uses role `Admin`, and sets `IsActive = true`.
-
-Older unused seed:
-
-- `Infrastructure/Persistence/DataSeeder.cs`
-- Creates Breakfast/Dinner and a Pancakes recipe.
-- Not called by current startup code.
-- Omits `Difficulty`, so using it now would need verification against current required model.
-
-## Connection String Locations
-
-Do not expose actual values. Local values must be provided through user secrets or environment variables. Placeholder locations:
-
-- `API/appsettings.json`: `ConnectionStrings:DefaultConnection`.
-- `API/appsettings.Development.json`: `ConnectionStrings:DefaultConnection`.
-- `Infrastructure/Persistence/AppDbContextFactory.cs`: reads config/environment and throws when missing; no password fallback is present.
-
-Recommended mechanism: user secrets for local development, environment variables for deployed environments, and secret manager/key vault for shared environments.
-
-## Relationship Map
+## Relationships
 
 ```mermaid
 erDiagram
-  Category ||--o{ Recipie : has
+  Users ||--o{ Recipie : publishes
+  Category ||--o{ Recipie : categorizes
+  Cuisine ||--o{ Region : contains
+  Cuisine ||--o{ Recipie : classifies
+  Region ||--o{ Recipie : optionally_classifies
   Recipie ||--o{ Ingredient : has
   Recipie ||--o{ RecipieStep : has
-  Recipie ||--o{ RecipeImage : has_shadow_nullable_recipieId
   Users ||--o{ FavoriteRecipe : creates
-  Recipie ||--o{ FavoriteRecipe : favorited
+  Recipie ||--o{ FavoriteRecipe : favorited_as
   Users ||--o{ RecipeReview : writes
-  Recipie ||--o{ RecipeReview : reviewed
+  Recipie ||--o{ RecipeReview : receives
 ```
 
-## Suspicious Mappings
+Ambiguous or incomplete:
 
-- `RecipeImage.RecipeId` is not configured as the FK; migration snapshot uses nullable `RecipieId`.
-- `IngredientConfiguration.cs` does not configure `Ingredient`; it duplicates recipe configuration under class name `RecipieConfiguration`.
-- Early migration designer files show EF product version `9.0.0`, while current packages and latest snapshot use EF Core `8.0.0`.
+- `Recipie.Images` and `RecipeImage.RecipeId` exist, but no explicit `RecipeImage` configuration or DbSet was found. Previous snapshots may contain a shadow `RecipieId`.
 
-## Safe Steps For Adding A Field Or Relationship
+## Indexes
 
-1. Update entity in `Core.Domain/Entities/`.
-2. Update or add EF configuration in `Infrastructure/Persistence/Configurations/`.
-3. Update `AppDbContext` only if a new aggregate/table requires a `DbSet`.
-4. Update DTOs and mappings in `Core.Application/DTO/` and `Core.Application/UseCases/`.
-5. Update repositories/includes/queries in `Infrastructure/Repositories/`.
-6. Add migration:
+Confirmed indexes from configuration:
 
-```bash
-dotnet ef migrations add <Name> --project Infrastructure --startup-project API
-```
+- `Users.Email` unique
+- `FavoriteRecipes(UserId, RecipeId)` unique
+- `RecipeReviews(UserId, RecipeId)` unique
+- `Cuisines.Slug` unique
+- `Regions.CuisineId`
+- `Regions(CuisineId, Slug)` unique
+- `Recipes.UserId`
+- `Recipes(UserId, CreatedAt)`
+- `Recipes.CuisineId`
+- `Recipes.RegionId`
+- `Recipes(CuisineId, CreatedAt)`
+- `Recipes(CuisineId, RegionId, CreatedAt)`
 
-7. Run:
+## Migrations
 
-```bash
-dotnet build Recep.sln
-dotnet test Recep.sln
-```
+Chronological migration files:
 
-8. Update Angular model/service/UI if API response or request shape changes.
+| Migration | Main change |
+| --- | --- |
+| `20260117180238_InitialCreate` | Initial recipe/category/ingredient/step schema. |
+| `20260331145205_AddUserTable` | Users table. |
+| `20260404173423_AddUserRole` | User role. |
+| `20260404181947_AddRefreshToken` | Refresh token fields. |
+| `20260421141546_AddImageUrl` | Recipe image URL. |
+| `20260528184235_AddFavoriteRecipes` | Favorite recipes table. |
+| `20260530143913_AddRecipeReviews` | Reviews table. |
+| `20260719140841_AddUniqueUserEmailIndex` | Unique email index/account hardening. |
+| `20260719153431_AddUserAccountManagement` | User account management fields. |
+| `20260726135722_AddRecipeOwnershipAndUserDisplayName` | Uncommitted: user display name, recipe owner, backfill strategy. |
+| `20260726145257_AddCuisineAndRegionSupport` | Uncommitted: cuisines, regions, recipe cultural fields, indexes, backfill. |
+
+Do not edit existing migrations manually.
+
+## Seed Behavior
+
+Active seeder: `Infrastructure/Seed/DbSeeder.cs`. It is called in `API/Program.cs` after automatic migrations when the environment is not `Testing`.
+
+Confirmed behavior:
+
+- Development Admin seed is conditional on configuration and development/explicit settings. Password values must remain `[REDACTED]`.
+- A disabled system user is seeded for backfill/sample ownership.
+- Categories are seeded separately.
+- Cuisines and regions are seeded separately.
+- Existing recipes are backfilled to the International cuisine where needed.
+- If any recipes exist, sample recipe seeding is skipped.
+- If no recipes exist, many sample recipes are generated.
+
+Risk:
+
+- Automatic migration and seeding on startup can alter the configured database.
+- Seeded images use external URLs but are stored as strings; they are not downloaded by the seeder.

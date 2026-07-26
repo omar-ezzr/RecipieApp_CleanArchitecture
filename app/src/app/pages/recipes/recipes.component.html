@@ -1,440 +1,269 @@
-<section class="page-shell">
-
-  <!-- HEADER -->
-  <div class="recipes-hero d-flex flex-column flex-lg-row justify-content-between gap-3 mb-4">
-
-    <div>
-      <p class="text-uppercase text-warning fw-bold small mb-2 hero-kicker">
-        Recepes V2
-      </p>
-
-      <h1 class="display-6 fw-bold mb-2 hero-title">
-        Find something worth cooking.
-      </h1>
-
-      <p class="text-secondary mb-0">
-        Browse, filter, create, and keep every favorite recipe tidy.
+<section class="recipes-page page-shell">
+  <header class="recipes-hero">
+    <div class="hero-copy">
+      <p class="ui-label">Explore cooking cultures</p>
+      <h1 class="display-title">Recipes carry places with them.</h1>
+      <p class="body-copy">
+        Discover dishes, traditions, and cooking methods shared by kitchens around the world.
       </p>
     </div>
 
-    <!-- PAGE SIZE -->
-    <div class="stats-pill align-self-lg-end">
+    <div class="hero-actions">
+      <label class="visually-hidden" for="recipeSearch">Search recipes</label>
+      <div class="hero-search">
+        <span aria-hidden="true">⌕</span>
+        <input
+          id="recipeSearch"
+          type="search"
+          [(ngModel)]="searchTerm"
+          (input)="onSearchChange()"
+          placeholder="Search by title, origin, or ingredient">
+        <button type="button" *ngIf="searchTerm" (click)="clearSearch()" aria-label="Clear search">×</button>
+      </div>
 
-      <select
-        [(ngModel)]="pageSize"
-        class="form-select"
-        (change)="applyFilters()">
-
-        <option [value]="10">10 per page</option>
-        <option [value]="20">20 per page</option>
-        <option [value]="30">30 per page</option>
-        <option [value]="50">50 per page</option>
-
-      </select>
-
-      <span class="fw-bold">{{ totalItems }}</span>
-      <span class="text-secondary">recipes</span>
-
+      <div class="hero-links">
+        <a class="btn btn-primary-app" routerLink="/recipes">Explore recipes</a>
+        <a class="btn btn-secondary-app" routerLink="/create-recipe" *ngIf="auth.isLoggedIn()">Share a recipe</a>
+      </div>
     </div>
-  </div>
+  </header>
 
-  <!-- CREATE / EDIT -->
-  <div class="card soft-card mb-4" *ngIf="auth.canManageRecipes() || editingId">
+  <section class="culture-section" *ngIf="cuisines.length">
+    <div class="section-heading">
+      <div>
+        <p class="ui-label">Cuisine atlas</p>
+        <h2 class="section-title">Explore by cuisine</h2>
+      </div>
+      <button type="button" class="btn btn-secondary-app btn-sm" *ngIf="selectedCuisine" (click)="clearCuisineFilter()">
+        Clear cuisine
+      </button>
+    </div>
 
-    <div class="card-body p-4 p-lg-5">
-
-      <div class="d-flex justify-content-between align-items-center mb-3">
-
-        <h2 class="h4 mb-0">
-          {{ editingId ? 'Edit Recipe' : 'Create Recipe' }}
-        </h2>
-
-        <span class="badge badge-admin">
-          {{ editingId ? 'Editing' : 'Admin' }}
+    <div class="culture-rail" aria-label="Cuisine filters">
+      <button
+        type="button"
+        class="culture-tile"
+        [class.active]="selectedCuisine === cuisine.id"
+        *ngFor="let cuisine of cuisines; trackBy: trackCuisine"
+        (click)="selectCuisine(cuisine.id)">
+        <img [src]="resolveImageUrl(cuisine.imageUrl)" [alt]="cuisine.name" loading="lazy">
+        <span>
+          <strong>{{ cuisine.name }}</strong>
+          <small>{{ cuisine.countryCode }}</small>
         </span>
-
-      </div>
-
-      <div class="row g-3">
-
-        <!-- TITLE -->
-        <div class="col-md-6">
-
-          <label class="form-label">Title</label>
-
-          <input
-            class="form-control"
-            [(ngModel)]="newRecipe.title"
-            placeholder="Recipe title" />
-
-        </div>
-
-        <!-- IMAGE -->
-        <div class="col-md-6">
-
-          <label class="form-label">Image URL</label>
-
-          <input
-            class="form-control"
-            [(ngModel)]="newRecipe.imageUrl"
-            placeholder="https://..." />
-
-        </div>
-
-        <!-- CATEGORY -->
-        <div class="col-md-6">
-
-          <label class="form-label">Category</label>
-
-          <select
-            class="form-select"
-            [(ngModel)]="newRecipe.categoryId">
-
-            <option value="">Select Category</option>
-
-            <option *ngFor="let c of categories" [value]="c.id">
-              {{ c.name }}
-            </option>
-
-          </select>
-
-        </div>
-
-        <!-- TIME -->
-        <div class="col-md-6">
-
-          <label class="form-label">Preparation time</label>
-
-          <div class="input-group">
-
-            <input
-              class="form-control"
-              type="number"
-              min="0"
-              [(ngModel)]="newRecipe.preparationTimeMinutes"
-              placeholder="30" />
-
-            <span class="input-group-text">min</span>
-
-          </div>
-
-        </div>
-
-        <!-- DIFFICULTY -->
-        <div class="col-md-6">
-
-          <label class="form-label">Difficulty</label>
-
-          <select
-            class="form-select"
-            [(ngModel)]="newRecipe.difficulty"
-            required>
-
-            <option value="Easy">Easy</option>
-            <option value="Medium">Medium</option>
-            <option value="Hard">Hard</option>
-
-          </select>
-
-        </div>
-
-        <!-- DESCRIPTION -->
-        <div class="col-12">
-
-          <label class="form-label">Description</label>
-
-          <textarea
-            class="form-control"
-            rows="3"
-            [(ngModel)]="newRecipe.description"
-            placeholder="Short recipe description">
-          </textarea>
-
-        </div>
-
-      </div>
-
-      <!-- ACTIONS -->
-      <div class="d-flex flex-wrap gap-2 mt-4">
-
-        <button
-          class="btn btn-brand fw-semibold"
-          *ngIf="auth.canManageRecipes() && !editingId"
-          (click)="createRecipe()">
-
-          Create
-
-        </button>
-
-        <button
-          class="btn btn-brand fw-semibold"
-          *ngIf="editingId"
-          (click)="updateRecipe()">
-
-          Update
-
-        </button>
-
-        <button
-          class="btn btn-outline-secondary"
-          *ngIf="editingId"
-          (click)="resetForm()">
-
-          Cancel
-
-        </button>
-
-      </div>
-
-
-
+        <em *ngIf="cuisine.recipeCount !== undefined">{{ cuisine.recipeCount }} recipes</em>
+      </button>
     </div>
-  </div>
+  </section>
 
-
-  <!-- FILTERS -->
-  <div class="card soft-card mb-4">
-
-    <div class="card-body p-3 p-md-4">
-
-      <div class="row g-3 align-items-center">
-
-        <!-- SEARCH -->
-        <div class="col-md-4">
-
-          <label class="form-label">Search</label>
-
-          <input
-            class="form-control"
-            [(ngModel)]="searchTerm"
-            (input)="onSearchChange()"
-            placeholder="Search by title..." />
-
-        </div>
-
-        <!-- CATEGORY FILTER -->
-        <div class="col-md-3">
-
-          <label class="form-label">Category</label>
-
-          <select
-            [(ngModel)]="selectedCategory"
-            class="form-select"
-            (change)="applyFilters()">
-
-            <option value="">All Categories</option>
-
-            <option *ngFor="let c of categories" [value]="c.id">
-              {{ c.name }}
-            </option>
-
-          </select>
-
-        </div>
-
-        <!-- DIFFICULTY -->
-        <div class="col-md-3">
-
-          <label class="form-label">Difficulty</label>
-
-          <select
-            class="form-select"
-            [(ngModel)]="selectedDifficulty"
-            (change)="applyFilters()">
-
-            <option value="">All Difficulties</option>
-            <option value="Easy">Easy</option>
-            <option value="Medium">Medium</option>
-            <option value="Hard">Hard</option>
-
-          </select>
-
-        </div>
-
-        <!-- SORT -->
-        <div class="col-md-2">
-
-          <label class="form-label">Sort</label>
-
-          <select
-            [(ngModel)]="sortBy"
-            class="form-select"
-            (change)="applyFilters()">
-
-            <option value="">Newest</option>
-            <option value="title">Title</option>
-            <option value="time">Preparation Time</option>
-            <option value="difficulty">Difficulty</option>
-
-          </select>
-
-        </div>
-
-      </div>
-    </div>
-  </div>
-<!-- SKELETON LOADING -->
-<div class="row g-4" *ngIf="isLoading">
-
-  <div class="col-sm-6 col-lg-4"
-       *ngFor="let item of skeletonCards">
-
-    <div class="card recipe-card h-100 skeleton-card">
-
-      <div class="skeleton-image"></div>
-
-      <div class="card-body">
-
-        <div class="skeleton-title mb-3"></div>
-
-        <div class="skeleton-text mb-2"></div>
-
-        <div class="skeleton-text short mb-3"></div>
-
-        <div class="d-flex gap-2">
-
-          <div class="skeleton-badge"></div>
-
-          <div class="skeleton-badge"></div>
-
-        </div>
-
-      </div>
-    </div>
-  </div>
-</div>
-  <!-- RECIPES -->
-<div class="row g-4" *ngIf="!isLoading">
-    <div class="col-sm-6 col-lg-4" *ngFor="let recipe of filteredRecipes">
-
-      <article class="card recipe-card h-100">
-
-        <div class="recipe-image-wrap">
-        <img
-          class="card-img-top"
-          [src]="recipe.imageUrl || 'https://via.placeholder.com/600x400?text=Recipe'"
-          alt="recipe" />
-        </div>
-
-        <div class="card-body d-flex flex-column">
-          <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
-
-            <h3 class="h5 card-title mb-0">
-              {{ recipe.title }}
-            </h3>
-
-            <span class="badge rounded-pill time-badge text-nowrap">
-              {{ recipe.preparationTimeMinutes }} min
-            </span>
-
-          </div>
-
-          <p class="card-text text-secondary flex-grow-1">
-            {{ recipe.description || 'No description yet.' }}
-          </p>
-
-          <div class="d-flex flex-wrap gap-2">
-
-            <span class="badge text-bg-light">
-              {{ recipe.category }}
-            </span>
-
-            <span class="badge text-bg-light" *ngIf="recipe.difficulty">
-              {{ recipe.difficulty }}
-            </span>
-
-          </div>
-          <a
-            class="btn btn-brand btn-sm mt-3"
-            [routerLink]="['/recipes', recipe.id]">
-
-            View details
-
-          </a>
-          <button
-  type="button"
-  class="btn btn-sm"
-  [class.btn-danger]="isFavorite(recipe.id)"
-  [class.btn-outline-danger]="!isFavorite(recipe.id)"
-  (click)="toggleFavorite(recipe.id, $event)"
->
-  {{ isFavorite(recipe.id) ? 'Remove favorite' : 'Add favorite' }}
-</button>
-          <!-- ADMIN ACTIONS -->
-          <div class="d-flex gap-2 mt-3" *ngIf="auth.canManageRecipes()">
-
-            <button
-              class="btn btn-outline-dark btn-sm"
-              (click)="startEdit(recipe)">
-
-              Edit
-
-            </button>
-
-            <button
-              class="btn btn-outline-danger btn-sm"
-              (click)="deleteRecipe(recipe.id)">
-
-              Delete
-
-            </button>
-
-          </div>
-
-        </div>
-      </article>
-    </div>
-  </div>
-
-  <!-- EMPTY STATE -->
-<div
-  class="empty-state text-center py-5"
-  *ngIf="!isLoading && filteredRecipes.length === 0">
-
-  <h2 class="h4">No recipes found</h2>
-
-  <p class="text-secondary mb-0">
-    Try a different search or category.
-  </p>
-
-</div>
-
-  <!-- PAGINATION -->
-  <div class="d-flex justify-content-center align-items-center gap-2 mt-4 flex-wrap">
-
-    <!-- PREV -->
+  <div class="mobile-filter-toggle">
     <button
-      class="btn btn-outline-dark"
-      [disabled]="currentPage === 1"
-      (click)="goToPage(currentPage - 1)">
-
-      Prev
-
+      type="button"
+      class="btn btn-secondary-app w-100"
+      aria-controls="recipeFilters"
+      [attr.aria-expanded]="filtersOpen"
+      (click)="toggleFilters()">
+      Filters and sorting
     </button>
-
-    <!-- PAGE NUMBERS -->
-    <button
-      *ngFor="let page of visiblePages"
-      class="btn"
-      [disabled]="page === '...'"
-      [class.btn-dark]="page === currentPage"
-      [class.btn-outline-dark]="page !== currentPage"
-      (click)="page !== '...' && goToPage(+page)">
-
-      {{ page }}
-
-    </button>
-
-    <!-- NEXT -->
-    <button
-      class="btn btn-outline-dark"
-      [disabled]="currentPage === totalPages"
-      (click)="goToPage(currentPage + 1)">
-
-      Next
-
-    </button>
-
   </div>
 
+  <div class="recipes-layout">
+    <aside id="recipeFilters" class="filters-panel" [class.is-open]="filtersOpen">
+      <div class="filters-title-row">
+        <h2>Refine</h2>
+        <button type="button" class="btn btn-text-app btn-sm" (click)="clearAllFilters()">Clear all</button>
+      </div>
+
+      <div class="filter-group">
+        <label class="form-label" for="categoryFilter">Category</label>
+        <select id="categoryFilter" [(ngModel)]="selectedCategory" class="form-select" (change)="applyFilters()">
+          <option value="">All categories</option>
+          <option *ngFor="let c of categories" [value]="c.id">{{ c.name }}</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label class="form-label" for="cuisineFilter">Cuisine</label>
+        <select id="cuisineFilter" [(ngModel)]="selectedCuisine" class="form-select" (change)="onCuisineFilterChange()">
+          <option value="">All cuisines</option>
+          <option *ngFor="let cuisine of cuisines; trackBy: trackCuisine" [value]="cuisine.id">
+            {{ cuisine.name }}
+          </option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label class="form-label" for="regionFilter">Region</label>
+        <select id="regionFilter" [(ngModel)]="selectedRegion" class="form-select" [disabled]="!selectedCuisine" (change)="onRegionFilterChange()">
+          <option value="">All regions</option>
+          <option *ngFor="let region of regions; trackBy: trackRegion" [value]="region.id">{{ region.name }}</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label class="form-label" for="difficultyFilter">Difficulty</label>
+        <select id="difficultyFilter" [(ngModel)]="selectedDifficulty" class="form-select" (change)="applyFilters()">
+          <option value="">Any difficulty</option>
+          <option value="Easy">Easy</option>
+          <option value="Medium">Medium</option>
+          <option value="Hard">Hard</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label class="form-label" for="sortFilter">Sort</label>
+        <select id="sortFilter" [(ngModel)]="sortBy" class="form-select" (change)="applyFilters()">
+          <option value="">Newest first</option>
+          <option value="title">Title</option>
+          <option value="preparationTime">Preparation time</option>
+          <option value="difficulty">Difficulty</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label class="form-label" for="pageSizeFilter">Page size</label>
+        <select id="pageSizeFilter" [(ngModel)]="pageSize" class="form-select" (change)="applyFilters()">
+          <option [value]="10">10 per page</option>
+          <option [value]="20">20 per page</option>
+          <option [value]="30">30 per page</option>
+          <option [value]="50">50 per page</option>
+        </select>
+      </div>
+
+      <label class="traditional-toggle">
+        <input type="checkbox" [(ngModel)]="isTraditionalOnly" (change)="onTraditionalFilterChange()">
+        <span>Traditional recipes only</span>
+      </label>
+    </aside>
+
+    <section class="results-section" aria-live="polite">
+      <div class="result-header">
+        <div>
+          <p class="ui-label">Latest recipes</p>
+          <h2 class="section-title">{{ totalItems }} {{ totalItems === 1 ? 'recipe' : 'recipes' }}</h2>
+        </div>
+        <a class="btn btn-primary-app" routerLink="/create-recipe" *ngIf="auth.isLoggedIn()">Create Recipe</a>
+      </div>
+
+      <div class="edit-panel surface-card" *ngIf="editingId">
+        <div class="edit-heading">
+          <div>
+            <p class="ui-label">Owner edit</p>
+            <h2>Edit recipe story</h2>
+          </div>
+          <button type="button" class="btn btn-secondary-app btn-sm" (click)="resetForm()">Cancel</button>
+        </div>
+
+        <div class="edit-grid">
+          <label>
+            <span class="form-label">Title</span>
+            <input class="form-control" [(ngModel)]="newRecipe.title">
+          </label>
+          <label>
+            <span class="form-label">Image URL</span>
+            <input class="form-control" [(ngModel)]="newRecipe.imageUrl">
+          </label>
+          <label>
+            <span class="form-label">Category</span>
+            <select class="form-select" [(ngModel)]="newRecipe.categoryId">
+              <option value="">Select category</option>
+              <option *ngFor="let c of categories" [value]="c.id">{{ c.name }}</option>
+            </select>
+          </label>
+          <label>
+            <span class="form-label">Cuisine</span>
+            <select class="form-select" [(ngModel)]="newRecipe.cuisineId" (change)="onEditCuisineChange()">
+              <option value="">Select cuisine</option>
+              <option *ngFor="let cuisine of cuisines; trackBy: trackCuisine" [value]="cuisine.id">{{ cuisine.name }}</option>
+            </select>
+          </label>
+          <label>
+            <span class="form-label">Region</span>
+            <select class="form-select" [(ngModel)]="newRecipe.regionId" [disabled]="!newRecipe.cuisineId">
+              <option [ngValue]="null">No region</option>
+              <option *ngFor="let region of editRegions; trackBy: trackRegion" [value]="region.id">{{ region.name }}</option>
+            </select>
+          </label>
+          <label>
+            <span class="form-label">Preparation time</span>
+            <input class="form-control" type="number" min="1" [(ngModel)]="newRecipe.preparationTimeMinutes">
+          </label>
+          <label>
+            <span class="form-label">Difficulty</span>
+            <select class="form-select" [(ngModel)]="newRecipe.difficulty">
+              <option [ngValue]="1">Easy</option>
+              <option [ngValue]="2">Medium</option>
+              <option [ngValue]="3">Hard</option>
+            </select>
+          </label>
+          <label>
+            <span class="form-label">Traditional name</span>
+            <input class="form-control" [(ngModel)]="newRecipe.traditionalName">
+          </label>
+          <label class="full-span">
+            <span class="form-label">Description</span>
+            <textarea class="form-control" [(ngModel)]="newRecipe.description"></textarea>
+          </label>
+          <label class="full-span">
+            <span class="form-label">Origin description</span>
+            <textarea class="form-control" [(ngModel)]="newRecipe.originDescription"></textarea>
+          </label>
+          <label>
+            <span class="form-label">Serving occasion</span>
+            <input class="form-control" [(ngModel)]="newRecipe.servingOccasion">
+          </label>
+          <label class="traditional-toggle">
+            <input type="checkbox" [(ngModel)]="newRecipe.isTraditional">
+            <span>Traditional recipe</span>
+          </label>
+        </div>
+
+        <button type="button" class="btn btn-primary-app" (click)="updateRecipe()">Update recipe</button>
+      </div>
+
+      <div class="recipe-grid" *ngIf="isLoading">
+        <app-recipe-card-skeleton *ngFor="let skeleton of skeletonCards"></app-recipe-card-skeleton>
+      </div>
+
+      <app-empty-state
+        *ngIf="!isLoading && !filteredRecipes.length"
+        title="No recipes found"
+        message="Try removing a filter or searching for another ingredient."
+        actionText="Clear all filters"
+        (action)="clearAllFilters()">
+      </app-empty-state>
+
+      <div class="recipe-grid" *ngIf="!isLoading && filteredRecipes.length">
+        <app-recipe-card
+          *ngFor="let recipe of filteredRecipes; trackBy: trackRecipe"
+          [recipe]="recipe"
+          [isFavorite]="isFavorite(recipe.id)"
+          [showFavorite]="auth.isLoggedIn()"
+          [canManage]="canManageRecipe(recipe)"
+          (favoriteToggled)="toggleFavoriteRecipe($event)"
+          (edit)="startEdit($event)"
+          (delete)="deleteRecipe($event)">
+        </app-recipe-card>
+      </div>
+
+      <nav class="pagination-wrap" *ngIf="totalPages > 1" aria-label="Recipe pagination">
+        <button type="button" class="btn btn-secondary-app" [disabled]="currentPage === 1" (click)="goToPage(currentPage - 1)">
+          Previous
+        </button>
+        <button
+          type="button"
+          class="page-number"
+          *ngFor="let page of visiblePages; trackBy: trackPage"
+          [class.active]="page === currentPage"
+          [attr.aria-current]="page === currentPage ? 'page' : null"
+          [disabled]="page === '...'"
+          (click)="page !== '...' && goToPage(+page)">
+          {{ page }}
+        </button>
+        <button type="button" class="btn btn-secondary-app" [disabled]="currentPage === totalPages" (click)="goToPage(currentPage + 1)">
+          Next
+        </button>
+      </nav>
+    </section>
+  </div>
 </section>

@@ -1,175 +1,100 @@
 # Features Context
 
-## Registration
+Last verified: 2026-07-26
+Branch: `main`
+Commit: `1de804620330d10f9ee6b493ecac423f6ab288b2`
 
-- Does: creates a `Users` row with hashed password, default role `User`, and active status.
-- Access: anonymous.
-- Backend: `API/Controller/AuthController.cs`, `Infrastructure/services/PasswordService.cs`, `Core.Application/DTO/Auth/LoginDtos.cs`.
-- Frontend: `app/src/app/pages/register/`, `app/src/app/services/auth.service.ts`.
-- Database: `Users`.
-- Flow: form -> `AuthService.register()` -> `POST /api/Auth/register` -> normalize email -> hash password -> save active `User`.
-- Validation: duplicate email check only; no backend FluentValidation for auth DTO.
-- Error handling: backend 400 string; frontend inline error.
-- Limitations: no email validation, password policy, email confirmation, or Admin registration.
+Status labels:
 
-## Login
+- Implemented: code path exists and is wired.
+- Incomplete: code path exists but has notable gaps.
+- Broken/inconsistent: confirmed mismatch or risk.
+- Not found: searched repository and did not find a wired implementation.
+- Requires verification: needs runtime/manual validation.
 
-- Does: verifies credentials for active accounts, issues access and refresh tokens.
-- Access: anonymous.
-- Backend: `AuthController`, `PasswordService`, `Users`.
-- Frontend: `LoginComponent`, `AuthService`.
-- Flow: form -> `/api/Auth/login` -> BCrypt verify -> save refresh token/expiry -> return tokens -> localStorage.
-- Error handling: backend returns generic 401 for invalid credentials or inactive account; frontend toast.
+## Feature Matrix
 
-## JWT Access Token
+| Feature | Status | Backend files | Frontend files | Database | Access rules | Notes |
+| --- | --- | --- | --- | --- | --- | --- |
+| Registration | Implemented | `AuthController.cs`, `RegisterDto.cs` | `pages/register/`, `AuthService` | `Users` | Public | Requires display name; validation partly in controller. |
+| Login | Implemented | `AuthController.cs`, `PasswordService.cs` | `login/`, `AuthService` | `Users.RefreshToken` | Public | Returns access and refresh tokens. |
+| JWT access tokens | Implemented | `Program.cs`, `AuthController.cs` | `AuthService`, interceptors, guards | None | Bearer | Includes ID, email, role claims. |
+| Refresh tokens | Implemented | `AuthController.Refresh` | `ErrorInterceptor`, `AuthService.refreshSession` | `Users.RefreshToken`, expiry | Public refresh endpoint | Rotates refresh token. |
+| Logout | Implemented frontend | None | `AuthService.logout`, navbar | None | Client-side | Removes auth keys only. |
+| Recipe listing | Implemented | `RecipesController.GetPaged`, `RecipeService`, `RecipeRepository` | `pages/recipes/`, `RecipeService` | `Recipes` and related tables | Authenticated | Pagination and filters implemented. |
+| Recipe search | Implemented | `RecipeRepository.GetPagedAsync` | recipes page | `Recipes.Title` | Authenticated | Uses `Contains`; may need index/full-text later. |
+| Category filtering | Implemented | `RecipeQueryParams.CategoryId` | recipes page | `Categories`, `Recipes.CategoryId` | Authenticated | Category existence not validated for filters. |
+| Difficulty filtering | Implemented | `RecipeQueryParams.Difficulty` | recipes page | `Recipes.Difficulty` | Authenticated | String filter parsed to enum. |
+| Cuisine filtering | Implemented | `RecipeQueryParams.CuisineId` | recipes page | `Cuisines`, `Recipes.CuisineId` | Authenticated recipe list; public cuisines | New Phase 2 behavior. |
+| Region filtering | Implemented | `RecipeQueryParams.RegionId` | recipes page | `Regions`, `Recipes.RegionId` | Authenticated recipe list; public region reads | Region/cuisine relationship validated on create/update. |
+| Traditional-only filtering | Implemented | `RecipeQueryParams.IsTraditional` | recipes page | `Recipes.IsTraditional` | Authenticated | Boolean query param. |
+| Sorting | Implemented | `RecipeRepository.GetPagedAsync` | recipes page | `Recipes` | Authenticated | Supports title/time/difficulty/default created date. |
+| Pagination | Implemented | `PagedResult<T>`, repositories | recipes/My Recipes/admin users | `Recipes`, `Users` | Varies | Recipe page size capped at 100 in repository. |
+| Recipe details | Implemented | `GET /api/Recipes/{id}` | `recipe-details/` | Recipes aggregate | Authenticated | Shows culture, ingredients, steps, reviews. |
+| Recipe creation | Implemented | `RecipesController.Create`, `RecipeService.CreateAsync` | `create-recipe/`, recipes inline form | Recipes/ingredients/steps | Authenticated | Owner from JWT; includes cuisine/region. |
+| Recipe editing | Implemented/incomplete | `RecipeService.UpdateAsync` | recipes inline edit | Recipes/children | Owner or Admin | Service replaces ingredients/steps; inline UI may not expose full child editing. |
+| Recipe deletion | Implemented | `RecipeService.DeleteAsync` | recipes/My Recipes | Recipes | Owner or Admin | Backend source of truth. |
+| My Recipes | Implemented | `GET /api/Recipes/me` | `pages/my-recipes/` | Recipes.UserId | Authenticated | Only current user's recipes. |
+| Categories | Implemented/incomplete | `CategoriesController`, `CategoryConfiguration` | `CategoryService` | `Categories` | Public backend endpoint | No Admin category management UI found. |
+| Favorites | Implemented | `FavoritesController`, `FavoriteService`, `FavoriteRepository` | recipes page, favorite service | `FavoriteRecipes` | Authenticated | Duplicate favorites rejected. |
+| Reviews | Implemented/inconsistent | `ReviewsController`, `ReviewService`, `ReviewRepository` | details page, review service | `RecipeReviews` | Create/update/delete authenticated; list anonymous | Review DTO exposes email. |
+| Admin authorization | Implemented | role constants, `[Authorize(Roles=...)]`, JWT validation | `adminGuard`, navbar | `Users.Role` | Admin | User management and culture writes. |
+| Admin account management | Implemented | `AdminUsersController`, `UserManagementService` | `pages/admin/accounts/` | `Users` | Admin | Protects final Admin and self changes. |
+| Admin seed | Implemented | `DbSeeder`, `AdminSeedOptions`, `Program.cs` | None | `Users` | Development/config gated | Requires configured password; never document value. |
+| Cuisine/region management API | Implemented | Cuisines/Regions controllers/services/repos | Services only | `Cuisines`, `Regions` | Admin writes, anonymous reads | No Admin UI found. |
+| Toast/error handling | Implemented/inconsistent | Mixed API errors | `ErrorInterceptor`, component error handlers | None | N/A | Contracts differ by endpoint. |
+| External performance logging integration | Not found | Search found no wired `PerformancePlatform` code | Not found | Not found | N/A | If uncommitted integration appears, inspect before editing. |
 
-- Does: signs JWT with user ID, email, and role claims.
-- Backend: `API/Program.cs`, `AuthController.GenerateJwtToken`.
-- Frontend: `AuthInterceptor`, `authGuard`, `AuthService.isAdmin()`.
-- Claims: `ClaimTypes.NameIdentifier` user ID, `ClaimTypes.Name` email, `ClaimTypes.Role` role.
-- `API/Program.cs` validates the current database account on every token: missing account, inactive account, or role mismatch rejects the token immediately.
-- Limitations: issuer/audience validation disabled; local `Jwt:Key` must be provided via user secrets or environment variables.
+## Requested Or Expected Features Not Found
 
-## Refresh Token
+| Feature | Status | Evidence |
+| --- | --- | --- |
+| Social feed | Not found | No feed entities/controllers/routes/components found. |
+| Follows/followers | Not found | No follow entity or endpoints found. |
+| Comments separate from reviews | Not found | Reviews exist; no comment entity/controller. |
+| Notifications | Not found | No notification model/service/routes. |
+| Realtime updates | Not found | No SignalR/WebSocket setup. |
+| Uploads/media storage | Not found | Image URLs exist; no upload controller/service. |
+| Localization/i18n | Not found | No Angular i18n setup or translation files. |
+| Admin cuisine/region UI | Not found | Backend services/controllers exist; no routed admin culture component. |
+| Redis/cache backend | Not found | No Redis packages/config. |
+| RabbitMQ/Kafka | Not found | No messaging packages/config. |
+| GraphQL | Not found | No GraphQL packages/config. |
+| Microservices/load balancing | Not found | Single solution/web API. |
+| Country entity | Not found | Cuisine has `CountryCode`; no Country table/entity. |
 
-- Does: rotates stored refresh token and issues new access token.
-- Backend: `AuthController.Refresh`, `Users.RefreshToken`, `Users.RefreshTokenExpiryTime`.
-- Frontend: `ErrorInterceptor`, `authGuard`, shared `AuthService.refreshSession()`.
-- Flow: 401 or guarded navigation with expired access token -> shared refresh endpoint call -> store new tokens -> retry queued/original requests.
-- Refresh-token expiry uses `Jwt:RefreshTokenDays`; inactive accounts cannot refresh.
+## Cache Behavior
 
-## Logout
+- `RecipeService` frontend caches `getPaged` responses by JSON query key and clears cache after create/update/delete.
+- `getMine` does not use the global recipe-list cache.
+- Backend does not use memory/distributed cache.
 
-- Does: client-side token removal.
-- Backend: no logout endpoint found.
-- Frontend: `AuthService.logout()`, `NavbarComponent.logout()`.
-- Limitation: server refresh token remains valid until expiry because no server-side logout endpoint exists.
+## Missing Tests Or Gaps
 
-## Recipe Listing
+- Angular Karma cannot run without Chrome in the current environment.
+- No dedicated backend test was found for category endpoints.
+- No Admin UI tests for cuisine/region management because no UI exists.
+- Existing tests cover many Phase 1/2 behaviors but are uncommitted.
 
-- Access: authenticated.
-- Backend: `RecipesController.GetPaged`, `RecipeService.GetPagedAsync`, `RecipeRepository.GetPagedAsync`.
-- Frontend: `RecipesComponent`, `RecipeService.getPaged()`.
-- Database: `Recipies`, `Categories`, `Ingredients`, `RecipeSteps`.
-- Response: paged object with recipe DTOs.
+## Frontend Experience Status
 
-## Search
+Last verified: 2026-07-26 after frontend redesign.
 
-- Searches recipe title with `Title.Contains(parameters.Search)`.
-- Frontend debounces search input and stores query param `search`.
-- Limitation: no description/ingredient search.
+| Feature surface | Status | Frontend files | Notes |
+| --- | --- | --- | --- |
+| Recipe-first discovery | Implemented | `app/src/app/pages/recipes/*`, `shared/components/recipe-card/*` | Editorial hero, prominent search, cuisine tiles, filters, result count, cards, and pagination. |
+| Cultural exploration UI | Implemented | `pages/recipes/*`, `recipe-details/*` | Cuisines and regions are visible on cards/details and link back into filtered recipe search. |
+| Recipe publishing UI | Implemented | `pages/create-recipe/*` | Sectioned publishing form supports identity, cultural origin, ingredients, steps, image, preview, and existing submit contract. |
+| User recipe library | Implemented | `pages/my-recipes/*` | Shows current user's recipes from `GET /api/Recipes/me` with create/edit/delete/view actions. |
+| Owner/Admin controls | Implemented frontend UI | `recipe-card/*`, `pages/recipes/*`, `recipe-details/*`, `pages/my-recipes/*` | Visibility uses JWT user ID/Admin role, but backend remains authoritative. |
+| Favorites UI | Implemented | `recipe-card/*`, `pages/recipes/*`, `recipe-details/*` | Favorite toggles use existing `FavoriteService`. |
+| Reviews UI | Implemented/incomplete | `recipe-details/*`, `ReviewService` | Review list/form redesigned; backend still exposes reviewer email, which frontend masks. |
+| Auth pages | Implemented | `login/*`, `pages/register/*` | Redesigned editorial login/register forms with labels and autocomplete. |
+| Admin account UI | Implemented | `pages/admin/accounts/*` | Responsive table/card behavior, create, role/status, delete actions preserved. |
 
-## Category Filtering
+Known frontend limitations after redesign:
 
-- Uses query param `categoryId` and `Recipie.CategoryId`.
-- Categories loaded from `/api/Categories`.
-
-## Difficulty Filtering
-
-- Backend parses `RecipeQueryParams.Difficulty` as `DifficultyLevel`, case-insensitive.
-- Frontend sends `Easy`, `Medium`, or `Hard`.
-- Invalid non-empty difficulty values return a validation error instead of silently acting as a valid filter.
-- Database stores enum as int.
-
-## Sorting
-
-- Backend values: `title`, `time`, `difficulty`, default newest by `CreatedAt` descending.
-- Frontend select sends matching values.
-
-## Pagination
-
-- Backend params: `Page`, `PageSize`; invalid values normalized, page size capped at 100.
-- Frontend page size options: 10, 20, 30, 50.
-- UI renders condensed visible page list.
-
-## Recipe Details
-
-- Access: authenticated route.
-- Backend: `GET /api/Recipes/{id}` includes category, ingredients, steps.
-- Frontend: `RecipeDetailsComponent`.
-- Limitations: no edit/delete reviews UI despite service methods.
-
-## Account Management
-
-- Access: `Admin` only.
-- Backend: `API/Controller/AdminUsersController.cs`, `IUserManagementService`, `UserManagementService`, `IUserRepository`, `UserRepository`.
-- Frontend: `/admin/accounts`, `AccountsComponent`, `adminGuard`, `UserManagementService`.
-- Capabilities: list/search accounts, filter by role/status, create accounts, change role, activate/deactivate, delete accounts with no related favorites/reviews.
-- Roles: `User`, `Operator`, `Admin` from `Core.Domain/Constants/AppRoles.cs`.
-- Safety: Admin cannot self-demote, self-deactivate, or self-delete. Last active Admin cannot be demoted, deactivated, or deleted by service rules. Role/status changes clear refresh tokens.
-- Error handling: new endpoints return JSON `{ "message": "..." }`.
-
-## Recipe Creation
-
-- Backend: `POST /api/Recipes`, `CreateRecipeDto`, `CreateRecipeValidator`; Admin-or-Operator.
-- Frontend: create form is visible when `AuthService.canManageRecipes()` is true.
-- Database: creates `Recipie` only; no ingredients/steps from DTO.
-- Difficulty: request sends string value `Easy`, `Medium`, or `Hard`; backend parses to `DifficultyLevel` and rejects missing/invalid values.
-- Authorization: backend and UI require Admin or Operator.
-- Cache: recipe list cache cleared after successful create.
-
-## Recipe Editing
-
-- Backend: `PUT /api/Recipes/{id}` requires `Admin` or `Operator`.
-- Frontend: edit action shown when `AuthService.canManageRecipes()` is true.
-- Cache: cleared after success.
-- Difficulty is initialized from the existing recipe and preserved unless changed.
-- Limitation: edit form does not include ingredients or steps.
-
-## Recipe Deletion
-
-- Backend: `DELETE /api/Recipes/{id}` requires `Admin` or `Operator`; cascades ingredients, steps, favorites, and reviews.
-- Frontend: optimistic removal with rollback on error; cache cleared on success.
-
-## Category Loading
-
-- Backend: `CategoriesController.Get` returns EF category entities.
-- Frontend: `CategoryService.getAll()` used by recipe page for create/filter selects.
-- Access: anonymous backend route, but frontend page is guarded.
-
-## Roles And Authorization
-
-- Backend source of truth: `Core.Domain/Constants/AppRoles.cs`.
-- `User`: recipes, favorites, own reviews.
-- `Operator`: User permissions plus recipe create/update/delete.
-- `Admin`: Operator permissions plus `/api/admin/users` and `/admin/accounts`.
-- Frontend uses decoded JWT role claim for navigation/UI only; backend authorization remains authoritative.
-
-## Toast And Error Handling
-
-- Toastr configured in `app.config.ts`.
-- Used by login, recipe page, interceptors.
-- Inline errors in register and review form.
-- Backend uses plain string errors, not standardized JSON.
-
-## Seed Data
-
-- Active seeder creates 3 categories and 1,000 recipes with ingredients/steps and external image URLs.
-- Admin bootstrap is independent from recipe seeding and runs only when `SeedAdmin:Email` and `SeedAdmin:Password` are configured and no Admin exists.
-- Recipe seeding still creates 3 categories and 1,000 recipes only when recipes table is empty.
-
-## Favorites
-
-- Access: authenticated.
-- Backend: `FavoritesController`, `FavoriteService`, `FavoriteRepository`.
-- Frontend: `FavoriteService`, favorite button in recipe cards.
-- Database: `FavoriteRecipes` unique per user/recipe.
-- UI behavior: optimistic favorite toggle with rollback on failed API call.
-
-## Reviews
-
-- Access: public read by recipe; authenticated write/update/delete.
-- Backend: `ReviewsController`, `ReviewService`, `ReviewRepository`.
-- Frontend: `ReviewService`, create/list UI in `RecipeDetailsComponent`.
-- Database: `RecipeReviews`, unique per user/recipe.
-- Validation: rating 1-5; duplicate review blocked.
-- Limitation: update/delete service exists but no UI controls found.
-
-## Requested But Absent
-
-- Dashboards: not found.
-- Logs UI: not found.
-- Charts: not found.
-- Realtime/SignalR: not found.
-- Notifications: not found.
-- Uploads: not found.
+- Angular browser tests still require Chrome/`CHROME_BIN`.
+- `npm run build` passes but reports CSS and bundle budget warnings.
+- Culture Admin API exists, but no Admin culture-management route was added during this redesign.
+- Review privacy is only mitigated in the UI; backend should eventually return safe review author data instead of email.

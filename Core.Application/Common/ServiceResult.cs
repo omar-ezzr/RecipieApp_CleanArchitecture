@@ -5,7 +5,8 @@ public enum ServiceErrorType
     None,
     Validation,
     NotFound,
-    Conflict
+    Conflict,
+    Forbidden
 }
 
 public sealed class ServiceResult<T>

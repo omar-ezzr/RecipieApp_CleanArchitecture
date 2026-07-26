@@ -9,12 +9,13 @@ import {
   UserAccount,
   UserAccountQuery
 } from '../models/user-account.model';
+import { API_BASE_URL } from '../app-api.config';
 
 @Injectable({
   providedIn: 'root'
 })
 export class UserManagementService {
-  private apiUrl = 'http://localhost:5130/api/admin/users';
+  private apiUrl = `${API_BASE_URL}/admin/users`;
 
   constructor(private http: HttpClient) {}
 

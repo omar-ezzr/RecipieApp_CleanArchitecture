@@ -31,35 +31,101 @@ public sealed class RecipeAuthorizationTests : IClassFixture<RecipeApiFactory>
     }
 
     [Fact]
-    public async Task User_cannot_create_update_or_delete_recipes()
+    public async Task Anonymous_user_cannot_create_update_or_delete_recipes()
     {
-        var client = _factory.CreateClientForRole(AppRoles.User);
-        var recipeId = await _factory.CreateRecipeAsync();
+        var client = _factory.CreateClient();
+        var recipeId = await _factory.CreateRecipeAsync(_factory.UserId);
 
         var create = await client.PostAsJsonAsync("/api/Recipes", _factory.CreateRecipeRequest());
         var update = await client.PutAsJsonAsync($"/api/Recipes/{recipeId}", _factory.CreateRecipeRequest());
         var delete = await client.DeleteAsync($"/api/Recipes/{recipeId}");
 
-        Assert.Equal(HttpStatusCode.Forbidden, create.StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, create.StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, update.StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, delete.StatusCode);
+    }
+
+    [Fact]
+    public async Task Authenticated_user_can_create_recipe_assigned_to_self()
+    {
+        var client = _factory.CreateClientForRole(AppRoles.User);
+
+        var create = await client.PostAsJsonAsync("/api/Recipes", _factory.CreateRecipeRequest());
+
+        Assert.True(create.IsSuccessStatusCode);
+        var created = await _factory.GetNewestRecipeAsync();
+        Assert.NotNull(created);
+        Assert.Equal(_factory.UserId, created!.UserId);
+    }
+
+    [Fact]
+    public async Task Owner_can_update_and_delete_recipe()
+    {
+        var client = _factory.CreateClientForRole(AppRoles.User);
+        var recipeId = await _factory.CreateRecipeAsync(_factory.UserId);
+
+        var update = await client.PutAsJsonAsync($"/api/Recipes/{recipeId}", _factory.CreateRecipeRequest(DifficultyLevel.Hard));
+        var delete = await client.DeleteAsync($"/api/Recipes/{recipeId}");
+
+        Assert.True(update.IsSuccessStatusCode);
+        Assert.True(delete.IsSuccessStatusCode);
+    }
+
+    [Fact]
+    public async Task Other_user_cannot_update_or_delete_owner_recipe()
+    {
+        var otherId = await _factory.CreateUserAsync($"other-{Guid.NewGuid():N}@example.com", AppRoles.User);
+        var client = _factory.CreateClientForUser(otherId, AppRoles.User);
+        var recipeId = await _factory.CreateRecipeAsync(_factory.UserId);
+
+        var update = await client.PutAsJsonAsync($"/api/Recipes/{recipeId}", _factory.CreateRecipeRequest(DifficultyLevel.Hard));
+        var delete = await client.DeleteAsync($"/api/Recipes/{recipeId}");
+
         Assert.Equal(HttpStatusCode.Forbidden, update.StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, delete.StatusCode);
     }
 
-    [Theory]
-    [InlineData(AppRoles.Admin)]
-    [InlineData(AppRoles.Operator)]
-    public async Task Admin_and_operator_can_create_update_and_delete_recipes(string role)
+    [Fact]
+    public async Task Admin_can_update_and_delete_any_recipe()
     {
-        var client = _factory.CreateClientForRole(role);
-        var recipeId = await _factory.CreateRecipeAsync();
+        var client = _factory.CreateClientForRole(AppRoles.Admin);
+        var recipeId = await _factory.CreateRecipeAsync(_factory.UserId);
 
-        var create = await client.PostAsJsonAsync("/api/Recipes", _factory.CreateRecipeRequest());
-        var update = await client.PutAsJsonAsync($"/api/Recipes/{recipeId}", _factory.CreateRecipeRequest("Hard"));
+        var update = await client.PutAsJsonAsync($"/api/Recipes/{recipeId}", _factory.CreateRecipeRequest(DifficultyLevel.Hard));
         var delete = await client.DeleteAsync($"/api/Recipes/{recipeId}");
 
-        Assert.True(create.IsSuccessStatusCode);
         Assert.True(update.IsSuccessStatusCode);
         Assert.True(delete.IsSuccessStatusCode);
+    }
+
+    [Fact]
+    public async Task Missing_recipe_returns_404_for_authenticated_user()
+    {
+        var client = _factory.CreateClientForRole(AppRoles.User);
+        var missingId = Guid.NewGuid();
+
+        var update = await client.PutAsJsonAsync($"/api/Recipes/{missingId}", _factory.CreateRecipeRequest());
+        var delete = await client.DeleteAsync($"/api/Recipes/{missingId}");
+
+        Assert.Equal(HttpStatusCode.NotFound, update.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, delete.StatusCode);
+    }
+
+    [Fact]
+    public async Task Recipe_list_and_details_expose_safe_author_information()
+    {
+        var client = _factory.CreateClientForRole(AppRoles.User);
+        var recipeId = await _factory.CreateRecipeAsync(_factory.UserId);
+
+        var list = await client.GetFromJsonAsync<PagedRecipeResponse>("/api/Recipes/paged");
+        var detail = await client.GetFromJsonAsync<RecipieDto>($"/api/Recipes/{recipeId}");
+        var rawList = await client.GetStringAsync("/api/Recipes/paged");
+
+        Assert.Contains(list!.Items, recipe => recipe.Author.Id == _factory.UserId && recipe.Author.DisplayName == "user");
+        Assert.Equal(_factory.UserId, detail!.Author.Id);
+        Assert.Equal("user", detail.Author.DisplayName);
+        Assert.DoesNotContain("passwordHash", rawList, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("refreshToken", rawList, StringComparison.OrdinalIgnoreCase);
     }
 }
 
@@ -78,8 +144,9 @@ public sealed class AccountManagementTests : IClassFixture<RecipeApiFactory>
         var email = $"register-{Guid.NewGuid():N}@example.com";
         var client = _factory.CreateClient();
 
-        var response = await client.PostAsJsonAsync("/api/Auth/register", new LoginDto
+        var response = await client.PostAsJsonAsync("/api/Auth/register", new RegisterDto
         {
+            DisplayName = "Registered User",
             Email = email,
             Password = "StrongPass123"
         });
@@ -227,7 +294,7 @@ public sealed class AccountManagementTests : IClassFixture<RecipeApiFactory>
         var operatorClient = _factory.CreateClientForUser(operatorId, AppRoles.Operator);
         var adminClient = _factory.CreateClientForRole(AppRoles.Admin);
 
-        var before = await operatorClient.PostAsJsonAsync("/api/Recipes", _factory.CreateRecipeRequest());
+        var before = await operatorClient.GetAsync("/api/Recipes/paged");
         var change = await adminClient.PutAsJsonAsync($"/api/admin/users/{operatorId}/role", new UpdateUserRoleDto { Role = AppRoles.User });
         var after = await operatorClient.PostAsJsonAsync("/api/Recipes", _factory.CreateRecipeRequest());
 
@@ -263,6 +330,7 @@ public sealed class RecipeApiFactory : WebApplicationFactory<Program>, IAsyncLif
     public Guid AdminId { get; private set; }
     public Guid OperatorId { get; private set; }
     public Guid UserId { get; private set; }
+    public Guid CuisineId { get; private set; }
 
     public RecipeApiFactory()
     {
@@ -291,7 +359,7 @@ public sealed class RecipeApiFactory : WebApplicationFactory<Program>, IAsyncLif
         return client;
     }
 
-    public CreateRecipeDto CreateRecipeRequest(string difficulty = "Easy")
+    public CreateRecipeDto CreateRecipeRequest(DifficultyLevel difficulty = DifficultyLevel.Easy)
     {
         return new CreateRecipeDto
         {
@@ -299,11 +367,14 @@ public sealed class RecipeApiFactory : WebApplicationFactory<Program>, IAsyncLif
             Description = "Warm",
             PreparationTimeMinutes = 20,
             CategoryId = CategoryId,
-            Difficulty = difficulty
+            CuisineId = CuisineId,
+            Difficulty = difficulty,
+            Ingredients = [new CreateIngredientDto { Name = "Salt", Quantity = "1 tsp" }],
+            Steps = [new CreateRecipeStepDto { StepNumber = 1, Instruction = "Cook" }]
         };
     }
 
-    public async Task<Guid> CreateRecipeAsync()
+    public async Task<Guid> CreateRecipeAsync(Guid ownerId)
     {
         using var scope = Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -316,11 +387,24 @@ public sealed class RecipeApiFactory : WebApplicationFactory<Program>, IAsyncLif
             Description = "Warm",
             PreparationTimeMinutes = 20,
             Difficulty = DifficultyLevel.Medium,
-            CategoryId = CategoryId
+            CategoryId = CategoryId,
+            CuisineId = CuisineId,
+            UserId = ownerId
         });
 
         await context.SaveChangesAsync();
         return id;
+    }
+
+    public async Task<Recipie?> GetNewestRecipeAsync()
+    {
+        using var scope = Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        return await context.Recipies
+            .AsNoTracking()
+            .OrderByDescending(recipe => recipe.CreatedAt)
+            .FirstOrDefaultAsync();
     }
 
     public async Task<Guid> CreateUserAsync(
@@ -336,6 +420,7 @@ public sealed class RecipeApiFactory : WebApplicationFactory<Program>, IAsyncLif
         context.Users.Add(new Users
         {
             Id = id,
+            DisplayName = email.Split('@')[0],
             Email = email.Trim().ToLowerInvariant(),
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(KnownPassword),
             Role = role,
@@ -408,6 +493,7 @@ public sealed class RecipeApiFactory : WebApplicationFactory<Program>, IAsyncLif
         await context.Database.EnsureCreatedAsync();
 
         CategoryId = Guid.NewGuid();
+        CuisineId = Guid.NewGuid();
         AdminId = Guid.NewGuid();
         OperatorId = Guid.NewGuid();
         UserId = Guid.NewGuid();
@@ -416,6 +502,14 @@ public sealed class RecipeApiFactory : WebApplicationFactory<Program>, IAsyncLif
         {
             Id = CategoryId,
             Name = "Dinner"
+        });
+
+        context.Cuisines.Add(new Cuisine
+        {
+            Id = CuisineId,
+            Name = "Moroccan",
+            Slug = "moroccan",
+            CountryCode = "MA"
         });
 
         context.Users.AddRange(
@@ -449,6 +543,7 @@ public sealed class RecipeApiFactory : WebApplicationFactory<Program>, IAsyncLif
         return new Users
         {
             Id = id,
+            DisplayName = email.Split('@')[0],
             Email = email,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(KnownPassword),
             Role = role,
@@ -476,4 +571,13 @@ public sealed class RecipeApiFactory : WebApplicationFactory<Program>, IAsyncLif
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
+}
+
+public sealed class PagedRecipeResponse
+{
+    public List<RecipieDto> Items { get; set; } = [];
+    public int Total { get; set; }
+    public int Page { get; set; }
+    public int PageSize { get; set; }
+    public int TotalPages { get; set; }
 }

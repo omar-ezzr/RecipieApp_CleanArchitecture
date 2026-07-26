@@ -111,8 +111,20 @@ public AuthController(
             });
         }
         [HttpPost("register")]
-        public async Task<IActionResult> Register([FromBody] LoginDto dto, CancellationToken cancellationToken)
+        public async Task<IActionResult> Register([FromBody] RegisterDto dto, CancellationToken cancellationToken)
         {
+            var displayName = dto.DisplayName?.Trim();
+
+            if (string.IsNullOrWhiteSpace(displayName))
+            {
+                return BadRequest("Display name is required");
+            }
+
+            if (displayName.Length > 100)
+            {
+                return BadRequest("Display name must be 100 characters or fewer");
+            }
+
             var email = NormalizeEmail(dto.Email);
             var exists = await _context.Users.AnyAsync(u => u.Email == email, cancellationToken);
 
@@ -122,6 +134,7 @@ public AuthController(
             var user = new Users
             {
                 Id = Guid.NewGuid(),
+                DisplayName = displayName,
                 Email = email,
                 PasswordHash = _passwordService.Hash(dto.Password),
                 Role = AppRoles.User,

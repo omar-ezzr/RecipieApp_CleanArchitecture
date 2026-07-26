@@ -9,6 +9,7 @@ namespace Core.Domain.Entities
     public class Users
     {
         public Guid Id {get; set;}
+        public required string DisplayName { get; set; }
         public string Email {get; set;} = default!;
         public string PasswordHash {get; set;} = default!;
 
@@ -16,5 +17,6 @@ namespace Core.Domain.Entities
         public bool IsActive { get; set; } = true;
         public string? RefreshToken { get; set; }
         public DateTime? RefreshTokenExpiryTime { get; set; }
+        public ICollection<Recipie> Recipes { get; set; } = [];
     }
 }

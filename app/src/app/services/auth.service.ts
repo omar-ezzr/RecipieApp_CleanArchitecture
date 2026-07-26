@@ -4,6 +4,7 @@ import { HttpClient } from '@angular/common/http';
 
 import { Observable, of, throwError } from 'rxjs';
 import { catchError, finalize, map, shareReplay, tap } from 'rxjs/operators';
+import { API_BASE_URL } from '../app-api.config';
 
 export interface TokenResponse {
   accessToken: string;
@@ -12,6 +13,7 @@ export interface TokenResponse {
 
 const roleClaim = 'http://schemas.microsoft.com/ws/2008/06/identity/claims/role';
 const nameIdentifierClaim = 'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier';
+const nameClaim = 'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name';
 
 
 @Injectable({
@@ -20,7 +22,7 @@ const nameIdentifierClaim = 'http://schemas.xmlsoap.org/ws/2005/05/identity/clai
 
 export class AuthService {
 
-  private apiUrl = 'http://localhost:5130/api/auth';
+  private apiUrl = `${API_BASE_URL}/auth`;
   private activeRefresh$?: Observable<TokenResponse>;
 
 
@@ -181,7 +183,7 @@ export class AuthService {
   }
 
   canManageRecipes(): boolean {
-    return this.isAdmin() || this.isOperator();
+    return this.isLoggedIn();
   }
 
   hasRole(role: string): boolean {
@@ -189,11 +191,36 @@ export class AuthService {
   }
 
   getCurrentRole(): string | null {
-    return this.getTokenPayload()?.[roleClaim] ?? null;
+    const payload = this.getTokenPayload();
+
+    return payload?.[roleClaim] ?? payload?.role ?? null;
   }
 
   getCurrentUserId(): string | null {
-    return this.getTokenPayload()?.[nameIdentifierClaim] ?? null;
+    const payload = this.getTokenPayload();
+
+    return payload?.[nameIdentifierClaim] ?? payload?.sub ?? payload?.nameid ?? null;
+  }
+
+  getCurrentDisplayName(): string | null {
+    const payload = this.getTokenPayload();
+    const candidate =
+      payload?.displayName ??
+      payload?.display_name ??
+      payload?.given_name ??
+      payload?.preferred_username ??
+      payload?.name;
+
+    return typeof candidate === 'string' && candidate.trim() && !candidate.includes('@')
+      ? candidate.trim()
+      : null;
+  }
+
+  getCurrentEmail(): string | null {
+    const payload = this.getTokenPayload();
+    const candidate = payload?.[nameClaim] ?? payload?.email ?? payload?.name;
+
+    return typeof candidate === 'string' && candidate.includes('@') ? candidate : null;
   }
 
   private getTokenPayload(): any | null {

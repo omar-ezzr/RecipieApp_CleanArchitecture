@@ -1,5 +1,24 @@
+<a class="skip-link" href="#main-content">Skip to content</a>
 
-<div class="container p-3 mt-3 mb-2 bg-secondary text-white border border-5 border-light rounded-3">
-<router-outlet></router-outlet>
-</div>
+<app-navbar></app-navbar>
 
+<main id="main-content" class="app-main" tabindex="-1">
+  <router-outlet></router-outlet>
+</main>
+
+<footer class="app-footer">
+  <div class="app-footer-inner">
+    <div>
+      <p class="footer-brand">RECIPIE</p>
+      <p class="footer-copy">A place for recipes, origins, and cooking traditions shared from real kitchens.</p>
+    </div>
+
+    <nav class="footer-links" aria-label="Footer navigation">
+      <a routerLink="/recipes">Explore Recipes</a>
+      <a *ngIf="auth.isLoggedIn()" routerLink="/create-recipe">Create Recipe</a>
+      <a *ngIf="auth.isLoggedIn()" routerLink="/my-recipes">My Recipes</a>
+    </nav>
+
+    <p class="footer-year">&copy; {{ currentYear }} Recipie</p>
+  </div>
+</footer>

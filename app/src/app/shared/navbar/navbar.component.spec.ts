@@ -51,4 +51,15 @@ describe('NavbarComponent', () => {
 
     expect((fixture.nativeElement as HTMLElement).textContent).not.toContain('Accounts');
   });
+
+  it('shows create and my recipes links for authenticated users', () => {
+    auth.isLoggedIn.and.returnValue(true);
+    auth.isAdmin.and.returnValue(false);
+    fixture.detectChanges();
+
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+
+    expect(text).toContain('Create Recipe');
+    expect(text).toContain('My Recipes');
+  });
 });

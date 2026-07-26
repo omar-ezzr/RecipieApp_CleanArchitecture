@@ -1,39 +1,146 @@
-# Recepes V2 Angular App
+# RecepieV3 Angular Frontend
 
-Angular 18 standalone frontend for the Recep V2 recipe application.
+Angular 18 standalone frontend for the RecepieV3 social recipe platform.
 
-## Development Server
+The UI is designed as an editorial cooking product where authenticated users discover recipes by cuisine and region, publish recipes, manage their own recipe library, favorite recipes, review dishes, and access Admin account management when authorized.
 
-Run `ng serve` and open `http://localhost:4200/`.
+## Stack
 
-## Local Dependencies
+- Angular 18 standalone components.
+- Angular Router.
+- Angular HttpClient.
+- JWT auth interceptor and refresh interceptor.
+- ngx-toastr.
+- Bootstrap installed through npm.
+- Custom global design system in `src/styles.css`.
 
-Bootstrap is installed through npm and imported from `src/styles.css`; no Bootstrap CDN is required.
+## Design System
+
+Global visual primitives live in:
+
+```text
+src/styles.css
+```
+
+Current design direction:
+
+- Warm paper background with subtle CSS texture.
+- Forest green as the primary brand and action color.
+- Serif editorial headings using Georgia/Times-style font stacks.
+- Sans-serif UI labels, navigation, buttons, filters, metadata, and forms.
+- Paper-light cards with green-tinted borders and soft shadows.
+- Visible keyboard focus and reduced-motion support.
+
+Shared UI components live under:
+
+```text
+src/app/shared/components/
+```
+
+Notable shared components:
+
+- `recipe-card`
+- `recipe-card-skeleton`
+- `empty-state`
+- `loading-spinner`
+- `page-header`
+
+## Routes
+
+Configured in:
+
+```text
+src/app/app.routes.ts
+```
+
+Important routes:
+
+- `/recipes`
+- `/recipes/:id`
+- `/create-recipe`
+- `/my-recipes`
+- `/login`
+- `/register`
+- `/admin/accounts`
+
+Protected routes use the existing auth/admin guards. Frontend checks are only UI behavior; backend authorization remains authoritative.
+
+## API Configuration
+
+The API base URL is centralized in:
+
+```text
+src/app/app-api.config.ts
+```
+
+Do not hardcode additional API origins in components or services.
+
+Recipe images may be absolute URLs or API-relative paths such as `/images/recipes/example.webp`. Resolve them with:
+
+```text
+src/app/core/utils/asset-url.util.ts
+```
+
+## Development
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Start the Angular dev server:
+
+```bash
+npm start
+```
+
+Default local app URL:
+
+```text
+http://localhost:4200
+```
+
+The backend API is expected at:
+
+```text
+http://localhost:5130/api
+```
 
 ## Build
-
-Run:
 
 ```bash
 npm run build
 ```
 
-## Unit Tests
+Last verified on 2026-07-26: build passed with warnings for initial bundle size, component CSS budgets, and a Bootstrap selector parse warning.
 
-Run:
+## Tests
 
 ```bash
 npm test -- --watch=false
 ```
 
-Karma uses `karma-chrome-launcher`, so the local environment must provide a Chrome or Chromium binary.
-
-## API Configuration
-
-API service URLs currently target `http://localhost:5130/api/...`, matching the backend HTTP launch profile.
+Karma uses Chrome. In the current environment, the browser bundle compiled but the test run failed because no Chrome binary was available and `CHROME_BIN` was unset.
 
 ## Auth Behavior
 
-Authentication uses `accessToken` and `refreshToken` in localStorage. Refresh is shared so concurrent `401` responses reuse a single refresh request.
+Authentication uses `accessToken` and `refreshToken` in `localStorage`.
 
-Roles are `User`, `Operator`, and `Admin`. Operators can manage recipes. Admins can also access `/admin/accounts` for account management.
+`AuthService.logout()` removes only:
+
+- `accessToken`
+- `refreshToken`
+
+Supported UI role behavior:
+
+- Authenticated users can publish recipes.
+- Recipe owners can edit/delete their own recipes.
+- Admins can manage any recipe and access `/admin/accounts`.
+
+## Current Known Frontend Limits
+
+- Browser tests require Chrome or Chromium.
+- Review data from the backend still includes user email; the UI masks it on recipe details.
+- Culture Admin services exist, but there is no dedicated Angular Admin cuisine/region page.
+- Build warnings remain and should be reviewed before tightening budgets.

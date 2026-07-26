@@ -1,4 +1,25 @@
+export enum DifficultyLevel {
+  Easy = 1,
+  Medium = 2,
+  Hard = 3
+}
+
 export type Difficulty = 'Easy' | 'Medium' | 'Hard';
+
+export interface RecipeAuthor {
+  id: string;
+  displayName: string;
+}
+
+export interface RecipeIngredientInput {
+  name: string;
+  quantity: string;
+}
+
+export interface RecipeStepInput {
+  stepNumber: number;
+  instruction: string;
+}
 
 export interface Recipe {
   id: string;
@@ -7,11 +28,21 @@ export interface Recipe {
   preparationTimeMinutes: number;
   categoryId: string;
   category: string;
-  difficulty: Difficulty;
+  cuisineId: string;
+  cuisineName: string;
+  cuisineSlug: string;
+  regionId?: string | null;
+  regionName?: string | null;
+  regionSlug?: string | null;
+  difficulty: DifficultyLevel;
+  author: RecipeAuthor;
   imageUrl?: string;
-  ingredients: string[];
-
-steps: string[];
+  traditionalName?: string | null;
+  originDescription?: string | null;
+  isTraditional: boolean;
+  servingOccasion?: string | null;
+  ingredients: RecipeIngredientInput[];
+  steps: RecipeStepInput[];
 }
 
 export interface CreateRecipe {
@@ -19,6 +50,14 @@ export interface CreateRecipe {
   description: string;
   preparationTimeMinutes: number;
   categoryId: string;
-  difficulty: Difficulty;
-  imageUrl?: string;
+  cuisineId: string;
+  regionId?: string | null;
+  difficulty: DifficultyLevel;
+  imageUrl?: string | null;
+  traditionalName?: string | null;
+  originDescription?: string | null;
+  isTraditional: boolean;
+  servingOccasion?: string | null;
+  ingredients: RecipeIngredientInput[];
+  steps: RecipeStepInput[];
 }

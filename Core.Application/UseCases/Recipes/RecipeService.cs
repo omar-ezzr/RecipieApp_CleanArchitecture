@@ -3,6 +3,7 @@ using Core.Application.DTO;
 using Core.Application.DTO.Recipe;
 using Core.Application.Interfaces;
 using Core.Application.Interfaces.Services;
+using Core.Application.DTO.Users;
 using Core.Domain.Entities;
 using Core.Domain.Enums;
 
@@ -27,22 +28,45 @@ namespace Core.Application.UseCases.Recipes
         Description = r.Description,
         PreparationTimeMinutes = r.PreparationTimeMinutes,
         CategoryId = r.CategoryId,
+        CuisineId = r.CuisineId,
+        CuisineName = r.Cuisine != null ? r.Cuisine.Name : "Unknown",
+        CuisineSlug = r.Cuisine != null ? r.Cuisine.Slug : "unknown",
+        RegionId = r.RegionId,
+        RegionName = r.Region?.Name,
+        RegionSlug = r.Region?.Slug,
         ImageUrl = r.ImageUrl,
-        Difficulty = r.Difficulty.ToString(),
+        Difficulty = r.Difficulty,
         Category = r.Category != null ? r.Category.Name : "Unknown",
+        TraditionalName = r.TraditionalName,
+        OriginDescription = r.OriginDescription,
+        IsTraditional = r.IsTraditional,
+        ServingOccasion = r.ServingOccasion,
+        Author = new AuthorDto
+        {
+            Id = r.UserId,
+            DisplayName = r.User != null ? r.User.DisplayName : "Unknown author"
+        },
 
         Ingredients = r.Ingredients != null
             ? r.Ingredients
-                .Select(i => i.Name)
+                .Select(i => new CreateIngredientDto
+                {
+                    Name = i.Name,
+                    Quantity = i.Quantity
+                })
                 .ToList()
-            : new List<string>(),
+            : [],
 
         Steps = r.Steps != null
             ? r.Steps
                 .OrderBy(s => s.StepNumber)
-                .Select(s => s.Instruction)
+                .Select(s => new CreateRecipeStepDto
+                {
+                    StepNumber = s.StepNumber,
+                    Instruction = s.Instruction
+                })
                 .ToList()
-            : new List<string>()
+            : []
     };
 }
 
@@ -56,64 +80,159 @@ namespace Core.Application.UseCases.Recipes
         }
 
         // 🔹 CREATE
-        public async Task<Result> CreateAsync(CreateRecipeDto dto, CancellationToken cancellationToken = default)
+        public async Task<ServiceResult<RecipieDto>> CreateAsync(CreateRecipeDto dto, Guid currentUserId, CancellationToken cancellationToken = default)
         {
-            if (!TryParseDifficulty(dto.Difficulty, out var difficulty))
+            if (!IsDefinedDifficulty(dto.Difficulty))
             {
-                return Result.Failure("Difficulty must be Easy, Medium, or Hard");
+                return ServiceResult<RecipieDto>.Failure("Difficulty must be Easy, Medium, or Hard", ServiceErrorType.Validation);
+            }
+
+            if (!await _repository.CategoryExistsAsync(dto.CategoryId, cancellationToken))
+            {
+                return ServiceResult<RecipieDto>.Failure("Category not found", ServiceErrorType.Validation);
+            }
+
+            var cultureValidation = await ValidateCultureAsync(dto.CuisineId, dto.RegionId, cancellationToken);
+            if (cultureValidation is not null)
+            {
+                return ServiceResult<RecipieDto>.Failure(cultureValidation, ServiceErrorType.Validation);
             }
 
             var recipe = new Recipie
             {
                 Id = Guid.NewGuid(),
-                Title = dto.Title,
-                Description = dto.Description,
+                Title = Normalize(dto.Title),
+                Description = Normalize(dto.Description),
                 PreparationTimeMinutes = dto.PreparationTimeMinutes,
                 CategoryId = dto.CategoryId,
-                ImageUrl = dto.ImageUrl,
-                Difficulty = difficulty
+                CuisineId = dto.CuisineId,
+                RegionId = dto.RegionId,
+                UserId = currentUserId,
+                ImageUrl = NormalizeOptional(dto.ImageUrl),
+                Difficulty = dto.Difficulty,
+                TraditionalName = NormalizeOptional(dto.TraditionalName),
+                OriginDescription = NormalizeOptional(dto.OriginDescription),
+                IsTraditional = dto.IsTraditional,
+                ServingOccasion = NormalizeOptional(dto.ServingOccasion),
+                Ingredients = dto.Ingredients
+                    .Select(ingredient => new Ingredient
+                    {
+                        Id = Guid.NewGuid(),
+                        Name = Normalize(ingredient.Name),
+                        Quantity = Normalize(ingredient.Quantity),
+                        CreatedAt = DateTime.UtcNow
+                    })
+                    .ToList(),
+                Steps = dto.Steps
+                    .OrderBy(step => step.StepNumber)
+                    .Select(step => new RecipieStep
+                    {
+                        Id = Guid.NewGuid(),
+                        StepNumber = step.StepNumber,
+                        Instruction = Normalize(step.Instruction),
+                        CreatedAt = DateTime.UtcNow
+                    })
+                    .ToList()
             };
 
             await _repository.AddAsync(recipe, cancellationToken);
-            return Result.Success();
+
+            var created = await _repository.GetByIdAsync(recipe.Id, cancellationToken);
+
+            return ServiceResult<RecipieDto>.Success(MapToDto(created ?? recipe));
         }
 
         // 🔹 UPDATE
-        public async Task<Result> UpdateAsync(Guid id, CreateRecipeDto dto, CancellationToken cancellationToken = default)
+        public async Task<ServiceResult<RecipieDto>> UpdateAsync(
+            Guid id,
+            CreateRecipeDto dto,
+            Guid currentUserId,
+            bool isAdmin,
+            CancellationToken cancellationToken = default)
         {
-            if (!TryParseDifficulty(dto.Difficulty, out var difficulty))
+            if (!IsDefinedDifficulty(dto.Difficulty))
             {
-                return Result.Failure("Difficulty must be Easy, Medium, or Hard");
+                return ServiceResult<RecipieDto>.Failure("Difficulty must be Easy, Medium, or Hard", ServiceErrorType.Validation);
             }
 
             var recipe = await _repository.GetByIdAsync(id, cancellationToken);
 
             if (recipe == null)
-                return Result.Failure("Recipe not found");
+                return ServiceResult<RecipieDto>.Failure("Recipe not found", ServiceErrorType.NotFound);
 
-            recipe.Title = dto.Title;
-            recipe.Description = dto.Description;
+            if (!isAdmin && recipe.UserId != currentUserId)
+                return ServiceResult<RecipieDto>.Failure("You can only update your own recipe.", ServiceErrorType.Forbidden);
+
+            if (!await _repository.CategoryExistsAsync(dto.CategoryId, cancellationToken))
+            {
+                return ServiceResult<RecipieDto>.Failure("Category not found", ServiceErrorType.Validation);
+            }
+
+            var cultureValidation = await ValidateCultureAsync(dto.CuisineId, dto.RegionId, cancellationToken);
+            if (cultureValidation is not null)
+            {
+                return ServiceResult<RecipieDto>.Failure(cultureValidation, ServiceErrorType.Validation);
+            }
+
+            recipe.Title = Normalize(dto.Title);
+            recipe.Description = Normalize(dto.Description);
             recipe.PreparationTimeMinutes = dto.PreparationTimeMinutes;
             recipe.CategoryId = dto.CategoryId;
-            recipe.ImageUrl = dto.ImageUrl;
-            recipe.Difficulty = difficulty;
+            recipe.CuisineId = dto.CuisineId;
+            recipe.RegionId = dto.RegionId;
+            recipe.ImageUrl = NormalizeOptional(dto.ImageUrl);
+            recipe.Difficulty = dto.Difficulty;
+            recipe.TraditionalName = NormalizeOptional(dto.TraditionalName);
+            recipe.OriginDescription = NormalizeOptional(dto.OriginDescription);
+            recipe.IsTraditional = dto.IsTraditional;
+            recipe.ServingOccasion = NormalizeOptional(dto.ServingOccasion);
+            recipe.Ingredients.Clear();
+            foreach (var ingredient in dto.Ingredients)
+            {
+                recipe.Ingredients.Add(new Ingredient
+                {
+                    RecipeId = recipe.Id,
+                    Name = Normalize(ingredient.Name),
+                    Quantity = Normalize(ingredient.Quantity),
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+
+            recipe.Steps.Clear();
+            foreach (var step in dto.Steps.OrderBy(step => step.StepNumber))
+            {
+                recipe.Steps.Add(new RecipieStep
+                {
+                    RecipeId = recipe.Id,
+                    StepNumber = step.StepNumber,
+                    Instruction = Normalize(step.Instruction),
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
 
             await _repository.UpdateAsync(recipe, cancellationToken);
 
-            return Result.Success();
+            return ServiceResult<RecipieDto>.Success(MapToDto(recipe));
         }
 
         // 🔹 DELETE
-        public async Task<Result> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+        public async Task<ServiceResult> DeleteAsync(
+            Guid id,
+            Guid currentUserId,
+            bool isAdmin,
+            CancellationToken cancellationToken = default)
         {
             var recipe = await _repository.GetByIdAsync(id, cancellationToken);
 
             if (recipe == null)
-                return Result.Failure("Recipe not found");
+                return ServiceResult.Failure("Recipe not found", ServiceErrorType.NotFound);
+
+            if (!isAdmin && recipe.UserId != currentUserId)
+                return ServiceResult.Failure("You can only delete your own recipe.", ServiceErrorType.Forbidden);
 
             await _repository.DeleteAsync(recipe, cancellationToken);
 
-            return Result.Success();
+            return ServiceResult.Success();
         }
 
         // 🔹 PAGINATION + FILTERING
@@ -135,10 +254,56 @@ namespace Core.Application.UseCases.Recipes
             };
         }
 
-        private static bool TryParseDifficulty(string? value, out DifficultyLevel difficulty)
+        public async Task<PagedResult<RecipieDto>> GetMineAsync(
+            RecipeQueryParams parameters,
+            Guid currentUserId,
+            CancellationToken cancellationToken = default)
         {
-            return Enum.TryParse(value, true, out difficulty)
-                && Enum.IsDefined(typeof(DifficultyLevel), difficulty);
+            parameters.UserId = currentUserId;
+
+            return await GetPagedAsync(parameters, cancellationToken);
+        }
+
+        private static bool IsDefinedDifficulty(DifficultyLevel difficulty)
+        {
+            return Enum.IsDefined(typeof(DifficultyLevel), difficulty);
+        }
+
+        private static string Normalize(string value) => value.Trim();
+
+        private static string? NormalizeOptional(string? value)
+        {
+            var normalized = value?.Trim();
+
+            return string.IsNullOrWhiteSpace(normalized) ? null : normalized;
+        }
+
+        private async Task<string?> ValidateCultureAsync(Guid cuisineId, Guid? regionId, CancellationToken cancellationToken)
+        {
+            if (cuisineId == Guid.Empty)
+            {
+                return "Cuisine is required";
+            }
+
+            if (!await _repository.CuisineExistsAsync(cuisineId, cancellationToken))
+            {
+                return "Cuisine not found or inactive";
+            }
+
+            if (!regionId.HasValue)
+            {
+                return null;
+            }
+
+            var region = await _repository.GetActiveRegionAsync(regionId.Value, cancellationToken);
+            if (region is null)
+            {
+                return "Region not found or inactive";
+            }
+
+            return region.CuisineId == cuisineId
+                ? null
+                : "The region does not belong to the selected cuisine.";
         }
     }
 }
