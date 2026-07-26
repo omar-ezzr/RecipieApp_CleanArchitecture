@@ -1,149 +1,148 @@
-# 🍽️ Recipe App — Clean Architecture (Full-Stack)
+# RecepieV3
 
-A full-stack web application for managing recipes, built with **.NET 8** and **Angular 18**, following **Clean Architecture principles**.
+RecepieV3 is a full-stack social recipe platform built with ASP.NET Core, EF Core, SQL Server, and Angular 18 standalone components.
 
-This project focuses on building a structured, maintainable, and scalable application — not just basic CRUD.
+The product is a public cooking network, not an Admin-only recipe catalog. Authenticated users publish their own recipes, manage the recipes they created, browse cultural cooking styles, favorite recipes, and write reviews. Admins moderate the platform and can manage any recipe or user account when authorized.
 
----
+## Current Capabilities
 
-## 🚀 Features
+- JWT authentication with access and refresh tokens.
+- User registration with a public display name.
+- Owner-based recipe publishing and management.
+- Admin moderation for recipes and account management.
+- Recipe listing, search, filtering, sorting, and pagination.
+- Cuisine, region, and traditional-recipe discovery.
+- Recipe details with ingredients, ordered steps, cultural origin metadata, favorites, and reviews.
+- `GET /api/Recipes/me` and Angular `/my-recipes` for the current user's recipes.
+- Angular `/create-recipe` publishing form with ingredients, steps, cuisine, region, difficulty, and cultural fields.
+- Safe recipe author display data through `author.id` and `author.displayName`.
+- Local recipe image support through API static files and frontend asset URL resolution.
+- Backend unit and integration test projects.
 
-### 🔐 Authentication
+## Architecture
 
-* JWT Authentication
-* Role-based access (Admin / User)
-* Protected routes (Angular Guards)
+The backend is layered, with some legacy direct `DbContext` usage still present.
 
-### 📦 Recipes Management
-
-* Create / Update / Delete recipes (Admin)
-* View recipes (User)
-* Structured data:
-
-  * Ingredients
-  * Steps
-  * Categories
-
-### 🔍 Data Handling
-
-* Pagination
-* Filtering (search, difficulty)
-* Sorting
-
-### 🎨 Frontend (Angular 18)
-
-* Standalone components
-* Feature-based folder structure
-* Interceptors (auto attach token)
-* Responsive UI
-
----
-
-## 🧠 Architecture
-
-### Backend — Clean Architecture
-
-```
-Core.Domain        → Entities
-Core.Application   → DTOs, Interfaces, Services
-Infrastructure     → EF Core, Repositories
-API                → Controllers, JWT, Middleware
+```text
+API                ASP.NET Core controllers, JWT, Swagger, startup
+Core.Domain        Entities, enums, constants
+Core.Application   DTOs, interfaces, services/use cases, validators
+Infrastructure     EF Core DbContext, configurations, repositories, migrations, seeders
+tests/             xUnit unit and integration tests
+app/               Angular 18 standalone frontend
 ```
 
-### Flow
+Main request flow:
 
-```
-Angular → API → Service → Repository → Database
-```
-
----
-
-## 🛠️ Tech Stack
-
-### Backend
-
-* .NET 8
-* ASP.NET Core Web API
-* Entity Framework Core
-* SQL Server (Docker)
-
-### Frontend
-
-* Angular 18
-* TypeScript
-* RxJS
-
----
-
-## ⚙️ Getting Started
-
-### 1. Clone the repository
-
-```
-git clone https://github.com/omar-ezzr/RecipieApp_CleanArchitecture.git
-cd RecipieApp_CleanArchitecture
+```text
+Angular -> API Controller -> Application Service -> Repository -> EF Core -> SQL Server
 ```
 
----
+Important naming is intentionally preserved across the repository:
 
-### 2. Backend setup
+- `Recipie`
+- `RecipieDto`
+- `RecipieStep`
+- `Recipies`
+- `API/Controller/RecipesController .cs`
 
-```
-cd API
+## Frontend
+
+The Angular app lives in `app/`.
+
+The frontend uses:
+
+- Angular 18 standalone components.
+- Angular Router guards and HTTP interceptors.
+- ngx-toastr.
+- Bootstrap as a dependency, with a custom editorial design system layered on top.
+- Centralized API base URL in `app/src/app/app-api.config.ts`.
+- Centralized API-relative image URL handling in `app/src/app/core/utils/asset-url.util.ts`.
+
+Current redesigned pages:
+
+- `/recipes` - recipe-first discovery with cuisine/region/category/difficulty/traditional filters.
+- `/recipes/:id` - editorial recipe detail page.
+- `/create-recipe` - authenticated recipe publishing form.
+- `/my-recipes` - current user's recipe library.
+- `/login` and `/register` - product-styled auth screens.
+- `/admin/accounts` - Admin account management.
+
+## Backend
+
+The API project lives in `API/`.
+
+Core backend behavior:
+
+- JWT bearer authentication is configured in `API/Program.cs`.
+- Token generation happens in `API/Controller/AuthController.cs`.
+- Recipe ownership is enforced in `Core.Application/UseCases/Recipes/RecipeService.cs`.
+- EF Core context is `Infrastructure/Persistence/AppDbContext.cs`.
+- Active seeding is under `Infrastructure/Seed/`.
+
+Do not put secrets in committed configuration. Use user secrets or environment variables for connection strings, JWT keys, and seed credentials.
+
+## Getting Started
+
+From the repository root:
+
+```bash
 dotnet restore
-dotnet run
+dotnet build Recep.sln
+dotnet test Recep.sln
+dotnet run --project API
 ```
 
-Swagger:
+Frontend:
 
-```
-https://localhost:5001/swagger
-```
-
----
-
-### 3. Frontend setup
-
-```
+```bash
 cd app
 npm install
-ng serve
+npm start
 ```
 
-App runs on:
+Default local URLs:
 
-```
-http://localhost:4200
-```
+- API HTTP launch profile: `http://localhost:5130`
+- Angular dev server: `http://localhost:4200`
+- Swagger is available in Development when the API is running.
 
----
+## Validation Status
 
-## 📸 Screenshots
+Last verified in this working tree on 2026-07-26:
 
-<img width="1363" height="567" alt="Capture d’écran du 2026-04-24 17-15-14" src="https://github.com/user-attachments/assets/3dc00569-d2f4-457e-ba61-a584667fec86" />
-<img width="1363" height="567" alt="Capture d’écran du 2026-04-24 17-15-07" src="https://github.com/user-attachments/assets/d16114db-f783-400a-b4d1-73e4bba840a3" />
-<img width="1363" height="567" alt="Capture d’écran du 2026-04-24 17-14-53" src="https://github.com/user-attachments/assets/4111f711-1125-4914-8a80-dd8711060cc0" />
-<img width="1363" height="494" alt="Capture d’écran du 2026-04-24 17-14-33" src="https://github.com/user-attachments/assets/9312b6e3-d76a-49c6-be67-2d626d97c3bf" />
+- `dotnet restore`: passed.
+- `dotnet build Recep.sln`: passed.
+- `dotnet test Recep.sln`: passed, 57 backend tests.
+- `cd app && npm install`: passed; npm reported existing vulnerabilities.
+- `cd app && npm run build`: passed with budget warnings.
+- `cd app && npm test -- --watch=false`: browser bundle compiled, but Karma could not launch because Chrome was unavailable and `CHROME_BIN` was unset.
 
----
+## Known Limitations
 
-## 🧪 Future Improvements
+- Angular browser tests require a Chrome or Chromium binary.
+- Frontend build currently reports bundle/component CSS budget warnings.
+- Review responses still expose reviewer email from the backend; the redesigned frontend masks it, but the backend DTO should be corrected later.
+- Cuisine/region Admin APIs exist, but no dedicated Angular Admin culture-management page is currently implemented.
+- Startup migration behavior in `API/Program.cs` can mutate the configured database outside Testing.
 
-* Redis caching
-* RabbitMQ (async processing)
-* File upload (images)
-* Deployment (Docker + Cloud)
-* Unit testing
+## Documentation
 
----
+Detailed project context is maintained in:
 
-## 📌 Notes
+- `AI_CONTEXT.md`
+- `docs/PROJECT_OVERVIEW.md`
+- `docs/BACKEND_CONTEXT.md`
+- `docs/FRONTEND_CONTEXT.md`
+- `docs/DATABASE_CONTEXT.md`
+- `docs/API_ENDPOINTS.md`
+- `docs/FEATURES_CONTEXT.md`
+- `docs/KNOWN_ISSUES_AND_RULES.md`
+- `docs/RECENT_CHANGES_CONTEXT.md`
+- `docs/CHANGE_GUIDE.md`
 
-This is Version 1 of the project.
-The focus was on **architecture, data handling, and clean structure**, not only features.
+Documentation must describe implemented code, not intended behavior. Never include secrets; use `[REDACTED]` for sensitive values.
 
----
+## Author
 
-## 👨‍💻 Author
-
-**Omar Ezzr**
+Omar Ezzr
