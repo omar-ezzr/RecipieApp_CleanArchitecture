@@ -56,3 +56,6 @@ front.zip
 app/node_modules/
 app/dist/
 app/.angular/
+
+# Local source images
+images/
