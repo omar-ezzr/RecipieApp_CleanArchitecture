@@ -1,5 +1,7 @@
 namespace Core.Application.DTO.Reviews
 {
+    using Core.Application.DTO.Users;
+
     public class ReviewDto
     {
         public Guid Id { get; set; }
@@ -8,7 +10,7 @@ namespace Core.Application.DTO.Reviews
 
         public Guid UserId { get; set; }
 
-        public string UserEmail { get; set; } = string.Empty;
+        public required AuthorDto Author { get; set; }
 
         public int Rating { get; set; }
 

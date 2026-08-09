@@ -1,0 +1,62 @@
+<section class="page-shell profile-page" *ngIf="!isLoading && profile">
+  <header class="profile-header">
+    <div class="avatar">
+      <img *ngIf="profile.avatarUrl" [src]="profile.avatarUrl" [alt]="profile.displayName">
+      <span *ngIf="!profile.avatarUrl">{{ profile.displayName.charAt(0) }}</span>
+    </div>
+
+    <div class="profile-copy">
+      <p class="ui-label" *ngIf="profile.countryCode">{{ profile.countryCode }}</p>
+      <h1 class="display-title">{{ profile.displayName }}</h1>
+      <p class="body-copy" *ngIf="profile.bio">{{ profile.bio }}</p>
+      <div class="profile-stats">
+        <button type="button" (click)="showList('followers')"><strong>{{ profile.followerCount }}</strong> followers</button>
+        <button type="button" (click)="showList('following')"><strong>{{ profile.followingCount }}</strong> following</button>
+        <span><strong>{{ profile.recipeCount }}</strong> recipes</span>
+      </div>
+    </div>
+
+    <div class="profile-actions">
+      <a *ngIf="isOwnProfile" class="btn btn-primary-app" routerLink="/profile/edit">Edit Profile</a>
+      <button *ngIf="!isOwnProfile && auth.isLoggedIn()" type="button" class="btn btn-primary-app" [disabled]="isFollowBusy" (click)="toggleFollow()">
+        {{ isFollowing ? 'Unfollow' : 'Follow' }}
+      </button>
+    </div>
+  </header>
+
+  <section class="profile-list" *ngIf="activeList">
+    <div class="list-heading">
+      <h2>{{ activeList === 'followers' ? 'Followers' : 'Following' }}</h2>
+      <button type="button" class="btn btn-secondary-app btn-sm" (click)="closeList()">Close</button>
+    </div>
+    <a class="user-row" *ngFor="let user of activeUsers(); trackBy: trackUser" [routerLink]="['/users', user.id]" (click)="closeList()">
+      <span class="mini-avatar">{{ user.displayName.charAt(0) }}</span>
+      <span>{{ user.displayName }}</span>
+    </a>
+  </section>
+
+  <section>
+    <div class="section-heading">
+      <div>
+        <p class="ui-label">Recipes</p>
+        <h2 class="section-title">Published dishes</h2>
+      </div>
+    </div>
+
+    <app-empty-state
+      *ngIf="recipes.length === 0"
+      title="No recipes yet"
+      message="This cook has not published any recipes yet.">
+    </app-empty-state>
+
+    <div class="recipe-grid" *ngIf="recipes.length">
+      <app-recipe-card
+        *ngFor="let recipe of recipes; trackBy: trackRecipe"
+        [recipe]="recipe"
+        [showFavorite]="auth.isLoggedIn()"
+        [showLike]="false"
+        [showManageActions]="false">
+      </app-recipe-card>
+    </div>
+  </section>
+</section>

@@ -5,6 +5,12 @@ import { RecipeDetailsComponent } from './recipe-details.component';
 import { RecipeService } from '../services/recipe.service';
 import { ReviewService } from '../services/review.service';
 import { DifficultyLevel } from '../models/recipe.model';
+import { FavoriteService } from '../services/favorite.service';
+import { LikeService } from '../services/like.service';
+import { CommentService } from '../services/comment.service';
+import { AuthService } from '../services/auth.service';
+import { ToastrService } from 'ngx-toastr';
+import { provideRouter } from '@angular/router';
 
 describe('RecipeDetailsComponent', () => {
   let component: RecipeDetailsComponent;
@@ -18,6 +24,7 @@ describe('RecipeDetailsComponent', () => {
     await TestBed.configureTestingModule({
       imports: [RecipeDetailsComponent],
       providers: [
+        provideRouter([]),
         {
           provide: ActivatedRoute,
           useValue: { snapshot: { paramMap: { get: () => 'recipe-1' } } }
@@ -43,11 +50,18 @@ describe('RecipeDetailsComponent', () => {
               imageUrl: '',
               isTraditional: true,
               ingredients: [],
-              steps: []
+              steps: [],
+              likeCount: 2,
+              isLikedByCurrentUser: true
             })
           }
         },
-        { provide: ReviewService, useValue: reviewService }
+        { provide: ReviewService, useValue: reviewService },
+        { provide: FavoriteService, useValue: { check: () => of({ isFavorite: false }) } },
+        { provide: LikeService, useValue: { getStatus: () => of({ isLiked: true, likeCount: 2 }), like: () => of(void 0), unlike: () => of(void 0) } },
+        { provide: CommentService, useValue: { getByRecipe: () => of({ items: [], total: 0, page: 1, pageSize: 20, totalPages: 0 }) } },
+        { provide: AuthService, useValue: { isLoggedIn: () => true, isAdmin: () => false, getCurrentUserId: () => 'user-2' } },
+        { provide: ToastrService, useValue: { error: jasmine.createSpy('error'), success: jasmine.createSpy('success') } }
       ]
     }).compileComponents();
 

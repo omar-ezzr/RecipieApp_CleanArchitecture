@@ -28,8 +28,10 @@ public class RecipesController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> Get(CancellationToken cancellationToken)
     {
+        var currentUserId = TryGetCurrentUserId(out var parsed) ? parsed : (Guid?)null;
         var recipes = await _service.GetPagedAsync(
             new RecipeQueryParams { Page = 1, PageSize = 100 },
+            currentUserId,
             cancellationToken);
 
         return Ok(recipes);
@@ -48,7 +50,8 @@ public class RecipesController : ControllerBase
             return BadRequest(Error("validation_failed", "Difficulty must be Easy, Medium, or Hard."));
         }
 
-        var result = await _service.GetPagedAsync(parameters, cancellationToken);
+        var currentUserId = TryGetCurrentUserId(out var parsed) ? parsed : (Guid?)null;
+        var result = await _service.GetPagedAsync(parameters, currentUserId, cancellationToken);
 
         return Ok(result);
     }
@@ -80,7 +83,8 @@ public class RecipesController : ControllerBase
 
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
-        var recipe = await _service.GetByIdAsync(id, cancellationToken);
+        var currentUserId = TryGetCurrentUserId(out var parsed) ? parsed : (Guid?)null;
+        var recipe = await _service.GetByIdAsync(id, currentUserId, cancellationToken);
 
         if (recipe == null)
             return NotFound();

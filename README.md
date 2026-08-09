@@ -1,8 +1,8 @@
-# RecepieV3
+# Recepie
 
 RecepieV3 is a full-stack social recipe platform built with ASP.NET Core, EF Core, SQL Server, and Angular 18 standalone components.
 
-The product is a public cooking network, not an Admin-only recipe catalog. Authenticated users publish their own recipes, manage the recipes they created, browse cultural cooking styles, favorite recipes, and write reviews. Admins moderate the platform and can manage any recipe or user account when authorized.
+The product is a public cooking network, not an Admin-only recipe catalog. Authenticated users publish their own recipes, manage the recipes they created, browse cultural cooking styles, follow cooks, react to recipes with Likes, save recipes privately, comment, and write reviews. Admins moderate the platform and can manage any recipe or user account when authorized.
 
 ## Current Capabilities
 
@@ -12,10 +12,17 @@ The product is a public cooking network, not an Admin-only recipe catalog. Authe
 - Admin moderation for recipes and account management.
 - Recipe listing, search, filtering, sorting, and pagination.
 - Cuisine, region, and traditional-recipe discovery.
-- Recipe details with ingredients, ordered steps, cultural origin metadata, favorites, and reviews.
+- Public user profiles with follower/following counts and paged recipe grids.
+- Follow and unfollow social relationships.
+- Personalized `/feed` containing recipes from followed cooks.
+- Public recipe Likes with count/current-user state on Feed, Explore, and recipe details.
+- Private favorites/saved recipes kept separate from Likes.
+- Recipe comments kept separate from reviews/ratings.
+- Database-backed notifications for follows, Likes, and comments.
+- Recipe details with ingredients, ordered steps, cultural origin metadata, Likes, favorites, comments, and reviews.
 - `GET /api/Recipes/me` and Angular `/my-recipes` for the current user's recipes.
 - Angular `/create-recipe` publishing form with ingredients, steps, cuisine, region, difficulty, and cultural fields.
-- Safe recipe author display data through `author.id` and `author.displayName`.
+- Safe recipe/review/comment author display data through public author DTOs.
 - Local recipe image support through API static files and frontend asset URL resolution.
 - Backend unit and integration test projects.
 
@@ -61,9 +68,14 @@ The frontend uses:
 
 Current redesigned pages:
 
+- `/feed` - authenticated following feed with Like and Save actions.
 - `/recipes` - recipe-first discovery with cuisine/region/category/difficulty/traditional filters.
 - `/recipes/:id` - editorial recipe detail page.
 - `/create-recipe` - authenticated recipe publishing form.
+- `/users/:id` - public user profile.
+- `/profile/edit` - authenticated current-user profile editor.
+- `/saved` - authenticated private saved/favorite recipes.
+- `/notifications` - authenticated social notifications.
 - `/my-recipes` - current user's recipe library.
 - `/login` and `/register` - product-styled auth screens.
 - `/admin/accounts` - Admin account management.
@@ -77,6 +89,13 @@ Core backend behavior:
 - JWT bearer authentication is configured in `API/Program.cs`.
 - Token generation happens in `API/Controller/AuthController.cs`.
 - Recipe ownership is enforced in `Core.Application/UseCases/Recipes/RecipeService.cs`.
+- Social features are implemented through focused controllers/services/repositories for profiles, follows, Likes, comments, feed, and notifications.
+- Like endpoints are:
+  - `POST /api/recipes/{recipeId}/likes`
+  - `DELETE /api/recipes/{recipeId}/likes`
+  - `GET /api/recipes/{recipeId}/likes`
+  - `GET /api/recipes/{recipeId}/likes/status`
+- Recipe list/detail DTOs include `likeCount` and `isLikedByCurrentUser`, populated server-side from the authenticated JWT identity.
 - EF Core context is `Infrastructure/Persistence/AppDbContext.cs`.
 - Active seeding is under `Infrastructure/Seed/`.
 
@@ -104,44 +123,27 @@ npm start
 Default local URLs:
 
 - API HTTP launch profile: `http://localhost:5130`
-- Angular dev server: `http://localhost:4200`
+- Angular dev server: `http://localhost:4203`
 - Swagger is available in Development when the API is running.
 
 ## Validation Status
 
-Last verified in this working tree on 2026-07-26:
+Last verified in this working tree on 2026-08-09:
 
 - `dotnet restore`: passed.
 - `dotnet build Recep.sln`: passed.
-- `dotnet test Recep.sln`: passed, 57 backend tests.
-- `cd app && npm install`: passed; npm reported existing vulnerabilities.
+- `dotnet test Recep.sln`: passed, 60 backend tests.
 - `cd app && npm run build`: passed with budget warnings.
-- `cd app && npm test -- --watch=false`: browser bundle compiled, but Karma could not launch because Chrome was unavailable and `CHROME_BIN` was unset.
+- `cd app && npm test -- --watch=false`: Karma bundle compilation succeeded, but browser execution could not start because Chrome/`CHROME_BIN` is unavailable.
 
 ## Known Limitations
 
 - Angular browser tests require a Chrome or Chromium binary.
 - Frontend build currently reports bundle/component CSS budget warnings.
-- Review responses still expose reviewer email from the backend; the redesigned frontend masks it, but the backend DTO should be corrected later.
 - Cuisine/region Admin APIs exist, but no dedicated Angular Admin culture-management page is currently implemented.
 - Startup migration behavior in `API/Program.cs` can mutate the configured database outside Testing.
 
-## Documentation
 
-Detailed project context is maintained in:
-
-- `AI_CONTEXT.md`
-- `docs/PROJECT_OVERVIEW.md`
-- `docs/BACKEND_CONTEXT.md`
-- `docs/FRONTEND_CONTEXT.md`
-- `docs/DATABASE_CONTEXT.md`
-- `docs/API_ENDPOINTS.md`
-- `docs/FEATURES_CONTEXT.md`
-- `docs/KNOWN_ISSUES_AND_RULES.md`
-- `docs/RECENT_CHANGES_CONTEXT.md`
-- `docs/CHANGE_GUIDE.md`
-
-Documentation must describe implemented code, not intended behavior. Never include secrets; use `[REDACTED]` for sensitive values.
 
 ## Author
 

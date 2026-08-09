@@ -1,0 +1,27 @@
+<section class="page-shell edit-profile-page">
+  <a class="back-link" routerLink="/recipes">Back to recipes</a>
+  <header>
+    <p class="ui-label">Profile</p>
+    <h1 class="display-title">Edit your public profile</h1>
+  </header>
+
+  <form class="profile-form" (ngSubmit)="save()">
+    <label>
+      <span class="form-label">Display name</span>
+      <input class="form-control" required maxlength="100" [(ngModel)]="form.displayName" name="displayName">
+    </label>
+    <label>
+      <span class="form-label">Bio</span>
+      <textarea class="form-control" maxlength="1000" rows="5" [(ngModel)]="form.bio" name="bio"></textarea>
+    </label>
+    <label>
+      <span class="form-label">Avatar URL</span>
+      <input class="form-control" maxlength="2048" [(ngModel)]="form.avatarUrl" name="avatarUrl">
+    </label>
+    <label>
+      <span class="form-label">Country code</span>
+      <input class="form-control" maxlength="10" [(ngModel)]="form.countryCode" name="countryCode">
+    </label>
+    <button type="submit" class="btn btn-primary-app" [disabled]="isSaving">{{ isSaving ? 'Saving...' : 'Save profile' }}</button>
+  </form>
+</section>

@@ -22,7 +22,7 @@
     <p class="recipe-summary">{{ recipe.description || 'A recipe shared by the community.' }}</p>
 
     <p class="recipe-author" *ngIf="recipe.author">
-      By <span>{{ recipe.author.displayName }}</span>
+      By <a [routerLink]="['/users', recipe.author.id]">{{ recipe.author.displayName }}</a>
     </p>
 
     <div class="recipe-card-meta">
@@ -36,14 +36,30 @@
       <a class="btn btn-text-app" [routerLink]="['/recipes', recipe.id]">Read recipe</a>
 
       <button
+        *ngIf="showLike"
+        type="button"
+        class="btn btn-icon-text"
+        [class.is-active]="isLiked"
+        [disabled]="isLikeBusy"
+        (click)="onLikeClick($event)">
+        <span aria-hidden="true">{{ isLiked ? '♥' : '♡' }}</span>
+        {{ recipe.likeCount || 0 }}
+      </button>
+
+      <button
         *ngIf="showFavorite"
         type="button"
         class="btn btn-icon-text"
         [class.is-active]="isFavorite"
-        (click)="favoriteToggled.emit(recipe)">
+        (click)="onFavoriteClick($event)">
         <span aria-hidden="true">{{ isFavorite ? '♥' : '♡' }}</span>
         {{ isFavorite ? 'Saved' : 'Save' }}
       </button>
+
+      <a class="btn btn-icon-text" [routerLink]="['/recipes', recipe.id]" *ngIf="recipe.commentCount !== undefined">
+        <span aria-hidden="true">☰</span>
+        {{ recipe.commentCount }}
+      </a>
     </div>
 
     <div class="recipe-manage-actions" *ngIf="canManage && showManageActions">

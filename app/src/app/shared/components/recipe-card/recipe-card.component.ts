@@ -15,11 +15,15 @@ import { resolveAssetUrl } from '../../../core/utils/asset-url.util';
 export class RecipeCardComponent {
   @Input({ required: true }) recipe!: Recipe;
   @Input() isFavorite = false;
+  @Input() isLiked = false;
   @Input() showFavorite = true;
+  @Input() showLike = true;
+  @Input() isLikeBusy = false;
   @Input() canManage = false;
   @Input() showManageActions = true;
 
   @Output() favoriteToggled = new EventEmitter<Recipe>();
+  @Output() likeToggled = new EventEmitter<Recipe>();
   @Output() edit = new EventEmitter<Recipe>();
   @Output() delete = new EventEmitter<Recipe>();
 
@@ -33,5 +37,17 @@ export class RecipeCardComponent {
 
   imageUrl(): string {
     return resolveAssetUrl(this.recipe.imageUrl, API_BASE_URL);
+  }
+
+  onLikeClick(event: MouseEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.likeToggled.emit(this.recipe);
+  }
+
+  onFavoriteClick(event: MouseEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.favoriteToggled.emit(this.recipe);
   }
 }

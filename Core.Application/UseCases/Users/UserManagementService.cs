@@ -187,7 +187,7 @@ public sealed class UserManagementService : IUserManagementService
 
         if (await _repository.HasFavoritesOrReviewsAsync(targetUserId, cancellationToken))
         {
-            return ServiceResult.Failure("The account has related favorites or reviews. Deactivate it instead.", ServiceErrorType.Conflict);
+            return ServiceResult.Failure("The account has related favorites, reviews, or social activity. Deactivate it instead.", ServiceErrorType.Conflict);
         }
 
         _repository.Delete(user);

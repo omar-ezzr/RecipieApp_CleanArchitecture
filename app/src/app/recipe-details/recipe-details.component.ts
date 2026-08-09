@@ -12,6 +12,9 @@ import { resolveAssetUrl } from '../core/utils/asset-url.util';
 import { FavoriteService } from '../services/favorite.service';
 import { AuthService } from '../services/auth.service';
 import { ToastrService } from 'ngx-toastr';
+import { CommentService } from '../services/comment.service';
+import { RecipeComment } from '../models/recipe-comment.model';
+import { LikeService } from '../services/like.service';
 
 @Component({
   selector: 'app-recipe-details',
@@ -24,9 +27,16 @@ export class RecipeDetailsComponent implements OnInit {
   recipe?: Recipe;
   isLoading = true;
   isFavorite = false;
+  isLiked = false;
+  likeCount = 0;
+  isLikeBusy = false;
   isDeleting = false;
 
   reviews: Review[] = [];
+  comments: RecipeComment[] = [];
+  newComment = '';
+  editingCommentId: string | null = null;
+  editingCommentContent = '';
 
   newReview = {
     rating: 5,
@@ -42,6 +52,8 @@ export class RecipeDetailsComponent implements OnInit {
     private recipeService: RecipeService,
     private reviewService: ReviewService,
     private favoriteService: FavoriteService,
+    private likeService: LikeService,
+    private commentService: CommentService,
     public auth: AuthService,
     private toastr: ToastrService
   ) {}
@@ -57,13 +69,33 @@ export class RecipeDetailsComponent implements OnInit {
     this.recipeService.getById(id).subscribe({
       next: (data) => {
         this.recipe = data;
+        this.isLiked = !!data.isLikedByCurrentUser;
+        this.likeCount = Math.max(0, data.likeCount || 0);
         this.isLoading = false;
         this.loadReviews(data.id);
+        this.loadComments(data.id);
         this.loadFavorite(data.id);
+        this.loadLike(data.id);
       },
       error: () => {
         this.reviewError = 'Failed to load recipe.';
         this.isLoading = false;
+      }
+    });
+  }
+
+  loadLike(recipeId: string): void {
+    if (!this.auth.isLoggedIn()) {
+      return;
+    }
+
+    this.likeService.getStatus(recipeId).subscribe({
+      next: result => {
+        this.isLiked = result.isLiked;
+        this.likeCount = Math.max(0, result.likeCount || 0);
+      },
+      error: () => {
+        this.isLiked = false;
       }
     });
   }
@@ -87,6 +119,13 @@ export class RecipeDetailsComponent implements OnInit {
       error: () => {
         this.reviewError = 'Failed to load reviews.';
       }
+    });
+  }
+
+  loadComments(recipeId: string): void {
+    this.commentService.getByRecipe(recipeId).subscribe({
+      next: result => this.comments = result.items,
+      error: () => this.toastr.error('Failed to load comments')
     });
   }
 
@@ -182,6 +221,85 @@ export class RecipeDetailsComponent implements OnInit {
     });
   }
 
+  toggleLike(): void {
+    if (this.isLikeBusy) {
+      return;
+    }
+
+    if (!this.recipe || !this.auth.isLoggedIn()) {
+      this.router.navigate(['/login']);
+      return;
+    }
+
+    this.isLikeBusy = true;
+    const wasLiked = this.isLiked;
+    const previousCount = Math.max(0, this.likeCount);
+    this.isLiked = !wasLiked;
+    this.likeCount = Math.max(0, previousCount + (wasLiked ? -1 : 1));
+    const request = wasLiked ? this.likeService.unlike(this.recipe.id) : this.likeService.like(this.recipe.id);
+
+    request.subscribe({
+      next: () => {
+        this.isLikeBusy = false;
+      },
+      error: () => {
+        this.isLiked = wasLiked;
+        this.likeCount = previousCount;
+        this.toastr.error('Failed to update like');
+        this.isLikeBusy = false;
+      }
+    });
+  }
+
+  submitComment(): void {
+    if (!this.recipe) {
+      return;
+    }
+
+    const content = this.newComment.trim();
+    if (!content) {
+      this.toastr.error('Comment is required');
+      return;
+    }
+
+    this.commentService.create(this.recipe.id, { content }).subscribe({
+      next: comment => {
+        this.comments = [comment, ...this.comments];
+        this.newComment = '';
+      },
+      error: error => this.toastr.error(error?.error?.message || 'Failed to add comment')
+    });
+  }
+
+  startEditComment(comment: RecipeComment): void {
+    this.editingCommentId = comment.id;
+    this.editingCommentContent = comment.content;
+  }
+
+  saveComment(comment: RecipeComment): void {
+    const content = this.editingCommentContent.trim();
+    if (!content) {
+      this.toastr.error('Comment is required');
+      return;
+    }
+
+    this.commentService.update(comment.id, { content }).subscribe({
+      next: updated => {
+        this.comments = this.comments.map(item => item.id === updated.id ? updated : item);
+        this.editingCommentId = null;
+        this.editingCommentContent = '';
+      },
+      error: () => this.toastr.error('Failed to update comment')
+    });
+  }
+
+  deleteComment(comment: RecipeComment): void {
+    this.commentService.delete(comment.id).subscribe({
+      next: () => this.comments = this.comments.filter(item => item.id !== comment.id),
+      error: () => this.toastr.error('Failed to delete comment')
+    });
+  }
+
   difficultyLabel(): string {
     if (!this.recipe) {
       return '';
@@ -195,7 +313,12 @@ export class RecipeDetailsComponent implements OnInit {
   }
 
   displayReviewAuthor(review: Review): string {
-    return this.maskEmail(review.userEmail);
+    return review.author?.displayName || 'Community cook';
+  }
+
+  canManageComment(comment: RecipeComment): boolean {
+    const currentUserId = this.auth.getCurrentUserId();
+    return this.auth.isAdmin() || (!!currentUserId && comment.author.id === currentUserId);
   }
 
   trackIngredient(index: number): number {
@@ -210,13 +333,7 @@ export class RecipeDetailsComponent implements OnInit {
     return review.id;
   }
 
-  private maskEmail(email: string): string {
-    const [name, domain] = email.split('@');
-
-    if (!name || !domain) {
-      return 'Community cook';
-    }
-
-    return `${name.charAt(0)}***@${domain}`;
+  trackComment(_index: number, comment: RecipeComment): string {
+    return comment.id;
   }
 }

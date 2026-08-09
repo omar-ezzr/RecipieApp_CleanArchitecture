@@ -4,6 +4,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Claims;
 using System.Text;
+using System.Text.Json;
 using Core.Application.DTO.Auth;
 using Core.Application.DTO.Cuisines;
 using Core.Application.DTO.Favorites;
@@ -411,6 +412,143 @@ public sealed class CulturalDiscoveryBehaviorTests : IClassFixture<RecepApiFacto
         });
         response.EnsureSuccessStatusCode();
         return (await response.Content.ReadFromJsonAsync<RegionDto>())!;
+    }
+}
+
+public sealed class SocialNetworkBehaviorTests : IClassFixture<RecepApiFactory>
+{
+    private readonly RecepApiFactory _factory;
+
+    public SocialNetworkBehaviorTests(RecepApiFactory factory)
+    {
+        _factory = factory;
+    }
+
+    [Fact]
+    public async Task Follow_feed_like_comment_notifications_and_privacy_are_enforced()
+    {
+        var followerId = await _factory.CreateUserAsync($"follower-{Guid.NewGuid():N}@example.com", AppRoles.User);
+        var cookId = await _factory.CreateUserAsync($"cook-{Guid.NewGuid():N}@example.com", AppRoles.User);
+        var otherId = await _factory.CreateUserAsync($"social-other-{Guid.NewGuid():N}@example.com", AppRoles.User);
+        var follower = _factory.CreateClientForUser(followerId, AppRoles.User);
+        var cook = _factory.CreateClientForUser(cookId, AppRoles.User);
+        var other = _factory.CreateClientForUser(otherId, AppRoles.User);
+        var anonymous = _factory.CreateClient();
+
+        (await anonymous.PostAsync($"/api/users/{cookId}/follow", null)).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        (await follower.PostAsync($"/api/users/{followerId}/follow", null)).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await follower.PostAsync($"/api/users/{Guid.NewGuid()}/follow", null)).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await follower.PostAsync($"/api/users/{cookId}/follow", null)).EnsureSuccessStatusCode();
+        (await follower.PostAsync($"/api/users/{cookId}/follow", null)).StatusCode.Should().Be(HttpStatusCode.Conflict);
+
+        var status = await follower.GetStringAsync($"/api/users/{cookId}/follow-status");
+        status.Should().Contain("isFollowing");
+        status.Should().Contain("true");
+
+        var followers = await follower.GetStringAsync($"/api/users/{cookId}/followers");
+        followers.Should().Contain("displayName");
+        followers.ToLowerInvariant().Should().NotContain("email");
+
+        var recipeId = await _factory.CreateRecipeAsync(cookId, DifficultyLevel.Easy);
+        await _factory.CreateRecipeAsync(otherId, DifficultyLevel.Hard);
+
+        var feed = await follower.GetStringAsync("/api/feed?page=1&pageSize=10");
+        feed.Should().Contain(recipeId.ToString());
+        feed.Should().Contain("likeCount");
+        feed.Should().NotContain(otherId.ToString());
+        feed.Should().NotContain("passwordHash");
+
+        (await anonymous.PostAsync($"/api/recipes/{recipeId}/likes", null)).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        (await follower.PostAsync($"/api/recipes/{recipeId}/likes", null)).EnsureSuccessStatusCode();
+        (await follower.PostAsync($"/api/recipes/{recipeId}/likes", null)).StatusCode.Should().Be(HttpStatusCode.Conflict);
+        var likedStatus = await follower.GetStringAsync($"/api/recipes/{recipeId}/likes/status");
+        likedStatus.Should().Contain("\"isLiked\":true");
+        likedStatus.Should().Contain("\"likeCount\":1");
+        (await follower.DeleteAsync($"/api/recipes/{recipeId}/likes")).EnsureSuccessStatusCode();
+        var unlikedStatus = await follower.GetStringAsync($"/api/recipes/{recipeId}/likes/status");
+        unlikedStatus.Should().Contain("\"isLiked\":false");
+        unlikedStatus.Should().Contain("\"likeCount\":0");
+        (await follower.DeleteAsync($"/api/recipes/{recipeId}/likes")).EnsureSuccessStatusCode();
+        (await follower.PostAsync($"/api/recipes/{recipeId}/likes", null)).EnsureSuccessStatusCode();
+
+        var followerExplore = await follower.GetStringAsync("/api/Recipes/paged?page=1&pageSize=20");
+        followerExplore.Should().Contain(recipeId.ToString());
+        followerExplore.Should().Contain("\"likeCount\":1");
+        followerExplore.Should().Contain("\"isLikedByCurrentUser\":true");
+
+        var otherExplore = await other.GetStringAsync("/api/Recipes/paged?page=1&pageSize=20");
+        otherExplore.Should().Contain(recipeId.ToString());
+        otherExplore.Should().Contain("\"likeCount\":1");
+        otherExplore.Should().Contain("\"isLikedByCurrentUser\":false");
+
+        var createComment = await follower.PostAsJsonAsync($"/api/recipes/{recipeId}/comments", new { content = "  Looks excellent  " });
+        createComment.StatusCode.Should().Be(HttpStatusCode.Created);
+        var commentId = ReadId(await createComment.Content.ReadAsStringAsync());
+
+        (await other.PutAsJsonAsync($"/api/comments/{commentId}", new { content = "No" })).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await follower.PutAsJsonAsync($"/api/comments/{commentId}", new { content = "Updated comment" })).EnsureSuccessStatusCode();
+        (await other.DeleteAsync($"/api/comments/{commentId}")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+
+        var notifications = await cook.GetStringAsync("/api/notifications");
+        notifications.Should().Contain("Follow");
+        notifications.Should().Contain("RecipeLike");
+        notifications.Should().Contain("RecipeComment");
+        notifications.Should().Contain(followerId.ToString());
+        notifications.Should().NotContain("passwordHash");
+        notifications.ToLowerInvariant().Should().NotContain("email");
+
+        var unread = await cook.GetStringAsync("/api/notifications/unread-count");
+        unread.Should().Contain("count");
+        (await cook.PutAsync("/api/notifications/read-all", null)).EnsureSuccessStatusCode();
+
+        (await follower.DeleteAsync($"/api/users/{cookId}/follow")).StatusCode.Should().Be(HttpStatusCode.NoContent);
+        var emptyFeed = await follower.GetStringAsync("/api/feed?page=1&pageSize=10");
+        emptyFeed.Should().NotContain(recipeId.ToString());
+    }
+
+    [Fact]
+    public async Task Public_profile_update_is_owner_only_and_does_not_expose_email()
+    {
+        var userId = await _factory.CreateUserAsync($"profile-{Guid.NewGuid():N}@example.com", AppRoles.User);
+        var client = _factory.CreateClientForUser(userId, AppRoles.User);
+
+        var update = await client.PutAsJsonAsync("/api/users/me/profile", new
+        {
+            displayName = "Public Cook",
+            bio = "Moroccan food explorer",
+            avatarUrl = "/images/avatar.png",
+            countryCode = "ma"
+        });
+        update.EnsureSuccessStatusCode();
+
+        var profile = await client.GetStringAsync($"/api/users/{userId}");
+        profile.Should().Contain("Public Cook");
+        profile.Should().Contain("MA");
+        profile.ToLowerInvariant().Should().NotContain("email");
+        profile.Should().NotContain("passwordHash");
+    }
+
+    [Fact]
+    public async Task Reviews_no_longer_return_user_email()
+    {
+        var reviewerId = await _factory.CreateUserAsync($"review-privacy-{Guid.NewGuid():N}@example.com", AppRoles.User);
+        var recipeId = await _factory.CreateRecipeAsync(_factory.AdminId, DifficultyLevel.Easy);
+        var reviewer = _factory.CreateClientForUser(reviewerId, AppRoles.User);
+
+        (await reviewer.PostAsJsonAsync("/api/Reviews", new CreateReviewDto { RecipeId = recipeId, Rating = 5, Comment = "Great" }))
+            .EnsureSuccessStatusCode();
+
+        var raw = await reviewer.GetStringAsync($"/api/Reviews/recipe/{recipeId}");
+
+        raw.Should().Contain("author");
+        raw.Should().NotContain("userEmail");
+        raw.Should().NotContain("@example.com");
+    }
+
+    private static Guid ReadId(string json)
+    {
+        using var document = JsonDocument.Parse(json);
+        return document.RootElement.GetProperty("id").GetGuid();
     }
 }
 

@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "j7Wch/wqkWw=",
+  "dgSpecHash": "sganaEuK+oc=",
   "success": true,
-  "projectFilePath": "/mnt/data/dev/Dotnet/Recepie/RecepieV3/Core.Domain/Core.Domain.csproj",
+  "projectFilePath": "/mnt/data/dev/Dotnet/Recepie/Recepie/Core.Domain/Core.Domain.csproj",
   "expectedPackageFiles": [],
   "logs": []
 }

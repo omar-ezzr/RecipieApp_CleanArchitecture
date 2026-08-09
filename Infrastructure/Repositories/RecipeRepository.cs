@@ -1,4 +1,5 @@
 using Core.Application.DTO;
+using Core.Application.DTO.Recipe;
 using Core.Application.Interfaces;
 using Core.Domain.Entities;
 using Core.Domain.Enums;
@@ -171,5 +172,48 @@ public class RecipeRepository : IRecipeRepository
         var totalPages = total == 0 ? 0 : (int)Math.Ceiling(total / (double)pageSize);
 
         return (data, total, page, pageSize, totalPages);
+    }
+
+    public async Task<IReadOnlyDictionary<Guid, RecipeLikeStatsDto>> GetLikeStatsAsync(
+        IReadOnlyCollection<Guid> recipeIds,
+        Guid? currentUserId,
+        CancellationToken cancellationToken = default)
+    {
+        if (recipeIds.Count == 0)
+        {
+            return new Dictionary<Guid, RecipeLikeStatsDto>();
+        }
+
+        var ids = recipeIds.Distinct().ToList();
+
+        var likeCounts = await _context.RecipeLikes
+            .AsNoTracking()
+            .Where(like => ids.Contains(like.RecipeId))
+            .GroupBy(like => like.RecipeId)
+            .Select(group => new
+            {
+                RecipeId = group.Key,
+                Count = group.Count()
+            })
+            .ToDictionaryAsync(item => item.RecipeId, item => item.Count, cancellationToken);
+
+        var likedRecipeIds = currentUserId.HasValue
+            ? await _context.RecipeLikes
+                .AsNoTracking()
+                .Where(like => ids.Contains(like.RecipeId) && like.UserId == currentUserId.Value)
+                .Select(like => like.RecipeId)
+                .ToListAsync(cancellationToken)
+            : [];
+
+        var likedSet = likedRecipeIds.ToHashSet();
+
+        return ids.ToDictionary(
+            id => id,
+            id => new RecipeLikeStatsDto
+            {
+                RecipeId = id,
+                LikeCount = likeCounts.GetValueOrDefault(id),
+                IsLikedByCurrentUser = likedSet.Contains(id)
+            });
     }
 }

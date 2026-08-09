@@ -183,3 +183,7 @@
     grid-template-columns: minmax(260px, 0.72fr) minmax(0, 1.2fr);
   }
 }
+.comment-edit {
+  display: grid;
+  gap: .75rem;
+}

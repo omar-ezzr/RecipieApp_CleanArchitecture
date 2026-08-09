@@ -91,9 +91,45 @@ public sealed class UserRepository : IUserRepository
             return true;
         }
 
-        return await _context.RecipeReviews
+        var hasReviews = await _context.RecipeReviews
             .AsNoTracking()
             .AnyAsync(review => review.UserId == userId, cancellationToken);
+
+        if (hasReviews)
+        {
+            return true;
+        }
+
+        var hasSocialData = await _context.UserFollows
+            .AsNoTracking()
+            .AnyAsync(follow => follow.FollowerUserId == userId || follow.FollowedUserId == userId, cancellationToken);
+
+        if (hasSocialData)
+        {
+            return true;
+        }
+
+        hasSocialData = await _context.RecipeLikes
+            .AsNoTracking()
+            .AnyAsync(like => like.UserId == userId, cancellationToken);
+
+        if (hasSocialData)
+        {
+            return true;
+        }
+
+        hasSocialData = await _context.RecipeComments
+            .AsNoTracking()
+            .AnyAsync(comment => comment.UserId == userId, cancellationToken);
+
+        if (hasSocialData)
+        {
+            return true;
+        }
+
+        return await _context.Notifications
+            .AsNoTracking()
+            .AnyAsync(notification => notification.ActorUserId == userId || notification.RecipientUserId == userId, cancellationToken);
     }
 
     public async Task AddAsync(Users user, CancellationToken cancellationToken = default)

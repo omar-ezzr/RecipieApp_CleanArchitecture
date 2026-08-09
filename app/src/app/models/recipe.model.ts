@@ -9,6 +9,7 @@ export type Difficulty = 'Easy' | 'Medium' | 'Hard';
 export interface RecipeAuthor {
   id: string;
   displayName: string;
+  avatarUrl?: string | null;
 }
 
 export interface RecipeIngredientInput {
@@ -43,6 +44,10 @@ export interface Recipe {
   servingOccasion?: string | null;
   ingredients: RecipeIngredientInput[];
   steps: RecipeStepInput[];
+  likeCount?: number;
+  commentCount?: number;
+  isLikedByCurrentUser?: boolean;
+  isFavoriteByCurrentUser?: boolean;
 }
 
 export interface CreateRecipe {

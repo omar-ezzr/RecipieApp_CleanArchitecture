@@ -2,28 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { API_BASE_URL } from '../app-api.config';
-
-export interface Review {
-  id: string;
-  recipeId: string;
-  userId: string;
-  userEmail: string;
-  rating: number;
-  comment: string;
-  createdAt: string;
-  updatedAt?: string | null;
-}
-
-export interface CreateReview {
-  recipeId: string;
-  rating: number;
-  comment: string;
-}
-
-export interface UpdateReview {
-  rating: number;
-  comment: string;
-}
+import { CreateReview, Review, UpdateReview } from '../models/review.model';
 
 @Injectable({
   providedIn: 'root'
@@ -49,3 +28,5 @@ export class ReviewService {
     return this.http.delete<void>(`${this.apiUrl}/${reviewId}`);
   }
 }
+
+export type { CreateReview, Review, UpdateReview };

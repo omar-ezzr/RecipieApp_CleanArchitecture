@@ -41,6 +41,10 @@ public class RecipieDto
 
     public string? ServingOccasion { get; set; }
 
+    public int LikeCount { get; set; }
+
+    public bool IsLikedByCurrentUser { get; set; }
+
     public List<CreateIngredientDto> Ingredients { get; set; } = new();
 
     public List<CreateRecipeStepDto> Steps { get; set; } = new();

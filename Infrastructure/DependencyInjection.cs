@@ -24,6 +24,12 @@ public static class DependencyInjection
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<ICuisineRepository, CuisineRepository>();
         services.AddScoped<IRegionRepository, RegionRepository>();
+        services.AddScoped<IUserProfileRepository, UserProfileRepository>();
+        services.AddScoped<IUserFollowRepository, UserFollowRepository>();
+        services.AddScoped<IRecipeLikeRepository, RecipeLikeRepository>();
+        services.AddScoped<IRecipeCommentRepository, RecipeCommentRepository>();
+        services.AddScoped<IFeedRepository, FeedRepository>();
+        services.AddScoped<INotificationRepository, NotificationRepository>();
 
         return services;
     }

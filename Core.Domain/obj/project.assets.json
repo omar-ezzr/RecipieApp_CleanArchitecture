@@ -13,11 +13,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/mnt/data/dev/Dotnet/Recepie/RecepieV3/Core.Domain/Core.Domain.csproj",
+      "projectUniqueName": "/mnt/data/dev/Dotnet/Recepie/Recepie/Core.Domain/Core.Domain.csproj",
       "projectName": "Core.Domain",
-      "projectPath": "/mnt/data/dev/Dotnet/Recepie/RecepieV3/Core.Domain/Core.Domain.csproj",
+      "projectPath": "/mnt/data/dev/Dotnet/Recepie/Recepie/Core.Domain/Core.Domain.csproj",
       "packagesPath": "/home/omar-zaroili/.nuget/packages/",
-      "outputPath": "/mnt/data/dev/Dotnet/Recepie/RecepieV3/Core.Domain/obj/",
+      "outputPath": "/mnt/data/dev/Dotnet/Recepie/Recepie/Core.Domain/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "/home/omar-zaroili/.nuget/NuGet/NuGet.Config"

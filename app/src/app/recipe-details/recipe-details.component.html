@@ -21,9 +21,14 @@
         <h1 class="display-title">{{ recipe.title }}</h1>
         <p class="traditional-name" *ngIf="recipe.traditionalName">{{ recipe.traditionalName }}</p>
         <p class="body-copy">{{ recipe.description }}</p>
-        <p class="author-line" *ngIf="recipe.author">Published by <strong>{{ recipe.author.displayName }}</strong></p>
+        <p class="author-line" *ngIf="recipe.author">
+          Published by <a [routerLink]="['/users', recipe.author.id]"><strong>{{ recipe.author.displayName }}</strong></a>
+        </p>
 
         <div class="hero-actions">
+          <button type="button" class="btn btn-secondary-app" [disabled]="isLikeBusy" (click)="toggleLike()">
+            {{ isLiked ? 'Liked' : 'Like' }} ({{ likeCount }})
+          </button>
           <button type="button" class="btn btn-secondary-app" (click)="toggleFavorite()">
             {{ isFavorite ? 'Saved' : 'Save recipe' }}
           </button>
@@ -122,6 +127,43 @@
         </div>
         <p>{{ review.comment }}</p>
         <small>{{ review.createdAt | date:'mediumDate' }}</small>
+      </article>
+    </div>
+  </section>
+
+  <section class="comments-section" *ngIf="recipe && !isLoading">
+    <div class="reading-shell">
+      <p class="ui-label">Comments</p>
+      <h2 class="section-title">Join the conversation</h2>
+
+      <form (ngSubmit)="submitComment()" class="review-form">
+        <label>
+          <span class="form-label">Comment</span>
+          <textarea class="form-control" rows="4" maxlength="1500" [(ngModel)]="newComment" name="newComment"></textarea>
+        </label>
+        <button type="submit" class="btn btn-primary-app">Add comment</button>
+      </form>
+
+      <p *ngIf="comments.length === 0" class="muted-state">No comments yet.</p>
+
+      <article class="review-card" *ngFor="let comment of comments; trackBy: trackComment">
+        <div>
+          <a [routerLink]="['/users', comment.author.id]"><strong>{{ comment.author.displayName }}</strong></a>
+          <span>{{ comment.createdAt | date:'mediumDate' }}</span>
+        </div>
+
+        <p *ngIf="editingCommentId !== comment.id">{{ comment.content }}</p>
+
+        <div *ngIf="editingCommentId === comment.id" class="comment-edit">
+          <textarea class="form-control" rows="3" maxlength="1500" [(ngModel)]="editingCommentContent" name="editComment"></textarea>
+          <button type="button" class="btn btn-primary-app btn-sm" (click)="saveComment(comment)">Save</button>
+          <button type="button" class="btn btn-secondary-app btn-sm" (click)="editingCommentId = null">Cancel</button>
+        </div>
+
+        <div class="recipe-manage-actions" *ngIf="canManageComment(comment)">
+          <button type="button" class="btn btn-secondary-app btn-sm" (click)="startEditComment(comment)" *ngIf="editingCommentId !== comment.id">Edit</button>
+          <button type="button" class="btn btn-danger-app btn-sm" (click)="deleteComment(comment)">Delete</button>
+        </div>
       </article>
     </div>
   </section>

@@ -230,5 +230,22 @@ public class RecipeServiceTests
         {
             return Task.FromResult(PagedResult);
         }
+
+        public Task<IReadOnlyDictionary<Guid, RecipeLikeStatsDto>> GetLikeStatsAsync(
+            IReadOnlyCollection<Guid> recipeIds,
+            Guid? currentUserId,
+            CancellationToken cancellationToken = default)
+        {
+            IReadOnlyDictionary<Guid, RecipeLikeStatsDto> result = recipeIds.ToDictionary(
+                id => id,
+                id => new RecipeLikeStatsDto
+                {
+                    RecipeId = id,
+                    LikeCount = 0,
+                    IsLikedByCurrentUser = false
+                });
+
+            return Task.FromResult(result);
+        }
     }
 }

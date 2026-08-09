@@ -237,9 +237,12 @@
         <app-recipe-card
           *ngFor="let recipe of filteredRecipes; trackBy: trackRecipe"
           [recipe]="recipe"
+          [isLiked]="!!recipe.isLikedByCurrentUser"
           [isFavorite]="isFavorite(recipe.id)"
+          [isLikeBusy]="busyLikes.has(recipe.id)"
           [showFavorite]="auth.isLoggedIn()"
           [canManage]="canManageRecipe(recipe)"
+          (likeToggled)="toggleLikeRecipe($event)"
           (favoriteToggled)="toggleFavoriteRecipe($event)"
           (edit)="startEdit($event)"
           (delete)="deleteRecipe($event)">

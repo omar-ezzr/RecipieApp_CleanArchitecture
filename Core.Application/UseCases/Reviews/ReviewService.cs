@@ -4,6 +4,7 @@ using Core.Application.Interfaces.Repositories;
 using Core.Application.Interfaces.Services;
 using Core.Domain.Constants;
 using Core.Domain.Entities;
+using Core.Application.DTO.Users;
 
 namespace Core.Application.UseCases.Reviews
 {
@@ -130,7 +131,12 @@ namespace Core.Application.UseCases.Reviews
                 Id = r.Id,
                 RecipeId = r.RecipeId,
                 UserId = r.UserId,
-                UserEmail = r.User.Email,
+                Author = new AuthorDto
+                {
+                    Id = r.UserId,
+                    DisplayName = r.User.DisplayName,
+                    AvatarUrl = r.User.AvatarUrl
+                },
                 Rating = r.Rating,
                 Comment = r.Comment,
                 CreatedAt = r.CreatedAt,

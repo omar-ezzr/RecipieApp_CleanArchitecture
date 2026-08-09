@@ -21,6 +21,15 @@
       <div class="nav-links">
         <a
           class="nav-link"
+          routerLink="/feed"
+          routerLinkActive="active"
+          *ngIf="isLoggedIn()"
+          (click)="closeMenu()">
+          Feed
+        </a>
+
+        <a
+          class="nav-link"
           routerLink="/recipes"
           routerLinkActive="active"
           [routerLinkActiveOptions]="{ exact: true }"
@@ -39,11 +48,30 @@
 
         <a
           class="nav-link"
+          routerLink="/saved"
+          routerLinkActive="active"
+          *ngIf="isLoggedIn()"
+          (click)="closeMenu()">
+          Saved
+        </a>
+
+        <a
+          class="nav-link"
           routerLink="/my-recipes"
           routerLinkActive="active"
           *ngIf="isLoggedIn()"
           (click)="closeMenu()">
           My Recipes
+        </a>
+
+        <a
+          class="nav-link"
+          routerLink="/notifications"
+          routerLinkActive="active"
+          *ngIf="isLoggedIn()"
+          (click)="closeMenu()">
+          Notifications
+          <span class="notification-badge" *ngIf="unreadCount > 0">{{ unreadCount }}</span>
         </a>
 
         <a
@@ -57,7 +85,7 @@
       </div>
 
       <div class="nav-actions">
-        <span class="user-pill" *ngIf="isLoggedIn()">{{ displayName() }}</span>
+        <a class="user-pill" *ngIf="isLoggedIn()" [routerLink]="profileLink()" (click)="closeMenu()">{{ displayName() }}</a>
 
         <a
           class="nav-link"

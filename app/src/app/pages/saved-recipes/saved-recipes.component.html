@@ -1,0 +1,19 @@
+<section class="page-shell saved-page">
+  <header>
+    <p class="ui-label">Saved</p>
+    <h1 class="display-title">Private recipe saves</h1>
+  </header>
+
+  <app-empty-state
+    *ngIf="favorites.length === 0"
+    title="No saved recipes"
+    message="Save recipes privately from Explore, Feed, or recipe details.">
+  </app-empty-state>
+
+  <div class="saved-list" *ngIf="favorites.length">
+    <a class="saved-row" *ngFor="let favorite of favorites; trackBy: trackFavorite" [routerLink]="['/recipes', favorite.recipeId]">
+      <span>{{ favorite.recipeTitle }}</span>
+      <small>{{ favorite.createdAt | date:'mediumDate' }}</small>
+    </a>
+  </div>
+</section>

@@ -1,0 +1,42 @@
+<section class="page-shell feed-page">
+  <header class="feed-header">
+    <div>
+      <p class="ui-label">Following feed</p>
+      <h1 class="display-title">Latest from cooks you follow</h1>
+    </div>
+    <a class="btn btn-secondary-app" routerLink="/recipes">Explore recipes</a>
+  </header>
+
+  <div class="recipe-grid" *ngIf="isLoading">
+    <app-recipe-card-skeleton *ngFor="let skeleton of skeletonCards"></app-recipe-card-skeleton>
+  </div>
+
+  <app-empty-state
+    *ngIf="!isLoading && recipes.length === 0"
+    title="Your feed is empty"
+    message="Follow cooks to see their latest recipes."
+    actionLabel="Explore recipes"
+    actionLink="/recipes">
+  </app-empty-state>
+
+  <div class="recipe-grid" *ngIf="!isLoading && recipes.length">
+    <app-recipe-card
+      *ngFor="let recipe of recipes; trackBy: trackRecipe"
+      [recipe]="recipe"
+      [isLiked]="!!recipe.isLikedByCurrentUser"
+      [isFavorite]="!!recipe.isFavoriteByCurrentUser"
+      [isLikeBusy]="busyLikes.has(recipe.id)"
+      [showFavorite]="true"
+      [showLike]="true"
+      [showManageActions]="false"
+      (likeToggled)="toggleLike($event)"
+      (favoriteToggled)="toggleFavorite($event)">
+    </app-recipe-card>
+  </div>
+
+  <nav class="pagination-wrap" *ngIf="totalPages > 1" aria-label="Feed pagination">
+    <button type="button" class="btn btn-secondary-app" [disabled]="currentPage === 1" (click)="goToPage(currentPage - 1)">Previous</button>
+    <span>{{ currentPage }} / {{ totalPages }}</span>
+    <button type="button" class="btn btn-secondary-app" [disabled]="currentPage === totalPages" (click)="goToPage(currentPage + 1)">Next</button>
+  </nav>
+</section>

@@ -1,0 +1,10 @@
+.edit-profile-page {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.profile-form {
+  display: grid;
+  gap: 1rem;
+  max-width: 760px;
+}

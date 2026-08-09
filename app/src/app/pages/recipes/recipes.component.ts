@@ -15,6 +15,7 @@ import { CuisineService } from '../../services/cuisine.service';
 import { AuthService } from '../../services/auth.service';
 import { ToastrService } from 'ngx-toastr';
 import { FavoriteService } from '../../services/favorite.service';
+import { LikeService } from '../../services/like.service';
 import { API_BASE_URL } from '../../app-api.config';
 import { resolveAssetUrl } from '../../core/utils/asset-url.util';
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
@@ -40,6 +41,7 @@ export class RecipesComponent implements OnInit {
   editRegions: Region[] = [];
   isLoading: boolean = false;
   favoriteRecipeIds = new Set<string>();
+  busyLikes = new Set<string>();
   skeletonCards = Array(12).fill(0);
   filtersOpen = false;
 
@@ -96,7 +98,8 @@ constructor(
   private route: ActivatedRoute,
   private router: Router,
   private toastr: ToastrService,
-    private favoriteService: FavoriteService
+    private favoriteService: FavoriteService,
+    private likeService: LikeService
 
 ) {}
 
@@ -654,6 +657,41 @@ toggleFavorite(recipeId: string, event?: Event): void {
 
 toggleFavoriteRecipe(recipe: Recipe): void {
   this.toggleFavorite(recipe.id);
+}
+
+toggleLikeRecipe(recipe: Recipe): void {
+  if (!this.auth.isLoggedIn()) {
+    this.router.navigate(['/login']);
+    return;
+  }
+
+  if (this.busyLikes.has(recipe.id)) {
+    return;
+  }
+
+  this.busyLikes.add(recipe.id);
+  const wasLiked = !!recipe.isLikedByCurrentUser;
+  const previousCount = Math.max(0, recipe.likeCount || 0);
+
+  recipe.isLikedByCurrentUser = !wasLiked;
+  recipe.likeCount = Math.max(0, previousCount + (wasLiked ? -1 : 1));
+
+  const request = wasLiked
+    ? this.likeService.unlike(recipe.id)
+    : this.likeService.like(recipe.id);
+
+  request.subscribe({
+    next: () => {
+      this.busyLikes.delete(recipe.id);
+      this.recipeService.clearCache();
+    },
+    error: error => {
+      recipe.isLikedByCurrentUser = wasLiked;
+      recipe.likeCount = previousCount;
+      this.busyLikes.delete(recipe.id);
+      this.toastr.error(this.getApiError(error, 'Failed to update like'));
+    }
+  });
 }
 
 trackRecipe(_index: number, recipe: Recipe): string {

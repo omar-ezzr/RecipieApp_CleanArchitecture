@@ -19,7 +19,7 @@ namespace Core.Application.UseCases.Recipes
         }
 
         // 🔹 CENTRALIZED MAPPER (critical)
-       private RecipieDto MapToDto(Recipie r)
+       private RecipieDto MapToDto(Recipie r, RecipeLikeStatsDto? likeStats = null)
 {
     return new RecipieDto
     {
@@ -41,10 +41,13 @@ namespace Core.Application.UseCases.Recipes
         OriginDescription = r.OriginDescription,
         IsTraditional = r.IsTraditional,
         ServingOccasion = r.ServingOccasion,
+        LikeCount = likeStats?.LikeCount ?? 0,
+        IsLikedByCurrentUser = likeStats?.IsLikedByCurrentUser ?? false,
         Author = new AuthorDto
         {
             Id = r.UserId,
-            DisplayName = r.User != null ? r.User.DisplayName : "Unknown author"
+            DisplayName = r.User != null ? r.User.DisplayName : "Unknown author",
+            AvatarUrl = r.User?.AvatarUrl
         },
 
         Ingredients = r.Ingredients != null
@@ -71,12 +74,14 @@ namespace Core.Application.UseCases.Recipes
 }
 
         // 🔹 GET BY ID
-        public async Task<RecipieDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+        public async Task<RecipieDto?> GetByIdAsync(Guid id, Guid? currentUserId = null, CancellationToken cancellationToken = default)
         {
             var recipe = await _repository.GetByIdAsync(id, cancellationToken);
             if (recipe is null) return null;
 
-            return MapToDto(recipe);
+            var stats = await _repository.GetLikeStatsAsync([recipe.Id], currentUserId, cancellationToken);
+
+            return MapToDto(recipe, stats.GetValueOrDefault(recipe.Id));
         }
 
         // 🔹 CREATE
@@ -238,11 +243,19 @@ namespace Core.Application.UseCases.Recipes
         // 🔹 PAGINATION + FILTERING
         public async Task<PagedResult<RecipieDto>> GetPagedAsync(
             RecipeQueryParams parameters,
+            Guid? currentUserId = null,
             CancellationToken cancellationToken = default)
         {
             var paged = await _repository.GetPagedAsync(parameters, cancellationToken);
 
-            var result = paged.Items.Select(MapToDto).ToList();
+            var stats = await _repository.GetLikeStatsAsync(
+                paged.Items.Select(recipe => recipe.Id).ToList(),
+                currentUserId,
+                cancellationToken);
+
+            var result = paged.Items
+                .Select(recipe => MapToDto(recipe, stats.GetValueOrDefault(recipe.Id)))
+                .ToList();
 
             return new PagedResult<RecipieDto>
             {
@@ -261,7 +274,7 @@ namespace Core.Application.UseCases.Recipes
         {
             parameters.UserId = currentUserId;
 
-            return await GetPagedAsync(parameters, cancellationToken);
+            return await GetPagedAsync(parameters, currentUserId, cancellationToken);
         }
 
         private static bool IsDefinedDifficulty(DifficultyLevel difficulty)

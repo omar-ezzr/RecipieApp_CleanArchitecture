@@ -1,0 +1,20 @@
+.saved-page {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.saved-list {
+  display: grid;
+  gap: .75rem;
+}
+
+.saved-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  color: inherit;
+  text-decoration: none;
+  border: 1px solid rgba(0, 0, 0, .1);
+  border-radius: 8px;
+  padding: 1rem;
+}

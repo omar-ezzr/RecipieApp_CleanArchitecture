@@ -19,6 +19,7 @@ using Core.Application.UseCases.Reviews;
 using Core.Application.UseCases.Users;
 using Core.Application.UseCases.Cuisines;
 using Core.Application.UseCases.Regions;
+using Core.Application.UseCases.Social;
 using Core.Domain.Constants;
 using System.Security.Claims;
 using API.Options;
@@ -91,7 +92,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAngular", policy =>
     {
-        policy.WithOrigins("http://localhost:4200")
+        policy.WithOrigins("http://localhost:4203")
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
@@ -155,6 +156,12 @@ builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<IUserManagementService, UserManagementService>();
 builder.Services.AddScoped<ICuisineService, CuisineService>();
 builder.Services.AddScoped<IRegionService, RegionService>();
+builder.Services.AddScoped<IUserProfileService, UserProfileService>();
+builder.Services.AddScoped<IUserFollowService, UserFollowService>();
+builder.Services.AddScoped<IRecipeLikeService, RecipeLikeService>();
+builder.Services.AddScoped<IRecipeCommentService, RecipeCommentService>();
+builder.Services.AddScoped<IFeedService, FeedService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
 
 
 //validation error
