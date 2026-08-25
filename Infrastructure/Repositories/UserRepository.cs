@@ -66,6 +66,14 @@ public sealed class UserRepository : IUserRepository
         return await query.FirstOrDefaultAsync(user => user.Email == normalizedEmail, cancellationToken);
     }
 
+
+    public async Task<Users?> GetByRefreshTokenAsync(string refreshToken, bool track = false, CancellationToken cancellationToken = default)
+    {
+        var query = track ? _context.Users.AsQueryable() : _context.Users.AsNoTracking();
+
+        return await query.FirstOrDefaultAsync(user => user.RefreshToken == refreshToken, cancellationToken);
+    }
+
     public async Task<bool> EmailExistsAsync(string normalizedEmail, CancellationToken cancellationToken = default)
     {
         return await _context.Users

@@ -1,6 +1,6 @@
-using Infrastructure.Persistence;
+using Core.Application.Interfaces.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace API.Controllers;
 
@@ -8,17 +8,17 @@ namespace API.Controllers;
 [Route("api/[controller]")]
 public class CategoriesController : ControllerBase
 {
-    private readonly AppDbContext _context;
+    private readonly ICategoryService _service;
 
-    public CategoriesController(AppDbContext context)
+    public CategoriesController(ICategoryService service)
     {
-        _context = context;
+        _service = service;
     }
 
+    [AllowAnonymous]
     [HttpGet]
-    public async Task<IActionResult> Get()
+    public async Task<IActionResult> Get(CancellationToken cancellationToken)
     {
-        var categories = await _context.Categories.ToListAsync();
-        return Ok(categories);
+        return Ok(await _service.GetAllAsync(cancellationToken));
     }
 }

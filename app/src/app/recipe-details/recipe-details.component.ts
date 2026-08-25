@@ -482,7 +482,7 @@ export class RecipeDetailsComponent implements OnInit {
 
     const ingredients = this.editRecipeModel.ingredients.map(ingredient => ({
       name: ingredient.name.trim(),
-      quantity: ingredient.quantity.trim()
+      quantity: ingredient.quantity?.trim() ?? ''
     }));
 
     if (!ingredients.length || ingredients.some(ingredient => !ingredient.name)) {

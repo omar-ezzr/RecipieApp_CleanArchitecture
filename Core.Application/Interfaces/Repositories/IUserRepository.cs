@@ -11,6 +11,7 @@ public interface IUserRepository
 
     Task<Users?> GetByIdAsync(Guid id, bool track = false, CancellationToken cancellationToken = default);
     Task<Users?> GetByEmailAsync(string normalizedEmail, bool track = false, CancellationToken cancellationToken = default);
+    Task<Users?> GetByRefreshTokenAsync(string refreshToken, bool track = false, CancellationToken cancellationToken = default);
     Task<bool> EmailExistsAsync(string normalizedEmail, CancellationToken cancellationToken = default);
     Task<int> CountActiveAdminsAsync(CancellationToken cancellationToken = default);
     Task<bool> HasFavoritesOrReviewsAsync(Guid userId, CancellationToken cancellationToken = default);

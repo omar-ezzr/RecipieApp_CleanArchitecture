@@ -124,7 +124,7 @@ namespace Core.Application.UseCases.Recipes
                     {
                         Id = Guid.NewGuid(),
                         Name = Normalize(ingredient.Name),
-                        Quantity = Normalize(ingredient.Quantity),
+                        Quantity = ingredient.Quantity?.Trim() ?? string.Empty,
                         CreatedAt = DateTime.UtcNow
                     })
                     .ToList(),
@@ -198,7 +198,7 @@ namespace Core.Application.UseCases.Recipes
                 {
                     RecipeId = recipe.Id,
                     Name = Normalize(ingredient.Name),
-                    Quantity = Normalize(ingredient.Quantity),
+                    Quantity = ingredient.Quantity?.Trim() ?? string.Empty,
                     CreatedAt = DateTime.UtcNow
                 });
             }

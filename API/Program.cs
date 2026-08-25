@@ -7,13 +7,15 @@ using System.Text;
 using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Core.Application.Interfaces.Repositories;
 using Core.Application.Interfaces.Services;
+using Core.Application.UseCases.Auth;
+using Core.Application.UseCases.Categories;
 using Core.Application.UseCases.Favorites;
 using Core.Application.UseCases.Recipes;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Core.Application.Validators;
-using Infrastructure.Services;
 using Infrastructure.Seed;
 using Core.Application.UseCases.Reviews;
 using Core.Application.UseCases.Users;
@@ -96,6 +98,8 @@ builder.Services.AddSwaggerGen(options =>
 
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddScoped<IRecipeService, RecipeService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
 //host
 builder.Services.AddCors(options =>
 {
@@ -145,10 +149,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                     return;
                 }
 
-                var db = context.HttpContext.RequestServices.GetRequiredService<AppDbContext>();
-                var user = await db.Users
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(account => account.Id == userId, context.HttpContext.RequestAborted);
+                var users = context.HttpContext.RequestServices.GetRequiredService<IUserRepository>();
+                var user = await users.GetByIdAsync(userId, track: false, context.HttpContext.RequestAborted);
 
                 if (user is null || !user.IsActive || user.Role != tokenRole)
                 {
@@ -159,7 +161,6 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 
-builder.Services.AddScoped<IPasswordService, PasswordService>();
 builder.Services.AddScoped<IFavoriteService, FavoriteService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<IUserManagementService, UserManagementService>();
@@ -229,11 +230,16 @@ app.UseAuthorization();
 
 app.MapControllers();      
 
-if (!app.Environment.IsEnvironment("Testing"))
+if (!app.Environment.IsEnvironment("Testing") && app.Environment.IsDevelopment())
 {
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.Migrate();
+
+    if (builder.Configuration.GetValue<bool>("Database:AutoMigrate"))
+    {
+        await db.Database.MigrateAsync();
+    }
+
     var passwordService = scope.ServiceProvider.GetRequiredService<IPasswordService>();
     await DbSeeder.SeedAsync(db, builder.Configuration, passwordService, app.Environment.IsDevelopment());
 }

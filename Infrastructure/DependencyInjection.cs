@@ -1,7 +1,9 @@
 using Core.Application.Interfaces;
+using Core.Application.Interfaces.Services;
 using Core.Application.Interfaces.Repositories;
 using Infrastructure.Persistence;
 using Infrastructure.Repositories;
+using Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,6 +24,7 @@ public static class DependencyInjection
         services.AddScoped<IFavoriteRepository, FavoriteRepository>();
         services.AddScoped<IReviewRepository, ReviewRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<ICategoryRepository, CategoryRepository>();
         services.AddScoped<ICuisineRepository, CuisineRepository>();
         services.AddScoped<IRegionRepository, RegionRepository>();
         services.AddScoped<IUserProfileRepository, UserProfileRepository>();
@@ -30,6 +33,8 @@ public static class DependencyInjection
         services.AddScoped<IRecipeCommentRepository, RecipeCommentRepository>();
         services.AddScoped<IFeedRepository, FeedRepository>();
         services.AddScoped<INotificationRepository, NotificationRepository>();
+        services.AddScoped<IPasswordService, PasswordService>();
+        services.AddScoped<ITokenService, JwtTokenService>();
 
         return services;
     }

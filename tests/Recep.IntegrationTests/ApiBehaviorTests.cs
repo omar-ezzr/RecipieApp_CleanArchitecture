@@ -91,6 +91,52 @@ public sealed class AuthBehaviorTests : IClassFixture<RecepApiFactory>
         principal.Claims.Should().Contain(claim => claim.Type == ClaimTypes.Name && claim.Value == email);
         principal.Claims.Should().Contain(claim => claim.Type == ClaimTypes.Role && claim.Value == AppRoles.User);
     }
+
+    [Fact]
+    public async Task Expired_refresh_token_is_rejected()
+    {
+        var email = $"expired-refresh-{Guid.NewGuid():N}@example.com";
+        var refreshToken = $"refresh-{Guid.NewGuid():N}";
+        await _factory.CreateUserAsync(
+            email,
+            AppRoles.User,
+            refreshToken,
+            DateTime.UtcNow.AddMinutes(-5));
+        var client = _factory.CreateClient();
+
+        var response = await client.PostAsJsonAsync("/api/Auth/refresh", new TokenRequestDto { RefreshToken = refreshToken });
+        var user = await _factory.FindUserByEmailAsync(email);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        user!.RefreshToken.Should().BeNull();
+        user.RefreshTokenExpiryTime.Should().BeNull();
+    }
+}
+
+public sealed class CategoryBehaviorTests : IClassFixture<RecepApiFactory>
+{
+    private readonly RecepApiFactory _factory;
+
+    public CategoryBehaviorTests(RecepApiFactory factory)
+    {
+        _factory = factory;
+    }
+
+    [Fact]
+    public async Task Categories_endpoint_returns_compatible_shape()
+    {
+        var client = _factory.CreateClient();
+
+        var response = await client.GetAsync("/api/Categories");
+        var body = await response.Content.ReadAsStringAsync();
+
+        response.EnsureSuccessStatusCode();
+        using var document = JsonDocument.Parse(body);
+        var category = document.RootElement.EnumerateArray()
+            .Single(element => element.GetProperty("id").GetGuid() == _factory.CategoryId);
+        category.GetProperty("name").GetString().Should().Be("Dinner");
+        category.TryGetProperty("recipes", out _).Should().BeFalse();
+    }
 }
 
 public sealed class RecipeOwnershipBehaviorTests : IClassFixture<RecepApiFactory>
@@ -622,12 +668,19 @@ public sealed class RecepApiFactory : WebApplicationFactory<Program>, IAsyncLife
         };
     }
 
-    public async Task<Guid> CreateUserAsync(string email, string role)
+    public async Task<Guid> CreateUserAsync(
+        string email,
+        string role,
+        string? refreshToken = null,
+        DateTime? refreshTokenExpiryTime = null)
     {
         using var scope = Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var id = Guid.NewGuid();
-        context.Users.Add(NewUser(id, email, role));
+        var user = NewUser(id, email, role);
+        user.RefreshToken = refreshToken;
+        user.RefreshTokenExpiryTime = refreshToken is null ? null : refreshTokenExpiryTime ?? DateTime.UtcNow.AddDays(7);
+        context.Users.Add(user);
         await context.SaveChangesAsync();
         return id;
     }

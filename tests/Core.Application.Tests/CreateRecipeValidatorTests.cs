@@ -46,6 +46,20 @@ public class CreateRecipeValidatorTests
         Assert.DoesNotContain(result.Errors, error => error.PropertyName.Contains(nameof(CreateIngredientDto.Quantity)));
     }
 
+
+    [Fact]
+    public void Ingredient_quantity_defaults_to_blank_when_omitted()
+    {
+        var ingredient = new CreateIngredientDto { Name = "Salt" };
+        var recipe = NewRecipe(null);
+        recipe.Ingredients = [ingredient];
+
+        var result = _validator.Validate(recipe);
+
+        Assert.Equal(string.Empty, ingredient.Quantity);
+        Assert.DoesNotContain(result.Errors, error => error.PropertyName.Contains(nameof(CreateIngredientDto.Quantity)));
+    }
+
     [Fact]
     public void Ingredient_quantity_rejects_values_over_maximum_length()
     {

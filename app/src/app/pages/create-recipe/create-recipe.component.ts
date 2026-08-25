@@ -155,7 +155,7 @@ export class CreateRecipeComponent implements OnInit {
 
     const ingredients = this.recipe.ingredients.map(ingredient => ({
       name: ingredient.name.trim(),
-      quantity: ingredient.quantity.trim()
+      quantity: ingredient.quantity?.trim() ?? ''
     }));
 
     if (!ingredients.length || ingredients.some(ingredient => !ingredient.name)) {
