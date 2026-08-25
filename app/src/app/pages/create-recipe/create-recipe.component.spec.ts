@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { DifficultyLevel } from '../../models/recipe.model';
 import { CategoryService } from '../../services/category.service';
 import { CuisineService } from '../../services/cuisine.service';
@@ -94,5 +95,36 @@ describe('CreateRecipeComponent', () => {
       ingredients: [{ name: 'Salt', quantity: '1 tsp' }],
       steps: [{ stepNumber: 1, instruction: 'Cook' }]
     }));
+  });
+
+  it('shows concise validation errors from the API response', () => {
+    recipeService.create.and.returnValue(throwError(() => new HttpErrorResponse({
+      status: 400,
+      error: {
+        message: 'Validation failed.',
+        errors: {
+          quantity: ['Ingredient quantity is required']
+        }
+      }
+    })));
+
+    component.submit();
+
+    expect(component.error).toBe('Ingredient quantity is required');
+    expect(component.isSubmitting).toBeFalse();
+  });
+
+  it('does not expose raw server error text in the page', () => {
+    recipeService.create.and.returnValue(throwError(() => new HttpErrorResponse({
+      status: 500,
+      error: 'System.ArgumentException: Authorization: Bearer secret.jwt.token'
+    })));
+
+    component.submit();
+
+    expect(component.error).toBe('Something went wrong while publishing the recipe. Please try again.');
+    expect(component.error).not.toContain('System.ArgumentException');
+    expect(component.error).not.toContain('Bearer');
+    expect(component.isSubmitting).toBeFalse();
   });
 });

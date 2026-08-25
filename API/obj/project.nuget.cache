@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "ZAwDQPnWYmY=",
+  "dgSpecHash": "sCWugCica1I=",
   "success": true,
   "projectFilePath": "/mnt/data/dev/Dotnet/Recepie/Recepie/API/API.csproj",
   "expectedPackageFiles": [
@@ -85,7 +85,7 @@
     "/home/omar-zaroili/.nuget/packages/system.threading.channels/6.0.0/system.threading.channels.6.0.0.nupkg.sha512",
     "/home/omar-zaroili/.nuget/packages/system.threading.tasks.extensions/4.5.4/system.threading.tasks.extensions.4.5.4.nupkg.sha512",
     "/home/omar-zaroili/.nuget/packages/system.windows.extensions/6.0.0/system.windows.extensions.6.0.0.nupkg.sha512",
-    "/home/omar-zaroili/.nuget/packages/microsoft.netcore.app.host.linux-x64/8.0.29/microsoft.netcore.app.host.linux-x64.8.0.29.nupkg.sha512"
+    "/home/omar-zaroili/.nuget/packages/microsoft.netcore.app.host.linux-x64/8.0.30/microsoft.netcore.app.host.linux-x64.8.0.30.nupkg.sha512"
   ],
   "logs": []
 }

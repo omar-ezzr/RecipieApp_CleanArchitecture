@@ -1,4 +1,5 @@
 import { CommonModule } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -110,7 +111,7 @@ export class CreateRecipeComponent implements OnInit {
     this.recipeService.create(this.recipe).subscribe({
       next: recipe => this.router.navigate(['/recipes', recipe.id]),
       error: error => {
-        this.error = this.getApiError(error, 'Failed to create recipe.');
+        this.error = this.getApiError(error);
         this.isSubmitting = false;
       }
     });
@@ -142,8 +143,15 @@ export class CreateRecipeComponent implements OnInit {
     };
   }
 
-  private getApiError(error: any, fallback: string): string {
-    const errors = error?.error?.errors;
+  private getApiError(error: HttpErrorResponse): string {
+    const fallback = 'Something went wrong while publishing the recipe. Please try again.';
+
+    if (error.status >= 500 || error.status === 0) {
+      return fallback;
+    }
+
+    const response = error.error;
+    const errors = response?.errors;
 
     if (errors) {
       const message = Object.values(errors)
@@ -155,6 +163,18 @@ export class CreateRecipeComponent implements OnInit {
       }
     }
 
-    return error?.error?.message || error?.error?.title || error?.error || fallback;
+    if (error.status === 400) {
+      if (typeof response?.message === 'string' && response.message.trim()) {
+        return response.message;
+      }
+
+      if (typeof response?.title === 'string' && response.title.trim()) {
+        return response.title;
+      }
+
+      return 'Please check the recipe information and try again.';
+    }
+
+    return fallback;
   }
 }

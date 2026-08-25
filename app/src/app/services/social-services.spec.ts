@@ -33,12 +33,12 @@ describe('Phase 3 social services', () => {
     const service = TestBed.inject(FollowService);
 
     service.follow('user-2').subscribe();
-    const follow = http.expectOne('http://localhost:5130/api/users/user-2/follow');
+    const follow = http.expectOne('/api/users/user-2/follow');
     expect(follow.request.method).toBe('POST');
     follow.flush(null);
 
     service.unfollow('user-2').subscribe();
-    const unfollow = http.expectOne('http://localhost:5130/api/users/user-2/follow');
+    const unfollow = http.expectOne('/api/users/user-2/follow');
     expect(unfollow.request.method).toBe('DELETE');
     unfollow.flush(null);
   });
@@ -47,14 +47,14 @@ describe('Phase 3 social services', () => {
     const service = TestBed.inject(LikeService);
 
     service.like('recipe-1').subscribe();
-    const like = http.expectOne('http://localhost:5130/api/recipes/recipe-1/likes');
+    const like = http.expectOne('/api/recipes/recipe-1/likes');
     expect(like.request.method).toBe('POST');
     like.flush(null);
 
     service.getStatus('recipe-1').subscribe(result => {
       expect(result).toEqual({ isLiked: true, likeCount: 12 });
     });
-    const status = http.expectOne('http://localhost:5130/api/recipes/recipe-1/likes/status');
+    const status = http.expectOne('/api/recipes/recipe-1/likes/status');
     expect(status.request.method).toBe('GET');
     status.flush({ isLiked: true, likeCount: 12 });
   });
@@ -63,7 +63,7 @@ describe('Phase 3 social services', () => {
     const service = TestBed.inject(CommentService);
 
     service.create('recipe-1', { content: 'Great' }).subscribe();
-    const create = http.expectOne('http://localhost:5130/api/recipes/recipe-1/comments');
+    const create = http.expectOne('/api/recipes/recipe-1/comments');
     expect(create.request.method).toBe('POST');
     expect(create.request.body.content).toBe('Great');
     create.flush({ id: 'comment-1', recipeId: 'recipe-1', content: 'Great', createdAt: '', author: { id: 'user-1', displayName: 'Cook' } });
@@ -71,12 +71,12 @@ describe('Phase 3 social services', () => {
 
   it('uses feed and notification endpoints', () => {
     TestBed.inject(FeedService).getFeed(2, 5).subscribe();
-    const feed = http.expectOne('http://localhost:5130/api/feed?page=2&pageSize=5');
+    const feed = http.expectOne('/api/feed?page=2&pageSize=5');
     expect(feed.request.method).toBe('GET');
     feed.flush({ items: [], total: 0, page: 2, pageSize: 5, totalPages: 0 });
 
     TestBed.inject(NotificationService).unreadCount().subscribe();
-    const unread = http.expectOne('http://localhost:5130/api/notifications/unread-count');
+    const unread = http.expectOne('/api/notifications/unread-count');
     expect(unread.request.method).toBe('GET');
     unread.flush({ count: 0 });
   });
@@ -85,7 +85,7 @@ describe('Phase 3 social services', () => {
     const service = TestBed.inject(UserProfileService);
 
     service.updateCurrentProfile({ displayName: 'Cook', bio: 'Bio' }).subscribe();
-    const req = http.expectOne('http://localhost:5130/api/users/me/profile');
+    const req = http.expectOne('/api/users/me/profile');
     expect(req.request.method).toBe('PUT');
     expect(req.request.body.email).toBeUndefined();
     req.flush({ id: 'user-1', displayName: 'Cook', followerCount: 0, followingCount: 0, recipeCount: 0 });

@@ -96,6 +96,14 @@
   gap: var(--space-3);
 }
 
+.alert-danger {
+  max-width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
+}
+
 .recipe-preview {
   align-self: start;
 }

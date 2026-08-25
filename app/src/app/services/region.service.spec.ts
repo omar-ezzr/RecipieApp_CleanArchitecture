@@ -20,10 +20,10 @@ describe('RegionService', () => {
 
   it('calls region management endpoints', () => {
     service.getById('region-1').subscribe();
-    http.expectOne('http://localhost:5130/api/regions/region-1').flush({});
+    http.expectOne('/api/regions/region-1').flush({});
 
     service.delete('region-1').subscribe();
-    const deleteRequest = http.expectOne('http://localhost:5130/api/regions/region-1');
+    const deleteRequest = http.expectOne('/api/regions/region-1');
     expect(deleteRequest.request.method).toBe('DELETE');
     deleteRequest.flush(null);
   });

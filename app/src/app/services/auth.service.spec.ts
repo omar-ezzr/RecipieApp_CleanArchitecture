@@ -34,7 +34,7 @@ describe('AuthService', () => {
     service.refreshSession().subscribe(tokens => results.push(tokens.accessToken));
     service.refreshSession().subscribe(tokens => results.push(tokens.accessToken));
 
-    const req = http.expectOne('http://localhost:5130/api/auth/refresh');
+    const req = http.expectOne('/api/auth/refresh');
     expect(req.request.method).toBe('POST');
     req.flush({ accessToken: 'new-access', refreshToken: 'new-refresh' });
 
@@ -47,11 +47,11 @@ describe('AuthService', () => {
     localStorage.setItem('refreshToken', 'refresh-one');
 
     service.refreshSession().subscribe();
-    http.expectOne('http://localhost:5130/api/auth/refresh')
+    http.expectOne('/api/auth/refresh')
       .flush({ accessToken: 'access-one', refreshToken: 'refresh-two' });
 
     service.refreshSession().subscribe();
-    http.expectOne('http://localhost:5130/api/auth/refresh')
+    http.expectOne('/api/auth/refresh')
       .flush({ accessToken: 'access-two', refreshToken: 'refresh-three' });
 
     expect(localStorage.getItem('accessToken')).toBe('access-two');
@@ -62,13 +62,13 @@ describe('AuthService', () => {
     localStorage.setItem('refreshToken', 'refresh-one');
 
     service.refreshSession().subscribe({ error: () => undefined });
-    http.expectOne('http://localhost:5130/api/auth/refresh').flush(
+    http.expectOne('/api/auth/refresh').flush(
       { title: 'Invalid refresh token' },
       { status: 401, statusText: 'Unauthorized' }
     );
 
     service.refreshSession().subscribe();
-    http.expectOne('http://localhost:5130/api/auth/refresh')
+    http.expectOne('/api/auth/refresh')
       .flush({ accessToken: 'access-two', refreshToken: 'refresh-two' });
 
     expect(localStorage.getItem('accessToken')).toBe('access-two');
@@ -80,7 +80,7 @@ describe('AuthService', () => {
 
     service.restoreSession().subscribe(restored => expect(restored).toBeFalse());
 
-    http.expectOne('http://localhost:5130/api/auth/refresh').flush(
+    http.expectOne('/api/auth/refresh').flush(
       { title: 'Invalid refresh token' },
       { status: 401, statusText: 'Unauthorized' }
     );

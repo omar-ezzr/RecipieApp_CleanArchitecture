@@ -98,13 +98,13 @@ npm start
 Default local app URL:
 
 ```text
-http://localhost:4200
+http://localhost:4203
 ```
 
-The backend API is expected at:
+During development, backend API calls use the Angular proxy through:
 
 ```text
-http://localhost:5130/api
+/api
 ```
 
 ## Build

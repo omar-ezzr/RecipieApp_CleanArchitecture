@@ -30,7 +30,7 @@ describe('RecipeService', () => {
 
     service.create(request).subscribe();
 
-    const req = http.expectOne('http://localhost:5130/api/recipes');
+    const req = http.expectOne('/api/recipes');
     expect(req.request.method).toBe('POST');
     expect(req.request.body).toEqual(request);
     req.flush({ id: 'recipe-1' });
@@ -39,7 +39,7 @@ describe('RecipeService', () => {
   it('loads my recipes from the user-specific endpoint', () => {
     service.getMine({ page: 2, pageSize: 5 }).subscribe();
 
-    const req = http.expectOne('http://localhost:5130/api/recipes/me?page=2&pageSize=5');
+    const req = http.expectOne('/api/recipes/me?page=2&pageSize=5');
     expect(req.request.method).toBe('GET');
     req.flush({ items: [], total: 0, page: 2, pageSize: 5, totalPages: 0 });
   });
@@ -53,7 +53,7 @@ describe('RecipeService', () => {
       isTraditional: true
     }).subscribe();
 
-    const req = http.expectOne('http://localhost:5130/api/recipes/paged?cuisineId=cuisine-1&regionId=region-1&isTraditional=true&page=1&pageSize=10');
+    const req = http.expectOne('/api/recipes/paged?cuisineId=cuisine-1&regionId=region-1&isTraditional=true&page=1&pageSize=10');
     expect(req.request.method).toBe('GET');
     req.flush({ items: [], total: 0, page: 1, pageSize: 10, totalPages: 0 });
   });
@@ -62,10 +62,10 @@ describe('RecipeService', () => {
     const request = newRecipe();
 
     service.update('recipe-1', request).subscribe();
-    http.expectOne('http://localhost:5130/api/recipes/recipe-1').flush({ id: 'recipe-1' });
+    http.expectOne('/api/recipes/recipe-1').flush({ id: 'recipe-1' });
 
     service.delete('recipe-1').subscribe();
-    const deleteReq = http.expectOne('http://localhost:5130/api/recipes/recipe-1');
+    const deleteReq = http.expectOne('/api/recipes/recipe-1');
     expect(deleteReq.request.method).toBe('DELETE');
     deleteReq.flush(null);
   });

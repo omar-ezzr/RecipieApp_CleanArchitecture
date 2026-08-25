@@ -25,6 +25,7 @@ using System.Security.Claims;
 using API.Options;
 using API.Responses;
 using Microsoft.AspNetCore.StaticFiles;
+using Microsoft.AspNetCore.Diagnostics;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -35,14 +36,22 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
     {
         var errors = context.ModelState
             .Where(entry => entry.Value?.Errors.Count > 0)
+            .SelectMany(entry => entry.Value!.Errors.Select(error => new
+            {
+                Field = ToCamelCase(entry.Key),
+                Message = string.IsNullOrWhiteSpace(error.ErrorMessage)
+                    ? "The value is invalid."
+                    : error.ErrorMessage
+            }))
+            .GroupBy(error => error.Field)
             .ToDictionary(
-                entry => ToCamelCase(entry.Key),
-                entry => entry.Value!.Errors.Select(error => error.ErrorMessage).ToArray());
+                group => group.Key,
+                group => group.Select(error => error.Message).ToArray());
 
         return new BadRequestObjectResult(new ApiErrorResponse
         {
             Code = "validation_failed",
-            Message = "The request is invalid.",
+            Message = "Validation failed.",
             Errors = errors,
             TraceId = context.HttpContext.TraceIdentifier
         });
@@ -181,6 +190,33 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        var exceptionHandlerFeature = context.Features.Get<IExceptionHandlerPathFeature>();
+        var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+
+        if (exceptionHandlerFeature?.Error is not null)
+        {
+            logger.LogError(
+                exceptionHandlerFeature.Error,
+                "Unhandled exception while processing {Method} {Path}",
+                context.Request.Method,
+                exceptionHandlerFeature.Path);
+        }
+
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        context.Response.ContentType = "application/json";
+
+        await context.Response.WriteAsJsonAsync(new ApiErrorResponse
+        {
+            Code = "unexpected_error",
+            Message = "An unexpected error occurred.",
+            TraceId = context.TraceIdentifier
+        });
+    });
+});
 app.UseHttpsRedirection();
 app.UseStaticFiles(new StaticFileOptions
 {

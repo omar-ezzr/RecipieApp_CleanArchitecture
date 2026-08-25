@@ -20,9 +20,9 @@ describe('CuisineService', () => {
 
   it('calls cuisine endpoints', () => {
     service.getAll().subscribe();
-    http.expectOne('http://localhost:5130/api/cuisines').flush([]);
+    http.expectOne('/api/cuisines').flush([]);
 
     service.getRegions('cuisine-1').subscribe();
-    http.expectOne('http://localhost:5130/api/cuisines/cuisine-1/regions').flush([]);
+    http.expectOne('/api/cuisines/cuisine-1/regions').flush([]);
   });
 });
