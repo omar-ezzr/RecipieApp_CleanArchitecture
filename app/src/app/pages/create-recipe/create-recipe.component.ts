@@ -106,15 +106,89 @@ export class CreateRecipeComponent implements OnInit {
   submit(): void {
     this.error = '';
     this.renumberSteps();
+
+    const payload = this.buildPayload();
+
+    if (!payload) {
+      return;
+    }
+
     this.isSubmitting = true;
 
-    this.recipeService.create(this.recipe).subscribe({
+    this.recipeService.create(payload).subscribe({
       next: recipe => this.router.navigate(['/recipes', recipe.id]),
       error: error => {
         this.error = this.getApiError(error);
         this.isSubmitting = false;
       }
     });
+  }
+
+  private buildPayload(): CreateRecipe | null {
+    const title = this.recipe.title.trim();
+    if (!title) {
+      this.error = 'Please enter a recipe title.';
+      return null;
+    }
+
+    const description = this.recipe.description.trim();
+    if (!description) {
+      this.error = 'Please add a description.';
+      return null;
+    }
+
+    if (!this.recipe.categoryId) {
+      this.error = 'Please select a category.';
+      return null;
+    }
+
+    if (!this.recipe.cuisineId) {
+      this.error = 'Please select a cuisine.';
+      return null;
+    }
+
+    const preparationTimeMinutes = Number(this.recipe.preparationTimeMinutes);
+    if (!Number.isFinite(preparationTimeMinutes) || preparationTimeMinutes <= 0) {
+      this.error = 'Preparation time must be greater than 0 minutes.';
+      return null;
+    }
+
+    const ingredients = this.recipe.ingredients.map(ingredient => ({
+      name: ingredient.name.trim(),
+      quantity: ingredient.quantity.trim()
+    }));
+
+    if (!ingredients.length || ingredients.some(ingredient => !ingredient.name)) {
+      this.error = 'Please enter a name for every ingredient.';
+      return null;
+    }
+
+    const steps = this.recipe.steps.map((step, index) => ({
+      stepNumber: index + 1,
+      instruction: step.instruction.trim()
+    }));
+
+    if (!steps.length || steps.some(step => !step.instruction)) {
+      this.error = 'Please add an instruction for every preparation step.';
+      return null;
+    }
+
+    return {
+      title,
+      description,
+      preparationTimeMinutes,
+      categoryId: this.recipe.categoryId,
+      cuisineId: this.recipe.cuisineId,
+      regionId: this.recipe.regionId || null,
+      difficulty: this.recipe.difficulty,
+      imageUrl: this.toOptionalString(this.recipe.imageUrl),
+      traditionalName: this.toOptionalString(this.recipe.traditionalName),
+      originDescription: this.toOptionalString(this.recipe.originDescription),
+      isTraditional: this.recipe.isTraditional,
+      servingOccasion: this.toOptionalString(this.recipe.servingOccasion),
+      ingredients,
+      steps
+    };
   }
 
   private renumberSteps(): void {
@@ -154,27 +228,52 @@ export class CreateRecipeComponent implements OnInit {
     const errors = response?.errors;
 
     if (errors) {
-      const message = Object.values(errors)
-        .flat()
-        .find((value): value is string => typeof value === 'string');
+      const message = Object.entries(errors)
+        .flatMap(([field, values]) => Array.isArray(values)
+          ? values.map(value => ({ field, value }))
+          : [])
+        .find(item => typeof item.value === 'string' && !this.isTechnicalValidationMessage(item.field, item.value)) as { value: string } | undefined;
 
       if (message) {
-        return message;
+        return message.value;
       }
     }
 
     if (error.status === 400) {
-      if (typeof response?.message === 'string' && response.message.trim()) {
-        return response.message;
+      const message = typeof response?.message === 'string' ? response.message : '';
+      const title = typeof response?.title === 'string' ? response.title : '';
+
+      if (message.trim() && !this.isTechnicalValidationMessage('', message)) {
+        return message;
       }
 
-      if (typeof response?.title === 'string' && response.title.trim()) {
-        return response.title;
+      if (title.trim() && !this.isTechnicalValidationMessage('', title)) {
+        return title;
       }
 
       return 'Please check the recipe information and try again.';
     }
 
     return fallback;
+  }
+
+  private toOptionalString(value: string | null | undefined): string | null {
+    const trimmed = value?.trim();
+    return trimmed ? trimmed : null;
+  }
+
+  private isTechnicalValidationMessage(field: string, message: string): boolean {
+    const normalizedField = field.toLowerCase();
+    const normalizedMessage = message.toLowerCase();
+
+    return normalizedField === 'dto'
+      || normalizedField === '$'
+      || normalizedMessage === 'validation failed.'
+      || normalizedMessage.includes('dto')
+      || normalizedMessage.includes('json')
+      || normalizedMessage.includes('json path')
+      || normalizedMessage.includes('could not be converted')
+      || normalizedMessage.includes('the input was not valid')
+      || normalizedMessage.includes('system.');
   }
 }

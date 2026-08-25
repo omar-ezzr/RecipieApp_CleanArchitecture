@@ -209,29 +209,29 @@ public sealed class RecipeOwnershipBehaviorTests : IClassFixture<RecepApiFactory
     }
 
     [Fact]
-    public async Task Recipe_validation_groups_repeated_ingredient_quantity_errors()
+    public async Task Recipe_validation_groups_repeated_ingredient_name_errors()
     {
         var owner = _factory.CreateClientForUser(_factory.UserId, AppRoles.User);
         var invalidRecipe = _factory.CreateRecipeRequest(DifficultyLevel.Easy);
         invalidRecipe.Ingredients =
         [
-            new CreateIngredientDto { Name = "Salt", Quantity = "" },
-            new CreateIngredientDto { Name = "Pepper", Quantity = "" }
+            new CreateIngredientDto { Name = "", Quantity = "" },
+            new CreateIngredientDto { Name = " ", Quantity = "" }
         ];
 
         var response = await owner.PostAsJsonAsync("/api/Recipes", invalidRecipe);
         var content = await response.Content.ReadAsStringAsync();
         using var document = JsonDocument.Parse(content);
-        var quantityErrors = document.RootElement
+        var nameErrors = document.RootElement
             .GetProperty("errors")
-            .GetProperty("quantity")
+            .GetProperty("name")
             .EnumerateArray()
             .Select(error => error.GetString())
             .ToArray();
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         document.RootElement.GetProperty("message").GetString().Should().Be("Validation failed.");
-        quantityErrors.Should().Contain("Ingredient quantity is required");
+        nameErrors.Should().Contain("Ingredient name is required");
         content.Should().NotContain("System.ArgumentException");
         content.Should().NotContain("Authorization");
         content.Should().NotContain("Bearer");

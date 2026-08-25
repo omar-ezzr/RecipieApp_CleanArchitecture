@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ActivatedRoute, Router } from '@angular/router';
 import { of } from 'rxjs';
 import { DifficultyLevel } from '../../models/recipe.model';
 import { RecipeService } from '../../services/recipe.service';
@@ -8,9 +9,11 @@ describe('MyRecipesComponent', () => {
   let component: MyRecipesComponent;
   let fixture: ComponentFixture<MyRecipesComponent>;
   let recipeService: jasmine.SpyObj<RecipeService>;
+  let router: jasmine.SpyObj<Router>;
 
   beforeEach(async () => {
     recipeService = jasmine.createSpyObj<RecipeService>('RecipeService', ['getMine', 'delete']);
+    router = jasmine.createSpyObj<Router>('Router', ['navigate']);
     recipeService.getMine.and.returnValue(of({
       items: [{
         id: 'recipe-1',
@@ -37,7 +40,9 @@ describe('MyRecipesComponent', () => {
     await TestBed.configureTestingModule({
       imports: [MyRecipesComponent],
       providers: [
-        { provide: RecipeService, useValue: recipeService }
+        { provide: RecipeService, useValue: recipeService },
+        { provide: Router, useValue: router },
+        { provide: ActivatedRoute, useValue: {} }
       ]
     }).compileComponents();
 
@@ -49,5 +54,14 @@ describe('MyRecipesComponent', () => {
   it('loads current user recipes', () => {
     expect(recipeService.getMine).toHaveBeenCalledWith({ page: 1, pageSize: 10 });
     expect(component.recipes.length).toBe(1);
+  });
+
+  it('navigates edit to recipe details edit mode', () => {
+    component.editRecipe(component.recipes[0]);
+
+    expect(router.navigate).toHaveBeenCalledWith(
+      ['/recipes', 'recipe-1'],
+      { queryParams: { edit: 'true' } }
+    );
   });
 });

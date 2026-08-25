@@ -27,11 +27,11 @@ namespace Core.Application.Validators
 
         RuleFor(x => x.CategoryId)
             .NotEqual(Guid.Empty)
-            .WithMessage("Category is required");
+            .WithMessage("Please select a category.");
 
         RuleFor(x => x.CuisineId)
             .NotEqual(Guid.Empty)
-            .WithMessage("Cuisine is required");
+            .WithMessage("Please select a cuisine.");
 
         RuleFor(x => x.TraditionalName)
             .MaximumLength(200)
@@ -47,10 +47,8 @@ namespace Core.Application.Validators
 
         RuleFor(x => x.ImageUrl)
             .MaximumLength(2048)
-            .Must(value => string.IsNullOrWhiteSpace(value)
-                || (Uri.TryCreate(value.Trim(), UriKind.Absolute, out var uri)
-                    && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)))
-            .WithMessage("Image URL must be an absolute HTTP or HTTPS URL");
+            .Must(IsValidImageUrl)
+            .WithMessage("Image URL must be an absolute HTTP or HTTPS URL or an application image path beginning with /images/");
 
         RuleFor(x => x.Ingredients)
             .NotEmpty().WithMessage("At least one ingredient is required")
@@ -63,7 +61,6 @@ namespace Core.Application.Validators
                 .MaximumLength(150).WithMessage("Ingredient name must be 150 characters or fewer");
 
             ingredient.RuleFor(x => x.Quantity)
-                .Must(value => !string.IsNullOrWhiteSpace(value)).WithMessage("Ingredient quantity is required")
                 .MaximumLength(100).WithMessage("Ingredient quantity must be 100 characters or fewer");
         });
 
@@ -82,6 +79,24 @@ namespace Core.Application.Validators
                 .Must(value => !string.IsNullOrWhiteSpace(value)).WithMessage("Step instruction is required")
                 .MaximumLength(1000).WithMessage("Step instruction must be 1,000 characters or fewer");
         });
+    }
+
+    private static bool IsValidImageUrl(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return true;
+        }
+
+        var trimmed = value.Trim();
+
+        if (trimmed.StartsWith("/images/", StringComparison.Ordinal))
+        {
+            return !trimmed.Contains("..", StringComparison.Ordinal) && !trimmed.Contains('\\');
+        }
+
+        return Uri.TryCreate(trimmed, UriKind.Absolute, out var uri)
+            && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
     }
 
     private static bool HaveUniqueStepNumbers(IReadOnlyCollection<CreateRecipeStepDto> steps)

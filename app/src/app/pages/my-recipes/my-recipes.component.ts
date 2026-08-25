@@ -82,7 +82,7 @@ export class MyRecipesComponent implements OnInit {
   }
 
   editRecipe(recipe: Recipe): void {
-    this.router.navigate(['/recipes'], { queryParams: { edit: recipe.id } });
+    this.router.navigate(['/recipes', recipe.id], { queryParams: { edit: 'true' } });
   }
 
   trackRecipe(_index: number, recipe: Recipe): string {

@@ -8,6 +8,7 @@ import { CategoryService } from '../../services/category.service';
 import { AuthService } from '../../services/auth.service';
 import { FavoriteService } from '../../services/favorite.service';
 import { CuisineService } from '../../services/cuisine.service';
+import { LikeService } from '../../services/like.service';
 import { DifficultyLevel, Recipe } from '../../models/recipe.model';
 
 describe('RecipesComponent', () => {
@@ -16,6 +17,7 @@ describe('RecipesComponent', () => {
   let recipeService: jasmine.SpyObj<RecipeService>;
   let auth: jasmine.SpyObj<AuthService>;
   let favoriteService: jasmine.SpyObj<FavoriteService>;
+  let router: jasmine.SpyObj<Router>;
 
   const recipe: Recipe = {
     id: 'recipe-1',
@@ -34,15 +36,13 @@ describe('RecipesComponent', () => {
     author: { id: 'user-1', displayName: 'User' },
     imageUrl: '',
     isTraditional: true,
-    ingredients: [],
-    steps: []
+    ingredients: [{ name: 'Salt', quantity: '1 tsp' }],
+    steps: [{ stepNumber: 1, instruction: 'Cook' }]
   };
 
   beforeEach(async () => {
     recipeService = jasmine.createSpyObj<RecipeService>('RecipeService', [
       'getPaged',
-      'create',
-      'update',
       'delete',
       'clearCache'
     ]);
@@ -53,6 +53,7 @@ describe('RecipesComponent', () => {
       'getCurrentUserId'
     ]);
     favoriteService = jasmine.createSpyObj<FavoriteService>('FavoriteService', ['getMine', 'add', 'remove']);
+    router = jasmine.createSpyObj<Router>('Router', ['navigate']);
 
     recipeService.getPaged.and.returnValue(of({
       items: [recipe],
@@ -75,8 +76,9 @@ describe('RecipesComponent', () => {
         { provide: CuisineService, useValue: { getAll: () => of([{ id: 'cuisine-1', name: 'Moroccan', slug: 'moroccan', countryCode: 'MA', isActive: true }]), getRegions: () => of([{ id: 'region-1', name: 'Souss-Massa', slug: 'souss-massa', cuisineId: 'cuisine-1', cuisineName: 'Moroccan', isActive: true }]) } },
         { provide: AuthService, useValue: auth },
         { provide: FavoriteService, useValue: favoriteService },
+        { provide: LikeService, useValue: { like: () => of(void 0), unlike: () => of(void 0) } },
         { provide: ActivatedRoute, useValue: { queryParams: of({}) } },
-        { provide: Router, useValue: jasmine.createSpyObj<Router>('Router', ['navigate']) },
+        { provide: Router, useValue: router },
         { provide: ToastrService, useValue: jasmine.createSpyObj('ToastrService', ['success', 'error']) }
       ]
     }).compileComponents();
@@ -117,48 +119,20 @@ describe('RecipesComponent', () => {
     expect(toastr.error).toHaveBeenCalledWith('Difficulty must be Easy, Medium, or Hard.');
   });
 
-  it('initializes edit form with existing difficulty', () => {
-    component.startEdit(recipe);
+  it('does not render the old inline owner edit form', () => {
+    const compiled = fixture.nativeElement as HTMLElement;
 
-    expect(component.newRecipe.difficulty).toBe(DifficultyLevel.Medium);
+    expect(compiled.textContent).not.toContain('Owner edit');
+    expect(compiled.textContent).not.toContain('Edit recipe story');
   });
 
-  it('preserves edit difficulty when updating other fields', () => {
-    component.startEdit(recipe);
-    component.newRecipe.title = 'Updated soup';
-    recipeService.update.and.returnValue(of(recipe));
+  it('navigates owner card edit to recipe details edit mode', () => {
+    component.editRecipe(recipe);
 
-    component.updateRecipe();
-
-    expect(recipeService.update).toHaveBeenCalledWith(
-      'recipe-1',
-      jasmine.objectContaining({
-        title: 'Updated soup',
-        difficulty: DifficultyLevel.Medium
-      })
+    expect(router.navigate).toHaveBeenCalledWith(
+      ['/recipes', 'recipe-1'],
+      { queryParams: { edit: 'true' } }
     );
-  });
-
-  it('requires difficulty when creating', () => {
-    const toastr = TestBed.inject(ToastrService) as jasmine.SpyObj<ToastrService>;
-    component.newRecipe = {
-      title: 'Soup',
-      description: 'Warm',
-      preparationTimeMinutes: 20,
-      categoryId: 'cat-1',
-      cuisineId: '',
-      regionId: null,
-      difficulty: '' as any,
-      imageUrl: '',
-      isTraditional: false,
-      ingredients: [{ name: 'Salt', quantity: '1 tsp' }],
-      steps: [{ stepNumber: 1, instruction: 'Cook' }]
-    };
-
-    component.createRecipe();
-
-    expect(recipeService.create).not.toHaveBeenCalled();
-    expect(toastr.error).toHaveBeenCalledWith('Title, category, cuisine, and difficulty are required');
   });
 
   it('resets region when cuisine filter changes', () => {

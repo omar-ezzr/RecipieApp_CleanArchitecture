@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
-import { CreateRecipe, Difficulty, DifficultyLevel, Recipe } from '../../models/recipe.model';
+import { Difficulty, DifficultyLevel, Recipe } from '../../models/recipe.model';
 import { Category } from '../../models/category.model';
 import { Cuisine } from '../../models/cuisine.model';
 import { Region } from '../../models/region.model';
@@ -38,7 +38,6 @@ export class RecipesComponent implements OnInit {
   categories: Category[] = [];
   cuisines: Cuisine[] = [];
   regions: Region[] = [];
-  editRegions: Region[] = [];
   isLoading: boolean = false;
   favoriteRecipeIds = new Set<string>();
   busyLikes = new Set<string>();
@@ -55,13 +54,8 @@ export class RecipesComponent implements OnInit {
   isTraditionalOnly = false;
   selectedDifficulty: Difficulty | '' = '';
   private searchSubject = new Subject<string>();
-  private editFromQueryId: string | null = null;
 
-  // ========================
-  //  FORM STATE
-  // ========================
-  editingId: string | null = null;
-  
+
   // ========================
   // pagination
   // ========================
@@ -72,22 +66,6 @@ totalItems: number = 0;
 totalPages: number = 0;
 sortBy: string = '';
 visiblePages: (number | string)[] = [];
-  newRecipe: CreateRecipe = {
-    title: '',
-    description: '',
-    preparationTimeMinutes: 0,
-    categoryId: '',
-    cuisineId: '',
-    regionId: null,
-    difficulty: DifficultyLevel.Easy,
-    imageUrl: '',
-    traditionalName: null,
-    originDescription: null,
-    isTraditional: false,
-    servingOccasion: null,
-    ingredients: [{ name: '', quantity: '' }],
-    steps: [{ stepNumber: 1, instruction: '' }]
-  };
 
   
 constructor(
@@ -127,7 +105,6 @@ ngOnInit() {
     this.sortBy = params['sortBy'] || '';
 
     this.pageSize = +params['pageSize'] || 10;
-    this.editFromQueryId = params['edit'] || null;
 
     if (this.selectedCuisine) {
       this.loadRegions(this.selectedCuisine);
@@ -174,14 +151,6 @@ const params = {
       this.recipes = res.items;
       this.filteredRecipes = res.items;
 
-      if (this.editFromQueryId) {
-        const recipeToEdit = this.recipes.find(recipe => recipe.id === this.editFromQueryId);
-
-        if (recipeToEdit) {
-          this.startEdit(recipeToEdit);
-          this.editFromQueryId = null;
-        }
-      }
 
       this.totalItems = res.total;
       this.currentPage = res.page;
@@ -283,15 +252,9 @@ error: () => {
     });
   }
 
-  loadRegions(cuisineId: string, forEdit = false) {
+  loadRegions(cuisineId: string) {
     this.cuisineService.getRegions(cuisineId).subscribe({
-      next: (data) => {
-        if (forEdit) {
-          this.editRegions = data;
-        } else {
-          this.regions = data;
-        }
-      },
+      next: (data) => this.regions = data,
       error: () => {
         this.toastr.error('Failed to load regions');
       }
@@ -363,15 +326,6 @@ onTraditionalFilterChange() {
   this.updateQueryParams();
 }
 
-onEditCuisineChange() {
-  this.newRecipe.regionId = null;
-  this.editRegions = [];
-
-  if (this.newRecipe.cuisineId) {
-    this.loadRegions(this.newRecipe.cuisineId, true);
-  }
-}
-
 
 goToPage(page: number) {
   if (page < 1 || page > this.totalPages) return;
@@ -386,107 +340,20 @@ onSearchChange() {
 }
 
 // ========================
-// CREATE
-// ========================
-
-createRecipe() {
-
-  if (!this.auth.isLoggedIn()) {
-    this.toastr.error('Please log in to create a recipe');
-
-    return;
-  }
-
-  if (!this.newRecipe.title || !this.newRecipe.categoryId || !this.newRecipe.cuisineId || !this.newRecipe.difficulty) {
-
-    this.toastr.error('Title, category, cuisine, and difficulty are required');
-
-    return;
-  }
-
-  this.recipeService.create(this.newRecipe).subscribe({
-
-    next: (recipe) => {
-
-      this.toastr.success('Recipe created successfully');
-
-      this.recipeService.clearCache();
-
-      this.router.navigate(['/recipes', recipe.id]);
-    },
-
-    error: (error) => {
-
-      this.toastr.error(this.getApiError(error, 'Failed to create recipe'));
-    }
-  });
-}
-
-
-// ========================
 // EDIT
 // ========================
 
-startEdit(recipe: Recipe) {
+editRecipe(recipe: Recipe): void {
   if (!this.canManageRecipe(recipe)) {
     this.toastr.error('You can only edit recipes you created');
 
     return;
   }
 
-  this.editingId = recipe.id;
-
-  this.newRecipe = {
-    title: recipe.title,
-    description: recipe.description,
-    preparationTimeMinutes: recipe.preparationTimeMinutes,
-    categoryId: recipe.categoryId,
-    cuisineId: recipe.cuisineId,
-    regionId: recipe.regionId || null,
-    difficulty: recipe.difficulty,
-    imageUrl: recipe.imageUrl || '',
-    traditionalName: recipe.traditionalName || null,
-    originDescription: recipe.originDescription || null,
-    isTraditional: recipe.isTraditional,
-    servingOccasion: recipe.servingOccasion || null,
-    ingredients: recipe.ingredients?.length
-      ? recipe.ingredients.map(ingredient => ({ ...ingredient }))
-      : [{ name: '', quantity: '' }],
-    steps: recipe.steps?.length
-      ? recipe.steps.map(step => ({ ...step }))
-      : [{ stepNumber: 1, instruction: '' }]
-  };
-
-  if (this.newRecipe.cuisineId) {
-    this.loadRegions(this.newRecipe.cuisineId, true);
-  }
-}
-
-
-updateRecipe() {
-
-  if (!this.editingId) return;
-
-  this.recipeService.update(this.editingId, this.newRecipe).subscribe({
-
-    next: () => {
-
-      this.toastr.success('Recipe updated successfully');
-
-      this.recipeService.clearCache();
-
-      this.editingId = null;
-
-      this.loadRecipes();
-
-      this.resetForm();
-    },
-
-    error: (error) => {
-
-      this.toastr.error(this.getApiError(error, 'Failed to update recipe'));
-    }
-  });
+  this.router.navigate(
+    ['/recipes', recipe.id],
+    { queryParams: { edit: 'true' } }
+  );
 }
 
 
@@ -550,33 +417,6 @@ deleteRecipe(recipeOrId: Recipe | string) {
 }
 
 
-
-// ========================
-// RESET
-// ========================
-
-resetForm() {
-
-  this.newRecipe = {
-    title: '',
-    description: '',
-    preparationTimeMinutes: 0,
-    categoryId: '',
-    cuisineId: '',
-    regionId: null,
-    difficulty: DifficultyLevel.Easy,
-    imageUrl: '',
-    traditionalName: null,
-    originDescription: null,
-    isTraditional: false,
-    servingOccasion: null,
-    ingredients: [{ name: '', quantity: '' }],
-    steps: [{ stepNumber: 1, instruction: '' }]
-  };
-
-  this.editingId = null;
-  this.editRegions = [];
-}
 
 loadFavorites(): void {
   this.favoriteService.getMine().subscribe({

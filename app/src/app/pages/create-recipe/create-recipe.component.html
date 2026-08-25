@@ -93,7 +93,7 @@
         </div>
         <div class="dynamic-row ingredient-row" *ngFor="let ingredient of recipe.ingredients; let i = index; trackBy: trackIngredient">
           <input class="form-control" [name]="'ingredientName' + i" [(ngModel)]="ingredient.name" placeholder="Ingredient name" required maxlength="150" [attr.aria-label]="'Ingredient ' + (i + 1) + ' name'">
-          <input class="form-control" [name]="'ingredientQuantity' + i" [(ngModel)]="ingredient.quantity" placeholder="Quantity" required maxlength="100" [attr.aria-label]="'Ingredient ' + (i + 1) + ' quantity'">
+          <input class="form-control" [name]="'ingredientQuantity' + i" [(ngModel)]="ingredient.quantity" placeholder="Quantity (optional)" maxlength="100" [attr.aria-label]="'Ingredient ' + (i + 1) + ' quantity'">
           <button class="btn btn-danger-app" type="button" [disabled]="recipe.ingredients.length === 1" (click)="removeIngredient(i)">Remove</button>
         </div>
       </section>

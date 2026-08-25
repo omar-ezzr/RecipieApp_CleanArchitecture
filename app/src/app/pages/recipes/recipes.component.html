@@ -145,82 +145,6 @@
         <a class="btn btn-primary-app" routerLink="/create-recipe" *ngIf="auth.isLoggedIn()">Create Recipe</a>
       </div>
 
-      <div class="edit-panel surface-card" *ngIf="editingId">
-        <div class="edit-heading">
-          <div>
-            <p class="ui-label">Owner edit</p>
-            <h2>Edit recipe story</h2>
-          </div>
-          <button type="button" class="btn btn-secondary-app btn-sm" (click)="resetForm()">Cancel</button>
-        </div>
-
-        <div class="edit-grid">
-          <label>
-            <span class="form-label">Title</span>
-            <input class="form-control" [(ngModel)]="newRecipe.title">
-          </label>
-          <label>
-            <span class="form-label">Image URL</span>
-            <input class="form-control" [(ngModel)]="newRecipe.imageUrl">
-          </label>
-          <label>
-            <span class="form-label">Category</span>
-            <select class="form-select" [(ngModel)]="newRecipe.categoryId">
-              <option value="">Select category</option>
-              <option *ngFor="let c of categories" [value]="c.id">{{ c.name }}</option>
-            </select>
-          </label>
-          <label>
-            <span class="form-label">Cuisine</span>
-            <select class="form-select" [(ngModel)]="newRecipe.cuisineId" (change)="onEditCuisineChange()">
-              <option value="">Select cuisine</option>
-              <option *ngFor="let cuisine of cuisines; trackBy: trackCuisine" [value]="cuisine.id">{{ cuisine.name }}</option>
-            </select>
-          </label>
-          <label>
-            <span class="form-label">Region</span>
-            <select class="form-select" [(ngModel)]="newRecipe.regionId" [disabled]="!newRecipe.cuisineId">
-              <option [ngValue]="null">No region</option>
-              <option *ngFor="let region of editRegions; trackBy: trackRegion" [value]="region.id">{{ region.name }}</option>
-            </select>
-          </label>
-          <label>
-            <span class="form-label">Preparation time</span>
-            <input class="form-control" type="number" min="1" [(ngModel)]="newRecipe.preparationTimeMinutes">
-          </label>
-          <label>
-            <span class="form-label">Difficulty</span>
-            <select class="form-select" [(ngModel)]="newRecipe.difficulty">
-              <option [ngValue]="1">Easy</option>
-              <option [ngValue]="2">Medium</option>
-              <option [ngValue]="3">Hard</option>
-            </select>
-          </label>
-          <label>
-            <span class="form-label">Traditional name</span>
-            <input class="form-control" [(ngModel)]="newRecipe.traditionalName">
-          </label>
-          <label class="full-span">
-            <span class="form-label">Description</span>
-            <textarea class="form-control" [(ngModel)]="newRecipe.description"></textarea>
-          </label>
-          <label class="full-span">
-            <span class="form-label">Origin description</span>
-            <textarea class="form-control" [(ngModel)]="newRecipe.originDescription"></textarea>
-          </label>
-          <label>
-            <span class="form-label">Serving occasion</span>
-            <input class="form-control" [(ngModel)]="newRecipe.servingOccasion">
-          </label>
-          <label class="traditional-toggle">
-            <input type="checkbox" [(ngModel)]="newRecipe.isTraditional">
-            <span>Traditional recipe</span>
-          </label>
-        </div>
-
-        <button type="button" class="btn btn-primary-app" (click)="updateRecipe()">Update recipe</button>
-      </div>
-
       <div class="recipe-grid" *ngIf="isLoading">
         <app-recipe-card-skeleton *ngFor="let skeleton of skeletonCards"></app-recipe-card-skeleton>
       </div>
@@ -244,7 +168,7 @@
           [canManage]="canManageRecipe(recipe)"
           (likeToggled)="toggleLikeRecipe($event)"
           (favoriteToggled)="toggleFavoriteRecipe($event)"
-          (edit)="startEdit($event)"
+          (edit)="editRecipe($event)"
           (delete)="deleteRecipe($event)">
         </app-recipe-card>
       </div>
