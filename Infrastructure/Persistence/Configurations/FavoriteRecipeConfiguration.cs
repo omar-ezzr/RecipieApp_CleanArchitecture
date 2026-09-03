@@ -17,6 +17,7 @@ namespace Infrastructure.Persistence.Configurations
 
             builder.HasIndex(f => new { f.UserId, f.RecipeId })
                 .IsUnique();
+            builder.HasIndex(f => new { f.UserId, f.CreatedAt });
 
             builder.HasOne(f => f.User)
                 .WithMany()

@@ -16,6 +16,8 @@ public sealed class UserFollowConfiguration : IEntityTypeConfiguration<UserFollo
         builder.HasIndex(follow => new { follow.FollowerUserId, follow.FollowedUserId }).IsUnique();
         builder.HasIndex(follow => follow.FollowerUserId);
         builder.HasIndex(follow => follow.FollowedUserId);
+        builder.HasIndex(follow => new { follow.FollowerUserId, follow.CreatedAt });
+        builder.HasIndex(follow => new { follow.FollowedUserId, follow.CreatedAt });
 
         builder.HasOne(follow => follow.FollowerUser)
             .WithMany(user => user.Following)

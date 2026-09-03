@@ -116,14 +116,11 @@ public sealed class NotificationRepository : INotificationRepository
 
     public async Task MarkAllReadAsync(Guid userId, CancellationToken cancellationToken = default)
     {
-        var notifications = await _context.Notifications
+        await _context.Notifications
             .Where(notification => notification.RecipientUserId == userId && !notification.IsRead)
-            .ToListAsync(cancellationToken);
-
-        foreach (var notification in notifications)
-        {
-            notification.IsRead = true;
-        }
+            .ExecuteUpdateAsync(
+                setters => setters.SetProperty(notification => notification.IsRead, true),
+                cancellationToken);
     }
 
     public Task DeleteAsync(Notification notification)

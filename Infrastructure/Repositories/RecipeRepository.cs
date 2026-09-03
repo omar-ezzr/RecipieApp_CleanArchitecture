@@ -1,9 +1,11 @@
 using Core.Application.DTO;
 using Core.Application.DTO.Recipe;
 using Core.Application.Interfaces;
+using Core.Application.Specifications.Recipes;
 using Core.Domain.Entities;
 using Core.Domain.Enums;
 using Infrastructure.Persistence;
+using Infrastructure.Persistence.Specifications;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Repositories;
@@ -87,90 +89,19 @@ public class RecipeRepository : IRecipeRepository
         RecipeQueryParams parameters,
         CancellationToken cancellationToken = default)
     {
-        var page = parameters.Page < 1 ? 1 : parameters.Page;
-        var pageSize = parameters.PageSize < 1 ? 10 : parameters.PageSize;
-        pageSize = Math.Min(pageSize, 100); // protect server
-
-        var query = _context.Recipies
-            .Include(r => r.User)
-            .Include(r => r.Category)
-            .Include(r => r.Cuisine)
-            .Include(r => r.Region)
-            .AsNoTracking()
-            .AsQueryable();
-
-        // ========================
-        // SEARCH
-        // ========================
-        if (!string.IsNullOrEmpty(parameters.Search))
-        {
-            query = query.Where(r => r.Title.Contains(parameters.Search));
-        }
-
-        // ========================
-        // CATEGORY FILTER (safe)
-        // ========================
-        if (parameters.CategoryId.HasValue)
-{
-    query = query.Where(r => r.CategoryId == parameters.CategoryId.Value);
-}
-
-        if (parameters.UserId.HasValue)
-        {
-            query = query.Where(r => r.UserId == parameters.UserId.Value);
-        }
-
-        if (parameters.CuisineId.HasValue)
-        {
-            query = query.Where(r => r.CuisineId == parameters.CuisineId.Value);
-        }
-
-        if (parameters.RegionId.HasValue)
-        {
-            query = query.Where(r => r.RegionId == parameters.RegionId.Value);
-        }
-
-        if (parameters.IsTraditional.HasValue)
-        {
-            query = query.Where(r => r.IsTraditional == parameters.IsTraditional.Value);
-        }
-
-        // ========================
-        // DIFFICULTY FILTER (safe)
-        // ========================
-        if (!string.IsNullOrWhiteSpace(parameters.Difficulty) &&
-            Enum.TryParse<DifficultyLevel>(parameters.Difficulty, true, out var difficulty) &&
-            Enum.IsDefined(typeof(DifficultyLevel), difficulty))
-        {
-            query = query.Where(r => r.Difficulty == difficulty);
-        }
-
-        // ========================
-        // SORTING
-        // ========================
-        query = parameters.SortBy?.ToLower() switch
-        {
-            "title" => query.OrderBy(r => r.Title),
-            "time" => query.OrderBy(r => r.PreparationTimeMinutes),
-            "difficulty" => query.OrderBy(r => r.Difficulty),
-            _ => query.OrderByDescending(r => r.CreatedAt)
-        };
-
-        // ========================
-        // COUNT
-        // ========================
-        var total = await query.CountAsync(cancellationToken);
-
-        // ========================
-        // PAGINATION
-        // ========================
-        var data = await query
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
+        var specification = new RecipeFilterSpecification(parameters);
+        var countSpecification = new RecipeFilterSpecification(parameters, applyPaging: false);
+        var baseQuery = _context.Recipies.AsNoTracking();
+        var total = await SpecificationEvaluator.GetQuery(baseQuery, countSpecification).CountAsync(cancellationToken);
+        var data = await SpecificationEvaluator.GetQuery(baseQuery, specification)
+            .Include(recipe => recipe.User)
+            .Include(recipe => recipe.Category)
+            .Include(recipe => recipe.Cuisine)
+            .Include(recipe => recipe.Region)
             .ToListAsync(cancellationToken);
-
+        var page = Math.Max(1, parameters.Page);
+        var pageSize = Math.Min(100, parameters.PageSize < 1 ? 10 : parameters.PageSize);
         var totalPages = total == 0 ? 0 : (int)Math.Ceiling(total / (double)pageSize);
-
         return (data, total, page, pageSize, totalPages);
     }
 

@@ -54,6 +54,9 @@ public class RecipeConfiguration : IEntityTypeConfiguration<Recipie>
 
         builder.HasIndex(r => r.RegionId);
 
+        builder.HasIndex(r => new { r.CategoryId, r.CreatedAt });
+        builder.HasIndex(r => new { r.RegionId, r.CreatedAt });
+
         builder.HasIndex(r => new { r.CuisineId, r.CreatedAt });
 
         builder.HasIndex(r => new { r.CuisineId, r.RegionId, r.CreatedAt });

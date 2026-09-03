@@ -43,7 +43,6 @@ public sealed class NotificationService : INotificationService
     public async Task<ServiceResult> MarkAllReadAsync(Guid currentUserId, CancellationToken cancellationToken = default)
     {
         await _repository.MarkAllReadAsync(currentUserId, cancellationToken);
-        await _repository.SaveChangesAsync(cancellationToken);
         return ServiceResult.Success();
     }
 
