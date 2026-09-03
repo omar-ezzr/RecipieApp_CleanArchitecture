@@ -1,18 +1,6 @@
 import { Routes } from '@angular/router';
-import { RecipesComponent } from './pages/recipes/recipes.component';
-import { LoginComponent } from './login/login.component';
-import { RegisterComponent } from './pages/register/register.component';
 import { authGuard } from './guards/auth.guard';
 import { adminGuard } from './guards/admin.guard';
-import { RecipeDetailsComponent } from './recipe-details/recipe-details.component';
-import { AccountsComponent } from './pages/admin/accounts/accounts.component';
-import { CreateRecipeComponent } from './pages/create-recipe/create-recipe.component';
-import { MyRecipesComponent } from './pages/my-recipes/my-recipes.component';
-import { FeedComponent } from './pages/feed/feed.component';
-import { ProfileComponent } from './pages/profile/profile.component';
-import { ProfileEditComponent } from './pages/profile-edit/profile-edit.component';
-import { NotificationsComponent } from './pages/notifications/notifications.component';
-import { SavedRecipesComponent } from './pages/saved-recipes/saved-recipes.component';
 
 export const routes: Routes = [
   {
@@ -22,59 +10,59 @@ export const routes: Routes = [
   },
   {
     path: 'feed',
-    component: FeedComponent,
+    loadComponent: () => import('./pages/feed/feed.component').then(m => m.FeedComponent),
     canActivate: [authGuard]
   },
   {
     path: 'recipes',
-    component: RecipesComponent,
+    loadComponent: () => import('./pages/recipes/recipes.component').then(m => m.RecipesComponent),
     canActivate: [authGuard]
   },
   {
     path: 'login',
-    component: LoginComponent
+    loadComponent: () => import('./login/login.component').then(m => m.LoginComponent)
   },
   {
     path: 'register',
-    component: RegisterComponent
+    loadComponent: () => import('./pages/register/register.component').then(m => m.RegisterComponent)
   },
   {
     path: 'recipes/:id',
-    component: RecipeDetailsComponent,
+    loadComponent: () => import('./recipe-details/recipe-details.component').then(m => m.RecipeDetailsComponent),
     canActivate: [authGuard]
   },
   {
     path: 'create-recipe',
-    component: CreateRecipeComponent,
+    loadComponent: () => import('./pages/create-recipe/create-recipe.component').then(m => m.CreateRecipeComponent),
     canActivate: [authGuard]
   },
   {
     path: 'my-recipes',
-    component: MyRecipesComponent,
+    loadComponent: () => import('./pages/my-recipes/my-recipes.component').then(m => m.MyRecipesComponent),
     canActivate: [authGuard]
   },
   {
     path: 'saved',
-    component: SavedRecipesComponent,
+    loadComponent: () => import('./pages/saved-recipes/saved-recipes.component').then(m => m.SavedRecipesComponent),
     canActivate: [authGuard]
   },
   {
     path: 'users/:id',
-    component: ProfileComponent
+    loadComponent: () => import('./pages/profile/profile.component').then(m => m.ProfileComponent)
   },
   {
     path: 'profile/edit',
-    component: ProfileEditComponent,
+    loadComponent: () => import('./pages/profile-edit/profile-edit.component').then(m => m.ProfileEditComponent),
     canActivate: [authGuard]
   },
   {
     path: 'notifications',
-    component: NotificationsComponent,
+    loadComponent: () => import('./pages/notifications/notifications.component').then(m => m.NotificationsComponent),
     canActivate: [authGuard]
   },
   {
     path: 'admin/accounts',
-    component: AccountsComponent,
+    loadComponent: () => import('./pages/admin/accounts/accounts.component').then(m => m.AccountsComponent),
     canActivate: [authGuard, adminGuard]
   },
   {

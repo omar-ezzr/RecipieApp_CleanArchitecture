@@ -12,6 +12,7 @@ import { CuisineService } from '../../services/cuisine.service';
 import { RecipeService } from '../../services/recipe.service';
 import { API_BASE_URL } from '../../app-api.config';
 import { resolveAssetUrl } from '../../core/utils/asset-url.util';
+import { RecipeFormMapper } from '../../core/recipes/recipe-form.mapper';
 
 @Component({
   selector: 'app-create-recipe',
@@ -28,7 +29,7 @@ export class CreateRecipeComponent implements OnInit {
   isSubmitting = false;
   error = '';
 
-  recipe: CreateRecipe = this.newRecipe();
+  recipe: CreateRecipe = RecipeFormMapper.empty();
 
   constructor(
     private recipeService: RecipeService,
@@ -87,7 +88,7 @@ export class CreateRecipeComponent implements OnInit {
   removeStep(index: number): void {
     if (this.recipe.steps.length > 1) {
       this.recipe.steps.splice(index, 1);
-      this.renumberSteps();
+      RecipeFormMapper.renumberSteps(this.recipe);
     }
   }
 
@@ -105,13 +106,12 @@ export class CreateRecipeComponent implements OnInit {
 
   submit(): void {
     this.error = '';
-    this.renumberSteps();
-
-    const payload = this.buildPayload();
-
-    if (!payload) {
+    const result = RecipeFormMapper.toPayload(this.recipe);
+    if (!result.payload) {
+      this.error = result.error || 'Please check the recipe information.';
       return;
     }
+    const payload = result.payload;
 
     this.isSubmitting = true;
 
@@ -124,98 +124,6 @@ export class CreateRecipeComponent implements OnInit {
     });
   }
 
-  private buildPayload(): CreateRecipe | null {
-    const title = this.recipe.title.trim();
-    if (!title) {
-      this.error = 'Please enter a recipe title.';
-      return null;
-    }
-
-    const description = this.recipe.description.trim();
-    if (!description) {
-      this.error = 'Please add a description.';
-      return null;
-    }
-
-    if (!this.recipe.categoryId) {
-      this.error = 'Please select a category.';
-      return null;
-    }
-
-    if (!this.recipe.cuisineId) {
-      this.error = 'Please select a cuisine.';
-      return null;
-    }
-
-    const preparationTimeMinutes = Number(this.recipe.preparationTimeMinutes);
-    if (!Number.isFinite(preparationTimeMinutes) || preparationTimeMinutes <= 0) {
-      this.error = 'Preparation time must be greater than 0 minutes.';
-      return null;
-    }
-
-    const ingredients = this.recipe.ingredients.map(ingredient => ({
-      name: ingredient.name.trim(),
-      quantity: ingredient.quantity?.trim() ?? ''
-    }));
-
-    if (!ingredients.length || ingredients.some(ingredient => !ingredient.name)) {
-      this.error = 'Please enter a name for every ingredient.';
-      return null;
-    }
-
-    const steps = this.recipe.steps.map((step, index) => ({
-      stepNumber: index + 1,
-      instruction: step.instruction.trim()
-    }));
-
-    if (!steps.length || steps.some(step => !step.instruction)) {
-      this.error = 'Please add an instruction for every preparation step.';
-      return null;
-    }
-
-    return {
-      title,
-      description,
-      preparationTimeMinutes,
-      categoryId: this.recipe.categoryId,
-      cuisineId: this.recipe.cuisineId,
-      regionId: this.recipe.regionId || null,
-      difficulty: this.recipe.difficulty,
-      imageUrl: this.toOptionalString(this.recipe.imageUrl),
-      traditionalName: this.toOptionalString(this.recipe.traditionalName),
-      originDescription: this.toOptionalString(this.recipe.originDescription),
-      isTraditional: this.recipe.isTraditional,
-      servingOccasion: this.toOptionalString(this.recipe.servingOccasion),
-      ingredients,
-      steps
-    };
-  }
-
-  private renumberSteps(): void {
-    this.recipe.steps = this.recipe.steps.map((step, index) => ({
-      ...step,
-      stepNumber: index + 1
-    }));
-  }
-
-  private newRecipe(): CreateRecipe {
-    return {
-      title: '',
-      description: '',
-      preparationTimeMinutes: 30,
-      categoryId: '',
-      cuisineId: '',
-      regionId: null,
-      difficulty: DifficultyLevel.Easy,
-      imageUrl: null,
-      traditionalName: null,
-      originDescription: null,
-      isTraditional: false,
-      servingOccasion: null,
-      ingredients: [{ name: '', quantity: '' }],
-      steps: [{ stepNumber: 1, instruction: '' }]
-    };
-  }
 
   private getApiError(error: HttpErrorResponse): string {
     const fallback = 'Something went wrong while publishing the recipe. Please try again.';

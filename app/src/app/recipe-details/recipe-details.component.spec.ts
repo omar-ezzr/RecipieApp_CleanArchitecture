@@ -54,7 +54,7 @@ describe('RecipeDetailsComponent', () => {
   };
 
   beforeEach(async () => {
-    recipeService = jasmine.createSpyObj<RecipeService>('RecipeService', ['getById', 'update', 'delete', 'clearCache']);
+    recipeService = jasmine.createSpyObj<RecipeService>('RecipeService', ['getById', 'update', 'delete']);
     reviewService = jasmine.createSpyObj<ReviewService>('ReviewService', ['getByRecipe', 'create']);
     auth = jasmine.createSpyObj<AuthService>('AuthService', ['isLoggedIn', 'isAdmin', 'getCurrentUserId']);
     router = jasmine.createSpyObj<Router>('Router', ['navigate']);

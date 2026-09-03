@@ -20,6 +20,7 @@ import { Cuisine } from '../models/cuisine.model';
 import { Region } from '../models/region.model';
 import { CategoryService } from '../services/category.service';
 import { CuisineService } from '../services/cuisine.service';
+import { RecipeFormMapper } from '../core/recipes/recipe-form.mapper';
 
 @Component({
   selector: 'app-recipe-details',
@@ -203,7 +204,7 @@ export class RecipeDetailsComponent implements OnInit {
       return;
     }
 
-    this.editRecipeModel = this.createEditModel(this.recipe);
+    this.editRecipeModel = RecipeFormMapper.fromRecipe(this.recipe);
     this.editError = '';
     this.isEditMode = true;
     this.loadEditRegions(this.editRecipeModel.cuisineId);
@@ -284,7 +285,6 @@ export class RecipeDetailsComponent implements OnInit {
         this.isSaving = false;
         this.isEditMode = false;
         this.editRecipeModel = null;
-        this.recipeService.clearCache();
         this.toastr.success('Recipe updated successfully');
         this.removeEditQueryParam();
       },
@@ -477,84 +477,15 @@ export class RecipeDetailsComponent implements OnInit {
       return null;
     }
 
-    this.editError = '';
-    this.renumberEditSteps();
-
-    const ingredients = this.editRecipeModel.ingredients.map(ingredient => ({
-      name: ingredient.name.trim(),
-      quantity: ingredient.quantity?.trim() ?? ''
-    }));
-
-    if (!ingredients.length || ingredients.some(ingredient => !ingredient.name)) {
-      this.editError = 'Please enter a name for every ingredient.';
-      return null;
-    }
-
-    const steps = this.editRecipeModel.steps.map((step, index) => ({
-      stepNumber: index + 1,
-      instruction: step.instruction.trim()
-    }));
-
-    if (!steps.length || steps.some(step => !step.instruction)) {
-      this.editError = 'Please add an instruction for every preparation step.';
-      return null;
-    }
-
-    const title = this.editRecipeModel.title.trim();
-    const description = this.editRecipeModel.description.trim();
-
-    if (!title) {
-      this.editError = 'Please enter a recipe title.';
-      return null;
-    }
-
-    if (!description) {
-      this.editError = 'Please add a description.';
-      return null;
-    }
-
-    if (!this.editRecipeModel.categoryId) {
-      this.editError = 'Please select a category.';
-      return null;
-    }
-
-    if (!this.editRecipeModel.cuisineId) {
-      this.editError = 'Please select a cuisine.';
-      return null;
-    }
-
-    if (!Number.isFinite(Number(this.editRecipeModel.preparationTimeMinutes)) || Number(this.editRecipeModel.preparationTimeMinutes) < 1) {
-      this.editError = 'Preparation time must be greater than 0 minutes.';
-      return null;
-    }
-
-    return {
-      title,
-      description,
-      preparationTimeMinutes: Number(this.editRecipeModel.preparationTimeMinutes),
-      categoryId: this.editRecipeModel.categoryId,
-      cuisineId: this.editRecipeModel.cuisineId,
-      regionId: this.editRecipeModel.regionId || null,
-      difficulty: this.editRecipeModel.difficulty,
-      imageUrl: this.toOptionalString(this.editRecipeModel.imageUrl),
-      traditionalName: this.toOptionalString(this.editRecipeModel.traditionalName),
-      originDescription: this.toOptionalString(this.editRecipeModel.originDescription),
-      isTraditional: this.editRecipeModel.isTraditional,
-      servingOccasion: this.toOptionalString(this.editRecipeModel.servingOccasion),
-      ingredients,
-      steps
-    };
+    const result = RecipeFormMapper.toPayload(this.editRecipeModel);
+    this.editError = result.error || "";
+    return result.payload || null;
   }
 
   private renumberEditSteps(): void {
-    if (!this.editRecipeModel) {
-      return;
+    if (this.editRecipeModel) {
+      RecipeFormMapper.renumberSteps(this.editRecipeModel);
     }
-
-    this.editRecipeModel.steps = this.editRecipeModel.steps.map((step, index) => ({
-      ...step,
-      stepNumber: index + 1
-    }));
   }
 
   private removeEditQueryParam(): void {

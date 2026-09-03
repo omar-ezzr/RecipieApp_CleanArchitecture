@@ -1,6 +1,6 @@
-import { Injectable} from "@angular/core";
+import { Injectable } from "@angular/core";
 import { HttpClient, HttpParams } from "@angular/common/http";
-import { Observable, of } from "rxjs";
+import { Observable } from "rxjs";
 import { CreateRecipe, Difficulty, Recipe } from "../models/recipe.model";
 import { tap } from 'rxjs/operators';
 import { API_BASE_URL } from '../app-api.config';
@@ -31,7 +31,7 @@ export interface PagedRecipes {
 
 export class RecipeService {
     private apiUrl = `${API_BASE_URL}/recipes`;
-    private cache = new Map<string, any>();
+    // List responses are not cached because they contain user-specific social state.
 
     constructor(private http: HttpClient){}
 
@@ -39,49 +39,23 @@ export class RecipeService {
         return this.http.get<PagedRecipes>(this.apiUrl);
     }
 
-    // getFiltered(query: RecipeQuery): Observable<PagedRecipes> {
-    //     let params = new HttpParams()
-    //         .set('page', query.page?.toString() ?? '1')
-    //         .set('pageSize', query.pageSize?.toString() ?? '50');
-
-    //     if (query.search?.trim()) {
-    //         params = params.set('search', query.search.trim());
-    //     }
-
-    //     if (query.categoryId) {
-    //         params = params.set('categoryId', query.categoryId);
-    //     }
-
-    //     if (query.difficulty) {
-    //         params = params.set('difficulty', query.difficulty);
-    //     }
-
-    //     return this.http.get<PagedRecipes>(`${this.apiUrl}/paged`, { params });
-    // }
-
     getById(id: string): Observable<Recipe>{
         return this.http.get<Recipe>(`${this.apiUrl}/${id}`);
     }
 
     create(recipe: CreateRecipe): Observable<Recipe> {
-        return this.http.post<Recipe>(this.apiUrl , recipe).pipe(
-          tap(() => this.clearCache())
-        );
+        return this.http.post<Recipe>(this.apiUrl , recipe);
     }
         update(id: string, data: CreateRecipe): Observable<Recipe> {
 return this.http.put<Recipe>(
   `${this.apiUrl}/${id}`,
   data
-).pipe(
-  tap(() => this.clearCache())
 );    
 }
 
     delete(id: string) {
 return this.http.delete(
   `${this.apiUrl}/${id}`
-).pipe(
-  tap(() => this.clearCache())
 );
     }
     getMine(query: RecipeQuery): Observable<PagedRecipes> {
@@ -94,14 +68,6 @@ return this.http.delete(
   query: RecipeQuery
 ): Observable<PagedRecipes> {
 
-  const cacheKey = JSON.stringify(query);
-
-  // CACHE HIT
-  if (this.cache.has(cacheKey)) {
-
-    return of(this.cache.get(cacheKey));
-  }
-
   // BUILD PARAMS
   let params = this.buildParams(query);
 
@@ -112,23 +78,12 @@ return this.http.delete(
 
     { params }
 
-  ).pipe(
-
-    tap(response => {
-
-      this.cache.set(
-        cacheKey,
-        response
-      );
-    })
-  );
+  ) ;
 }
 
 
 
-clearCache() {
-  this.cache.clear();
-}
+
 
 private buildParams(query: RecipeQuery): HttpParams {
   let params = new HttpParams();

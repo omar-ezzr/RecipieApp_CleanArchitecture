@@ -44,7 +44,6 @@ describe('RecipesComponent', () => {
     recipeService = jasmine.createSpyObj<RecipeService>('RecipeService', [
       'getPaged',
       'delete',
-      'clearCache'
     ]);
     auth = jasmine.createSpyObj<AuthService>('AuthService', [
       'isAdmin',

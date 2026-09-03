@@ -394,9 +394,7 @@ deleteRecipe(recipeOrId: Recipe | string) {
 
     next: () => {
 
-      this.toastr.success('Recipe deleted successfully');
-
-      this.recipeService.clearCache();
+      this.toastr.success('Recipe deleted successfully');
     },
 
     error: (error) => {
@@ -522,8 +520,7 @@ toggleLikeRecipe(recipe: Recipe): void {
 
   request.subscribe({
     next: () => {
-      this.busyLikes.delete(recipe.id);
-      this.recipeService.clearCache();
+      this.busyLikes.delete(recipe.id);
     },
     error: error => {
       recipe.isLikedByCurrentUser = wasLiked;
