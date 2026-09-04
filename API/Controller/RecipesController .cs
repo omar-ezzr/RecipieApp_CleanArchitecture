@@ -124,6 +124,31 @@ public class RecipesController : ControllerBase
         return ToActionResult(result);
         return Ok(result.Value);
     }
+    [HttpPost("{id}/image")]
+    [RequestSizeLimit(6 * 1024 * 1024)]
+    public async Task<IActionResult> UploadImage(Guid id, IFormFile? file, CancellationToken cancellationToken)
+    {
+        if (!TryGetCurrentUserId(out var currentUserId)) return UnauthorizedIdentityProblem();
+        if (file is null) return BadRequest(Error("invalid_image", "An image file is required."));
+        await using var content = file.OpenReadStream();
+        var result = await _service.UploadImageAsync(id, content, file.FileName, file.ContentType, file.Length, currentUserId, IsAdmin(), cancellationToken);
+        if (result.IsSuccess) return Ok(new { imageUrl = result.Value });
+        if (result.ErrorType == ServiceErrorType.Validation)
+        {
+            var parts = (result.Error ?? "invalid_image:Invalid image.").Split(':', 2);
+            return BadRequest(Error(parts[0], parts.Length > 1 ? parts[1] : "Invalid image."));
+        }
+        return ToActionResult(result);
+    }
+
+    [HttpDelete("{id}/image")]
+    public async Task<IActionResult> RemoveImage(Guid id, CancellationToken cancellationToken)
+    {
+        if (!TryGetCurrentUserId(out var currentUserId)) return UnauthorizedIdentityProblem();
+        var result = await _service.RemoveImageAsync(id, currentUserId, IsAdmin(), cancellationToken);
+        return result.IsSuccess ? NoContent() : ToActionResult(result);
+    }
+
     [Authorize]
 
     [HttpDelete("{id}")]

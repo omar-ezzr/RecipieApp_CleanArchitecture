@@ -118,10 +118,12 @@
           <p class="ui-label">5. Image and final details</p>
           <h2>Give it a visual anchor</h2>
         </div>
-        <label>
-          <span class="form-label">Image URL</span>
-          <input id="imageUrl" class="form-control" name="imageUrl" [(ngModel)]="recipe.imageUrl">
-        </label>
+        <div>
+          <span class="form-label">Recipe image</span>
+          <input id="recipeImage" class="form-control" type="file" accept="image/jpeg,image/png,image/webp" (change)="onImageSelected($event)">
+          <small>JPG, PNG or WEBP — max 5 MB</small>
+          <button *ngIf="selectedImage" type="button" class="btn btn-secondary-app btn-sm" (click)="removeSelectedImage()">Remove image</button>
+        </div>
       </section>
 
       <div class="alert alert-danger" *ngIf="error">{{ error }}</div>

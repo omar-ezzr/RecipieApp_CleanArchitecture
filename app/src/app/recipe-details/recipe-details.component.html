@@ -214,10 +214,7 @@
             <p class="ui-label">5. Image and final details</p>
             <h2>Give it a visual anchor</h2>
           </div>
-          <label>
-            <span class="form-label">Image URL</span>
-            <input id="editImageUrl" class="form-control" name="imageUrl" [(ngModel)]="editRecipeModel.imageUrl">
-          </label>
+          <div><span class="form-label">Recipe image</span><input class="form-control" type="file" accept="image/jpeg,image/png,image/webp" (change)="onEditImageSelected($event)"><button type="button" class="btn btn-secondary-app btn-sm" [disabled]="!selectedEditImage || isImageChanging" (click)="uploadSelectedEditImage()">Replace image</button><button type="button" class="btn btn-danger-app btn-sm" [disabled]="!recipe.imageUrl || isImageChanging" (click)="removeRecipeImage()">Remove image</button></div>
         </section>
 
         <div class="alert alert-danger" *ngIf="editError">{{ editError }}</div>

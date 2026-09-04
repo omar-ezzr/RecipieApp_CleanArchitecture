@@ -39,6 +39,11 @@ export class RecipeCardComponent {
     return resolveAssetUrl(this.recipe.imageUrl, API_BASE_URL);
   }
 
+  onImageError(event: Event): void {
+    const image = event.target as HTMLImageElement;
+    if (!image.src.endsWith("/assets/recipe-placeholder.webp")) image.src = "/assets/recipe-placeholder.webp";
+  }
+
   onLikeClick(event: MouseEvent): void {
     event.preventDefault();
     event.stopPropagation();

@@ -40,6 +40,8 @@ export class RecipeDetailsComponent implements OnInit {
   isEditMode = false;
   isSaving = false;
   editError = '';
+  selectedEditImage: File | null = null;
+  isImageChanging = false;
   editRecipeModel: CreateRecipe | null = null;
   categories: Category[] = [];
   cuisines: Cuisine[] = [];
@@ -414,6 +416,10 @@ export class RecipeDetailsComponent implements OnInit {
     });
   }
 
+
+  onEditImageSelected(event: Event): void { const file = (event.target as HTMLInputElement).files?.[0]; if (file) this.selectedEditImage = file; }
+  uploadSelectedEditImage(): void { if (!this.recipe || !this.selectedEditImage) return; this.isImageChanging = true; this.recipeService.uploadImage(this.recipe.id, this.selectedEditImage).subscribe({ next: result => { this.recipe = { ...this.recipe!, imageUrl: result.imageUrl }; this.selectedEditImage = null; this.isImageChanging = false; }, error: () => { this.editError = "Failed to replace image."; this.isImageChanging = false; } }); }
+  removeRecipeImage(): void { if (!this.recipe) return; this.isImageChanging = true; this.recipeService.removeImage(this.recipe.id).subscribe({ next: () => { this.recipe = { ...this.recipe!, imageUrl: undefined }; this.isImageChanging = false; }, error: () => { this.editError = "Failed to remove image."; this.isImageChanging = false; } }); }
 
   previewEditImageUrl(): string {
     return resolveAssetUrl(this.editRecipeModel?.imageUrl, API_BASE_URL);

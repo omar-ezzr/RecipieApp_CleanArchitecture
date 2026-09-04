@@ -28,6 +28,8 @@ export class CreateRecipeComponent implements OnInit {
   regions: Region[] = [];
   isSubmitting = false;
   error = '';
+  selectedImage: File | null = null;
+  imagePreviewUrl: string | null = null;
 
   recipe: CreateRecipe = RecipeFormMapper.empty();
 
@@ -93,7 +95,24 @@ export class CreateRecipeComponent implements OnInit {
   }
 
   previewImageUrl(): string {
-    return resolveAssetUrl(this.recipe.imageUrl, API_BASE_URL);
+    return this.imagePreviewUrl || resolveAssetUrl(this.recipe.imageUrl, API_BASE_URL);
+  }
+
+  onImageSelected(event: Event): void {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 5 * 1024 * 1024) {
+      this.error = "Choose a JPG, PNG, or WEBP image no larger than 5 MB.";
+      return;
+    }
+    this.removeSelectedImage();
+    this.selectedImage = file;
+    this.imagePreviewUrl = URL.createObjectURL(file);
+  }
+
+  removeSelectedImage(): void {
+    if (this.imagePreviewUrl) URL.revokeObjectURL(this.imagePreviewUrl);
+    this.selectedImage = null; this.imagePreviewUrl = null;
   }
 
   trackIngredient(index: number): number {
@@ -116,7 +135,13 @@ export class CreateRecipeComponent implements OnInit {
     this.isSubmitting = true;
 
     this.recipeService.create(payload).subscribe({
-      next: recipe => this.router.navigate(['/recipes', recipe.id]),
+      next: recipe => {
+        if (!this.selectedImage) { this.router.navigate(["/recipes", recipe.id]); return; }
+        this.recipeService.uploadImage(recipe.id, this.selectedImage).subscribe({
+          next: () => this.router.navigate(["/recipes", recipe.id]),
+          error: () => { this.error = "Recipe was created, but the image could not be uploaded."; this.isSubmitting = false; }
+        });
+      },
       error: error => {
         this.error = this.getApiError(error);
         this.isSubmitting = false;

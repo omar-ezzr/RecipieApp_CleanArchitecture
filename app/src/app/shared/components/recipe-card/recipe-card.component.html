@@ -1,6 +1,7 @@
 <article class="recipe-card">
   <a class="recipe-image-link" [routerLink]="['/recipes', recipe.id]" [attr.aria-label]="'View ' + recipe.title">
     <img
+      (error)="onImageError($event)"
       class="recipe-card-image"
       [src]="imageUrl()"
       [alt]="recipe.title"

@@ -59,3 +59,6 @@ app/.angular/
 
 # Local source images
 images/
+
+# Runtime recipe cover uploads
+API/wwwroot/images/recipes/*

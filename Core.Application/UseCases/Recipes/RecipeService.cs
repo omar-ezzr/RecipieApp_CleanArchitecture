@@ -12,10 +12,12 @@ namespace Core.Application.UseCases.Recipes
     public class RecipeService : IRecipeService
     {
         private readonly IRecipeRepository _repository;
+        private readonly IRecipeImageStorage? _imageStorage;
 
-        public RecipeService(IRecipeRepository repository)
+        public RecipeService(IRecipeRepository repository, IRecipeImageStorage? imageStorage = null)
         {
             _repository = repository;
+            _imageStorage = imageStorage;
         }
 
         // 🔹 CENTRALIZED MAPPER (critical)
@@ -113,7 +115,7 @@ namespace Core.Application.UseCases.Recipes
                 CuisineId = dto.CuisineId,
                 RegionId = dto.RegionId,
                 UserId = currentUserId,
-                ImageUrl = NormalizeOptional(dto.ImageUrl),
+                ImageUrl = null,
                 Difficulty = dto.Difficulty,
                 TraditionalName = NormalizeOptional(dto.TraditionalName),
                 OriginDescription = NormalizeOptional(dto.OriginDescription),
@@ -185,7 +187,6 @@ namespace Core.Application.UseCases.Recipes
             recipe.CategoryId = dto.CategoryId;
             recipe.CuisineId = dto.CuisineId;
             recipe.RegionId = dto.RegionId;
-            recipe.ImageUrl = NormalizeOptional(dto.ImageUrl);
             recipe.Difficulty = dto.Difficulty;
             recipe.TraditionalName = NormalizeOptional(dto.TraditionalName);
             recipe.OriginDescription = NormalizeOptional(dto.OriginDescription);
@@ -235,8 +236,44 @@ namespace Core.Application.UseCases.Recipes
             if (!isAdmin && recipe.UserId != currentUserId)
                 return ServiceResult.Failure("You can only delete your own recipe.", ServiceErrorType.Forbidden);
 
+            var imageUrl = recipe.ImageUrl;
             await _repository.DeleteAsync(recipe, cancellationToken);
+            if (!string.IsNullOrWhiteSpace(imageUrl)) await _imageStorage!.DeleteAsync(imageUrl, cancellationToken);
+            return ServiceResult.Success();
+        }
 
+        public async Task<ServiceResult<string>> UploadImageAsync(Guid id, Stream content, string fileName, string contentType, long length, Guid currentUserId, bool isAdmin, CancellationToken cancellationToken = default)
+        {
+            var recipe = await _repository.GetByIdAsync(id, cancellationToken);
+            if (recipe is null) return ServiceResult<string>.Failure("Recipe not found", ServiceErrorType.NotFound);
+            if (!isAdmin && recipe.UserId != currentUserId) return ServiceResult<string>.Failure("You can only update your own recipe.", ServiceErrorType.Forbidden);
+            string? newImageUrl = null;
+            try
+            {
+                newImageUrl = await (_imageStorage ?? throw new InvalidOperationException("Recipe image storage is not configured.")).SaveAsync(new RecipeImageUpload { Content = content, FileName = fileName, ContentType = contentType, Length = length }, cancellationToken);
+                var oldImageUrl = recipe.ImageUrl;
+                recipe.ImageUrl = newImageUrl;
+                await _repository.UpdateAsync(recipe, cancellationToken);
+                if (!string.IsNullOrWhiteSpace(oldImageUrl)) await _imageStorage!.DeleteAsync(oldImageUrl, cancellationToken);
+                return ServiceResult<string>.Success(newImageUrl);
+            }
+            catch (RecipeImageValidationException ex) { return ServiceResult<string>.Failure(ex.Code + ":" + ex.Message, ServiceErrorType.Validation); }
+            catch
+            {
+                if (!string.IsNullOrWhiteSpace(newImageUrl)) await _imageStorage!.DeleteAsync(newImageUrl, cancellationToken);
+                return ServiceResult<string>.Failure("Image upload failed", ServiceErrorType.Validation);
+            }
+        }
+
+        public async Task<ServiceResult> RemoveImageAsync(Guid id, Guid currentUserId, bool isAdmin, CancellationToken cancellationToken = default)
+        {
+            var recipe = await _repository.GetByIdAsync(id, cancellationToken);
+            if (recipe is null) return ServiceResult.Failure("Recipe not found", ServiceErrorType.NotFound);
+            if (!isAdmin && recipe.UserId != currentUserId) return ServiceResult.Failure("You can only update your own recipe.", ServiceErrorType.Forbidden);
+            var imageUrl = recipe.ImageUrl;
+            recipe.ImageUrl = null;
+            await _repository.UpdateAsync(recipe, cancellationToken);
+            if (!string.IsNullOrWhiteSpace(imageUrl)) await _imageStorage!.DeleteAsync(imageUrl, cancellationToken);
             return ServiceResult.Success();
         }
 
