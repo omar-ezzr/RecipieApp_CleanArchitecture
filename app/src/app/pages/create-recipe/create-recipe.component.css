@@ -173,3 +173,15 @@
     top: 100px;
   }
 }
+
+.recipe-image-field { display: grid; min-width: 0; gap: var(--space-3); }
+.image-picker { display: grid; grid-template-columns: auto minmax(0, 1fr); min-height: 84px; overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-sage-100); cursor: pointer; }
+.image-picker:focus-within { outline: 3px solid color-mix(in srgb, var(--color-plum-500) 35%, transparent); outline-offset: 2px; }
+.image-picker input { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
+.image-picker-button { align-self: center; margin-left: var(--space-3); padding: .7rem .9rem; border-radius: var(--radius-pill); background: var(--color-forest-900); color: white; font-family: var(--font-ui); font-weight: 800; white-space: nowrap; }
+.image-picker-name { align-self: center; min-width: 0; padding: var(--space-3); overflow: hidden; color: var(--color-forest-950); font-family: var(--font-ui); font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.image-picker-name.is-placeholder, .image-picker-help { color: var(--color-ink-soft); }
+.image-picker-help { display: block; margin: 0; }
+.image-picker-remove { justify-self: start; }
+.selected-image-preview { width: 100%; max-height: min(48vw, 320px); border: 1px solid var(--color-border); border-radius: var(--radius-md); object-fit: cover; }
+@media (max-width: 480px) { .image-picker { grid-template-columns: 1fr; min-height: 0; gap: var(--space-2); padding: var(--space-3); } .image-picker-button, .image-picker-name { margin: 0; padding: 0; } .image-picker-button { justify-self: start; padding: .65rem .85rem; } .selected-image-preview { max-height: 260px; } }

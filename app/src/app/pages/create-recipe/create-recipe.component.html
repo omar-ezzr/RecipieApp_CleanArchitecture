@@ -118,11 +118,16 @@
           <p class="ui-label">5. Image and final details</p>
           <h2>Give it a visual anchor</h2>
         </div>
-        <div>
+        <div class="recipe-image-field">
           <span class="form-label">Recipe image</span>
-          <input id="recipeImage" class="form-control" type="file" accept="image/jpeg,image/png,image/webp" (change)="onImageSelected($event)">
-          <small>JPG, PNG or WEBP — max 5 MB</small>
-          <button *ngIf="selectedImage" type="button" class="btn btn-secondary-app btn-sm" (click)="removeSelectedImage()">Remove image</button>
+          <label class="image-picker" for="recipeImage">
+            <span class="image-picker-button">Choose image</span>
+            <span class="image-picker-name" [class.is-placeholder]="!selectedImage">{{ selectedImage?.name || "No image selected" }}</span>
+            <input id="recipeImage" type="file" accept="image/jpeg,image/png,image/webp" (change)="onImageSelected($event)">
+          </label>
+          <small class="image-picker-help">JPG, PNG or WEBP — max 5 MB</small>
+          <button *ngIf="selectedImage" type="button" class="btn btn-secondary-app btn-sm image-picker-remove" (click)="removeSelectedImage()">Remove image</button>
+          <img *ngIf="imagePreviewUrl" class="selected-image-preview" [src]="imagePreviewUrl" [alt]="selectedImage?.name || 'Selected recipe image'">
         </div>
       </section>
 
