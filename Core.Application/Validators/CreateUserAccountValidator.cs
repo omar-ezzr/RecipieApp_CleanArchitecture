@@ -18,14 +18,7 @@ public sealed class CreateUserAccountValidator : AbstractValidator<CreateUserAcc
             .When(dto => !string.IsNullOrWhiteSpace(dto.DisplayName));
 
         RuleFor(dto => dto.Password)
-            .NotEmpty()
-            .MinimumLength(8)
-            .Must(password => password.Any(char.IsUpper))
-            .WithMessage("Password must contain an uppercase letter.")
-            .Must(password => password.Any(char.IsLower))
-            .WithMessage("Password must contain a lowercase letter.")
-            .Must(password => password.Any(char.IsDigit))
-            .WithMessage("Password must contain a number.");
+            .StrongPassword();
 
         RuleFor(dto => dto.Role)
             .NotEmpty()

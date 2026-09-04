@@ -46,6 +46,19 @@ describe('ErrorInterceptor', () => {
     });
   });
 
+  it('does not refresh a failed logout request', (done) => {
+    const interceptor = new ErrorInterceptor(auth, router, toastr);
+    const next = jasmine.createSpyObj<HttpHandler>('HttpHandler', ['handle']);
+    next.handle.and.returnValue(throwError(() => new HttpErrorResponse({ status: 401 })));
+
+    interceptor.intercept(new HttpRequest('POST', '/api/Auth/logout', {}), next).subscribe({
+      error: () => {
+        expect(auth.refreshSession).not.toHaveBeenCalled();
+        done();
+      }
+    });
+  });
+
   it('logs out once when refresh fails', (done) => {
     auth.refreshSession.and.returnValue(throwError(() => new Error('refresh failed')));
     const interceptor = new ErrorInterceptor(auth, router, toastr);

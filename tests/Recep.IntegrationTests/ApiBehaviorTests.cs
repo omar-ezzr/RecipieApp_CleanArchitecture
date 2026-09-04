@@ -822,6 +822,8 @@ public sealed class RecepApiFactory : WebApplicationFactory<Program>, IAsyncLife
             SecurityAlgorithms.HmacSha256);
 
         var token = new JwtSecurityToken(
+            issuer: "Recepie.Api",
+            audience: "Recepie.Web",
             claims: claims,
             expires: DateTime.UtcNow.AddMinutes(5),
             signingCredentials: credentials);

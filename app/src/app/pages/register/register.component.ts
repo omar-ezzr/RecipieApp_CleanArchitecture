@@ -28,7 +28,7 @@ export class RegisterComponent {
       password: this.password
     }).subscribe({
       next: () => {
-        this.message = 'Account created successfully';
+        this.message = 'Account created and waiting for administrator approval.';
         setTimeout(() => this.router.navigate(['/login']), 1500);
       },
 error: (err) => {

@@ -28,6 +28,13 @@ public sealed class JwtTokenService : ITokenService
         }
 
         var accessTokenMinutes = ReadPositiveInt("Jwt:AccessTokenMinutes", 5);
+        var issuer = _configuration["Jwt:Issuer"];
+        var audience = _configuration["Jwt:Audience"];
+
+        if (string.IsNullOrWhiteSpace(issuer) || string.IsNullOrWhiteSpace(audience))
+        {
+            throw new InvalidOperationException("JWT issuer and audience must be configured.");
+        }
         var claims = new[]
         {
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
@@ -40,6 +47,8 @@ public sealed class JwtTokenService : ITokenService
             SecurityAlgorithms.HmacSha256);
 
         var token = new JwtSecurityToken(
+            issuer: issuer,
+            audience: audience,
             claims: claims,
             expires: DateTime.UtcNow.AddMinutes(accessTokenMinutes),
             signingCredentials: credentials);

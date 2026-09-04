@@ -27,14 +27,14 @@ describe('RegisterComponent', () => {
   });
 
   it('handles successful registration', fakeAsync(() => {
-    auth.register.and.returnValue(of('User created'));
+    auth.register.and.returnValue(of({ message: 'Account created and waiting for administrator approval.' }));
 
     component.email = 'new@example.com';
     component.password = 'password';
     component.register();
     tick(1500);
 
-    expect(component.message).toBe('Account created successfully');
+    expect(component.message).toBe('Account created and waiting for administrator approval.');
     expect(router.navigate).toHaveBeenCalledWith(['/login']);
   }));
 

@@ -27,7 +27,7 @@ public sealed class AuthService : IAuthService
 
         if (user is null || !user.IsActive || !_passwordService.Verify(dto.Password, user.PasswordHash))
         {
-            return ServiceResult<TokenResponseDto>.Failure("Invalid credentials or inactive account", ServiceErrorType.Forbidden);
+            return ServiceResult<TokenResponseDto>.Failure("Invalid email or password.", ServiceErrorType.Forbidden);
         }
 
         var tokens = RotateTokens(user);
@@ -93,13 +93,25 @@ public sealed class AuthService : IAuthService
             Email = email,
             PasswordHash = _passwordService.Hash(dto.Password),
             Role = AppRoles.User,
-            IsActive = true
+            IsActive = false
         };
 
         await _users.AddAsync(user, cancellationToken);
         await _users.SaveChangesAsync(cancellationToken);
 
         return ServiceResult.Success();
+    }
+
+    public async Task RevokeRefreshTokenAsync(string refreshToken, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(refreshToken)) return;
+
+        var user = await _users.GetByRefreshTokenAsync(refreshToken, track: true, cancellationToken);
+        if (user is null) return;
+
+        user.RefreshToken = null;
+        user.RefreshTokenExpiryTime = null;
+        await _users.SaveChangesAsync(cancellationToken);
     }
 
     private TokenResponseDto RotateTokens(DomainUser user)

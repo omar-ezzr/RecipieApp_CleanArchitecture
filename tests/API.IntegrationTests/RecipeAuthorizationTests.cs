@@ -155,7 +155,7 @@ public sealed class AccountManagementTests : IClassFixture<RecipeApiFactory>
         var user = await _factory.FindUserByEmailAsync(email);
         Assert.NotNull(user);
         Assert.Equal(AppRoles.User, user!.Role);
-        Assert.True(user.IsActive);
+        Assert.False(user.IsActive);
     }
 
     [Theory]
@@ -565,6 +565,8 @@ public sealed class RecipeApiFactory : WebApplicationFactory<Program>, IAsyncLif
             SecurityAlgorithms.HmacSha256);
 
         var token = new JwtSecurityToken(
+            issuer: "Recepie.Api",
+            audience: "Recepie.Web",
             claims: claims,
             expires: DateTime.UtcNow.AddMinutes(5),
             signingCredentials: credentials);

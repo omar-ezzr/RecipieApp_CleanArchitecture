@@ -113,8 +113,10 @@ export class ErrorInterceptor implements HttpInterceptor {
     return url.includes('/api/auth/login') ||
       url.includes('/api/auth/register') ||
       url.includes('/api/auth/refresh') ||
+      url.includes('/api/auth/logout') ||
       url.includes('/auth/login') ||
       url.includes('/auth/register') ||
-      url.includes('/auth/refresh');
+      url.includes('/auth/refresh') ||
+      url.includes('/auth/logout');
   }
 }

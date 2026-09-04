@@ -28,8 +28,21 @@ using API.Options;
 using API.Responses;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
+using DotNetEnv;
 
 var builder = WebApplication.CreateBuilder(args);
+
+if (builder.Environment.IsDevelopment())
+{
+    var envFile = Path.Combine(builder.Environment.ContentRootPath, ".env");
+    if (File.Exists(envFile))
+    {
+        Env.NoClobber().Load(envFile);
+        builder.Configuration.AddEnvironmentVariables();
+    }
+}
 
 builder.Services.AddControllers();
 builder.Services.Configure<ApiBehaviorOptions>(options =>
@@ -100,23 +113,46 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddScoped<IRecipeService, RecipeService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
-//host
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+if (!builder.Environment.IsEnvironment("Testing") && allowedOrigins.Length == 0)
+{
+    throw new InvalidOperationException("At least one CORS allowed origin must be configured.");
+}
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAngular", policy =>
     {
-        policy.WithOrigins("http://localhost:4203")
-              .AllowAnyHeader()
-              .AllowAnyMethod();
+        if (allowedOrigins.Length > 0)
+        {
+            policy.WithOrigins(allowedOrigins);
+        }
+
+        policy.AllowAnyHeader().AllowAnyMethod();
     });
+});
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("auth-login", context => CreateAuthLimiter(context, 5, TimeSpan.FromMinutes(1)));
+    options.AddPolicy("auth-register", context => CreateAuthLimiter(context, 3, TimeSpan.FromMinutes(10)));
+    options.AddPolicy("auth-token", context => CreateAuthLimiter(context, 15, TimeSpan.FromMinutes(1)));
 });
 
 //JWT
 var jwtKey = builder.Configuration["Jwt:Key"];
 
-if (string.IsNullOrWhiteSpace(jwtKey))
+if (string.IsNullOrWhiteSpace(jwtKey) || Encoding.UTF8.GetByteCount(jwtKey) < 32)
 {
-    throw new InvalidOperationException("JWT key is missing from configuration.");
+    throw new InvalidOperationException("JWT key must contain at least 32 bytes.");
+}
+
+var jwtIssuer = builder.Configuration["Jwt:Issuer"];
+var jwtAudience = builder.Configuration["Jwt:Audience"];
+if (string.IsNullOrWhiteSpace(jwtIssuer) || string.IsNullOrWhiteSpace(jwtAudience))
+{
+    throw new InvalidOperationException("JWT issuer and audience must be configured.");
 }
 
 var jwtSigningKey = new SymmetricSecurityKey(
@@ -129,8 +165,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     {
         options.TokenValidationParameters = new TokenValidationParameters
         {
-            ValidateIssuer = false,
-            ValidateAudience = false,
+            ValidateIssuer = true,
+            ValidIssuer = jwtIssuer,
+            ValidateAudience = true,
+            ValidAudience = jwtAudience,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = jwtSigningKey,
@@ -218,12 +256,19 @@ app.UseExceptionHandler(errorApp =>
         });
     });
 });
+if (!app.Environment.IsDevelopment() && !app.Environment.IsEnvironment("Testing"))
+{
+    app.UseHsts();
+}
+
 app.UseHttpsRedirection();
 app.UseStaticFiles(new StaticFileOptions
 {
     ContentTypeProvider = staticFileContentTypes
 });
+app.UseRouting();
 app.UseCors("AllowAngular");
+app.UseRateLimiter();
 
 app.UseAuthentication();   
 app.UseAuthorization();    
@@ -245,6 +290,18 @@ if (!app.Environment.IsEnvironment("Testing") && app.Environment.IsDevelopment()
 }
 
 app.Run();
+
+static RateLimitPartition<string> CreateAuthLimiter(HttpContext context, int permitLimit, TimeSpan window)
+{
+    var ip = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+    return RateLimitPartition.GetFixedWindowLimiter(ip, _ => new FixedWindowRateLimiterOptions
+    {
+        PermitLimit = permitLimit,
+        Window = window,
+        QueueLimit = 0,
+        AutoReplenishment = true
+    });
+}
 
 static string ToCamelCase(string value)
 {

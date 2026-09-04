@@ -89,6 +89,32 @@ describe('AuthService', () => {
     expect(localStorage.getItem('refreshToken')).toBeNull();
   });
 
+  it('registers without saving tokens', () => {
+    service.register({ displayName: 'Cook', email: 'cook.com', password: 'Password1' }).subscribe();
+    const req = http.expectOne('/api/auth/register');
+    expect(req.request.method).toBe('POST');
+    req.flush({ message: 'Account created and waiting for administrator approval.' });
+    expect(localStorage.getItem('accessToken')).toBeNull();
+  });
+
+  it('revokes the refresh token while clearing local tokens immediately', () => {
+    localStorage.setItem('accessToken', 'access');
+    localStorage.setItem('refreshToken', 'refresh');
+    service.logout();
+    expect(localStorage.getItem('accessToken')).toBeNull();
+    expect(localStorage.getItem('refreshToken')).toBeNull();
+    const req = http.expectOne('/api/auth/logout');
+    expect(req.request.body).toEqual({ refreshToken: 'refresh' });
+    req.flush(null);
+  });
+
+  it('keeps local tokens removed when logout revocation fails', () => {
+    localStorage.setItem('refreshToken', 'refresh');
+    service.logout();
+    http.expectOne('/api/auth/logout').flush({}, { status: 500, statusText: 'Server error' });
+    expect(localStorage.getItem('refreshToken')).toBeNull();
+  });
+
   it('reads user id and role claims and allows recipe management for authenticated users', () => {
     localStorage.setItem('accessToken', createToken({
       'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier': 'user-1',
