@@ -33,7 +33,7 @@ describe('adminGuard', () => {
     expect(result).toBeTrue();
   });
 
-  it('redirects authenticated non-admins to recipes', () => {
+  it('redirects authenticated non-admins to forbidden', () => {
     auth.getAccessToken.and.returnValue('token');
     auth.isTokenExpired.and.returnValue(false);
     auth.isAdmin.and.returnValue(false);
@@ -41,7 +41,7 @@ describe('adminGuard', () => {
 
     const result = TestBed.runInInjectionContext(() => adminGuard({} as any, {} as any));
 
-    expect(result).toEqual(router.createUrlTree(['/recipes']));
+    expect(result).toEqual(router.createUrlTree(['/forbidden']));
   });
 
   it('redirects unauthenticated users to login after failed restore', (done) => {

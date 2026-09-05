@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { activatedRouteStub } from '../../testing/route.stub';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, provideRouter, Router } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
 import { of, throwError } from 'rxjs';
 import { RecipesComponent } from './recipes.component';
@@ -18,7 +18,7 @@ describe('RecipesComponent', () => {
   let recipeService: jasmine.SpyObj<RecipeService>;
   let auth: jasmine.SpyObj<AuthService>;
   let favoriteService: jasmine.SpyObj<FavoriteService>;
-  let router: jasmine.SpyObj<Router>;
+  let router: Router;
 
   const recipe: Recipe = {
     id: 'recipe-1',
@@ -53,7 +53,6 @@ describe('RecipesComponent', () => {
       'getCurrentUserId'
     ]);
     favoriteService = jasmine.createSpyObj<FavoriteService>('FavoriteService', ['getMine', 'add', 'remove']);
-    router = jasmine.createSpyObj<Router>('Router', ['navigate', 'createUrlTree', 'serializeUrl'], { events: of() as any });
 
     recipeService.getPaged.and.returnValue(of({
       items: [recipe],
@@ -71,7 +70,7 @@ describe('RecipesComponent', () => {
     await TestBed.configureTestingModule({
       imports: [RecipesComponent],
       providers: [
-        { provide: ActivatedRoute, useValue: activatedRouteStub },
+        provideRouter([]),
         { provide: RecipeService, useValue: recipeService },
         { provide: CategoryService, useValue: { getAll: () => of([]) } },
         { provide: CuisineService, useValue: { getAll: () => of([{ id: 'cuisine-1', name: 'Moroccan', slug: 'moroccan', countryCode: 'MA', isActive: true }]), getRegions: () => of([{ id: 'region-1', name: 'Souss-Massa', slug: 'souss-massa', cuisineId: 'cuisine-1', cuisineName: 'Moroccan', isActive: true }]) } },
@@ -79,10 +78,12 @@ describe('RecipesComponent', () => {
         { provide: FavoriteService, useValue: favoriteService },
         { provide: LikeService, useValue: { like: () => of(void 0), unlike: () => of(void 0) } },
         { provide: ActivatedRoute, useValue: { ...activatedRouteStub, queryParams: of({}) } },
-        { provide: Router, useValue: router },
-        { provide: ToastrService, useValue: jasmine.createSpyObj('ToastrService', ['success', 'error']) }
+        { provide: ToastrService, useValue: jasmine.createSpyObj('ToastrService', ['success', 'error', 'warning', 'info']) }
       ]
     }).compileComponents();
+
+    router = TestBed.inject(Router);
+    spyOn(router, 'navigate').and.resolveTo(true);
 
     fixture = TestBed.createComponent(RecipesComponent);
     component = fixture.componentInstance;

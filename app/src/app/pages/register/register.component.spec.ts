@@ -1,7 +1,5 @@
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
-import { ActivatedRoute } from '@angular/router';
-import { activatedRouteStub } from '../../testing/route.stub';
-import { Router } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { RegisterComponent } from './register.component';
 import { AuthService } from '../../services/auth.service';
@@ -10,20 +8,21 @@ describe('RegisterComponent', () => {
   let component: RegisterComponent;
   let fixture: ComponentFixture<RegisterComponent>;
   let auth: jasmine.SpyObj<AuthService>;
-  let router: jasmine.SpyObj<Router>;
+  let router: Router;
 
   beforeEach(async () => {
     auth = jasmine.createSpyObj<AuthService>('AuthService', ['register']);
-    router = jasmine.createSpyObj<Router>('Router', ['navigate', 'createUrlTree', 'serializeUrl'], { events: of() as any });
 
     await TestBed.configureTestingModule({
       imports: [RegisterComponent],
       providers: [
-        { provide: ActivatedRoute, useValue: activatedRouteStub },
+        provideRouter([]),
         { provide: AuthService, useValue: auth },
-        { provide: Router, useValue: router }
       ]
     }).compileComponents();
+
+    router = TestBed.inject(Router);
+    spyOn(router, 'navigate').and.resolveTo(true);
 
     fixture = TestBed.createComponent(RegisterComponent);
     component = fixture.componentInstance;

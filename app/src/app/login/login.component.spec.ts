@@ -1,7 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ActivatedRoute } from '@angular/router';
-import { activatedRouteStub } from '../testing/route.stub';
-import { Router } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
 import { of, throwError } from 'rxjs';
 import { LoginComponent } from './login.component';
@@ -11,21 +9,22 @@ describe('LoginComponent', () => {
   let component: LoginComponent;
   let fixture: ComponentFixture<LoginComponent>;
   let auth: jasmine.SpyObj<AuthService>;
-  let router: jasmine.SpyObj<Router>;
+  let router: Router;
 
   beforeEach(async () => {
     auth = jasmine.createSpyObj<AuthService>('AuthService', ['login', 'saveTokens']);
-    router = jasmine.createSpyObj<Router>('Router', ['navigate', 'createUrlTree', 'serializeUrl'], { events: of() as any });
 
     await TestBed.configureTestingModule({
       imports: [LoginComponent],
       providers: [
-        { provide: ActivatedRoute, useValue: activatedRouteStub },
+        provideRouter([]),
         { provide: AuthService, useValue: auth },
-        { provide: Router, useValue: router },
-        { provide: ToastrService, useValue: jasmine.createSpyObj('ToastrService', ['success', 'error']) }
+        { provide: ToastrService, useValue: jasmine.createSpyObj('ToastrService', ['success', 'error', 'warning', 'info']) }
       ]
     }).compileComponents();
+
+    router = TestBed.inject(Router);
+    spyOn(router, 'navigate').and.resolveTo(true);
 
     fixture = TestBed.createComponent(LoginComponent);
     component = fixture.componentInstance;

@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { activatedRouteStub } from '../../testing/route.stub';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { of } from 'rxjs';
+import { ToastrService } from 'ngx-toastr';
 import { ProfileComponent } from './profile.component';
 import { AuthService } from '../../services/auth.service';
 import { FollowService } from '../../services/follow.service';
@@ -14,8 +15,8 @@ describe('ProfileComponent', () => {
     await TestBed.configureTestingModule({
       imports: [ProfileComponent],
       providers: [
-        { provide: ActivatedRoute, useValue: activatedRouteStub },
         provideRouter([]),
+        { provide: ToastrService, useValue: jasmine.createSpyObj('ToastrService', ['success', 'error', 'warning', 'info']) },
         { provide: ActivatedRoute, useValue: { ...activatedRouteStub, paramMap: of(convertToParamMap({ id: 'user-1' })) } },
         {
           provide: UserProfileService,

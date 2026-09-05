@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { activatedRouteStub } from '../testing/route.stub';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, provideRouter, Router } from '@angular/router';
 import { of } from 'rxjs';
 import { RecipeDetailsComponent } from './recipe-details.component';
 import { RecipeService } from '../services/recipe.service';
@@ -20,7 +20,7 @@ describe('RecipeDetailsComponent', () => {
   let recipeService: jasmine.SpyObj<RecipeService>;
   let reviewService: jasmine.SpyObj<ReviewService>;
   let auth: jasmine.SpyObj<AuthService>;
-  let router: jasmine.SpyObj<Router>;
+  let router: Router;
 
   const recipe: Recipe = {
     id: 'recipe-1',
@@ -58,7 +58,6 @@ describe('RecipeDetailsComponent', () => {
     recipeService = jasmine.createSpyObj<RecipeService>('RecipeService', ['getById', 'update', 'delete']);
     reviewService = jasmine.createSpyObj<ReviewService>('ReviewService', ['getByRecipe', 'create']);
     auth = jasmine.createSpyObj<AuthService>('AuthService', ['isLoggedIn', 'isAdmin', 'getCurrentUserId']);
-    router = jasmine.createSpyObj<Router>('Router', ['navigate', 'createUrlTree', 'serializeUrl'], { events: of() as any });
 
     reviewService.getByRecipe.and.returnValue(of([]));
     recipeService.getById.and.returnValue(of({ ...recipe, ingredients: [...recipe.ingredients], steps: [...recipe.steps] }));
@@ -70,6 +69,7 @@ describe('RecipeDetailsComponent', () => {
     await TestBed.configureTestingModule({
       imports: [RecipeDetailsComponent],
       providers: [
+        provideRouter([]),
         { provide: ActivatedRoute, useValue: activatedRouteStub },
         { provide: RecipeService, useValue: recipeService },
         { provide: CategoryService, useValue: { getAll: () => of([{ id: 'cat-1', name: 'Dinner' }]) } },
@@ -79,10 +79,10 @@ describe('RecipeDetailsComponent', () => {
         { provide: LikeService, useValue: { getStatus: () => of({ isLiked: true, likeCount: 2 }), like: () => of(void 0), unlike: () => of(void 0) } },
         { provide: CommentService, useValue: { getByRecipe: () => of({ items: [], total: 0, page: 1, pageSize: 20, totalPages: 0 }), create: () => of({}), update: () => of({}), delete: () => of(void 0) } },
         { provide: AuthService, useValue: auth },
-        { provide: Router, useValue: router },
-        { provide: ToastrService, useValue: { error: jasmine.createSpy('error'), success: jasmine.createSpy('success') } }
+        { provide: ToastrService, useValue: jasmine.createSpyObj<ToastrService>('ToastrService', ['success', 'error', 'warning', 'info']) }
       ]
     }).compileComponents();
+
   });
 
   function createComponent(queryEdit = false): void {
@@ -94,6 +94,9 @@ describe('RecipeDetailsComponent', () => {
         }
       }
     });
+
+    router = TestBed.inject(Router);
+    spyOn(router, 'navigate').and.resolveTo(true);
 
     fixture = TestBed.createComponent(RecipeDetailsComponent);
     component = fixture.componentInstance;

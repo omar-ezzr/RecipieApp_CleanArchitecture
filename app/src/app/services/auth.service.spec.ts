@@ -74,6 +74,7 @@ describe('AuthService', () => {
     expect(localStorage.getItem('accessToken')).toBe('access-two');
   });
 
+
   it('logs out when refresh fails', () => {
     localStorage.setItem('accessToken', 'old-access');
     localStorage.setItem('refreshToken', 'refresh');
@@ -84,6 +85,7 @@ describe('AuthService', () => {
       { title: 'Invalid refresh token' },
       { status: 401, statusText: 'Unauthorized' }
     );
+    http.expectOne('/api/auth/logout').flush(null);
 
     expect(localStorage.getItem('accessToken')).toBeNull();
     expect(localStorage.getItem('refreshToken')).toBeNull();
