@@ -1,4 +1,6 @@
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
+import { ActivatedRoute } from '@angular/router';
+import { activatedRouteStub } from '../../testing/route.stub';
 import { Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { RegisterComponent } from './register.component';
@@ -17,6 +19,7 @@ describe('RegisterComponent', () => {
     await TestBed.configureTestingModule({
       imports: [RegisterComponent],
       providers: [
+        { provide: ActivatedRoute, useValue: activatedRouteStub },
         { provide: AuthService, useValue: auth },
         { provide: Router, useValue: router }
       ]

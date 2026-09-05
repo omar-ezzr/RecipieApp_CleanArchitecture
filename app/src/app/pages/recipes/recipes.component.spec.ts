@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { activatedRouteStub } from '../../testing/route.stub';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
 import { of, throwError } from 'rxjs';
@@ -70,6 +71,7 @@ describe('RecipesComponent', () => {
     await TestBed.configureTestingModule({
       imports: [RecipesComponent],
       providers: [
+        { provide: ActivatedRoute, useValue: activatedRouteStub },
         { provide: RecipeService, useValue: recipeService },
         { provide: CategoryService, useValue: { getAll: () => of([]) } },
         { provide: CuisineService, useValue: { getAll: () => of([{ id: 'cuisine-1', name: 'Moroccan', slug: 'moroccan', countryCode: 'MA', isActive: true }]), getRegions: () => of([{ id: 'region-1', name: 'Souss-Massa', slug: 'souss-massa', cuisineId: 'cuisine-1', cuisineName: 'Moroccan', isActive: true }]) } },

@@ -1,4 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ActivatedRoute } from '@angular/router';
+import { activatedRouteStub } from '../../testing/route.stub';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
@@ -19,6 +21,7 @@ describe('CreateRecipeComponent', () => {
     await TestBed.configureTestingModule({
       imports: [CreateRecipeComponent],
       providers: [
+        { provide: ActivatedRoute, useValue: activatedRouteStub },
         { provide: RecipeService, useValue: recipeService },
         { provide: CategoryService, useValue: { getAll: () => of([{ id: 'cat-1', name: 'Dinner' }]) } },
         { provide: CuisineService, useValue: { getAll: () => of([{ id: 'cuisine-1', name: 'Moroccan', slug: 'moroccan', countryCode: 'MA', isActive: true }]), getRegions: () => of([{ id: 'region-1', name: 'Souss-Massa', slug: 'souss-massa', cuisineId: 'cuisine-1', cuisineName: 'Moroccan', isActive: true }]) } },

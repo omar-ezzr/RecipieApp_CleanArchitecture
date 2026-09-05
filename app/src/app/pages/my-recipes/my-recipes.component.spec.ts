@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { activatedRouteStub } from '../../testing/route.stub';
 import { ActivatedRoute, Router } from '@angular/router';
 import { of } from 'rxjs';
 import { DifficultyLevel } from '../../models/recipe.model';
@@ -40,6 +41,7 @@ describe('MyRecipesComponent', () => {
     await TestBed.configureTestingModule({
       imports: [MyRecipesComponent],
       providers: [
+        { provide: ActivatedRoute, useValue: activatedRouteStub },
         { provide: RecipeService, useValue: recipeService },
         { provide: Router, useValue: router },
         { provide: ActivatedRoute, useValue: {} }

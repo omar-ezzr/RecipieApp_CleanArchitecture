@@ -1,4 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ActivatedRoute } from '@angular/router';
+import { activatedRouteStub } from '../../testing/route.stub';
 import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { FeedComponent } from './feed.component';
@@ -38,6 +40,7 @@ describe('FeedComponent', () => {
     await TestBed.configureTestingModule({
       imports: [FeedComponent],
       providers: [
+        { provide: ActivatedRoute, useValue: activatedRouteStub },
         provideRouter([]),
         { provide: FeedService, useValue: { getFeed: () => of({ items: [feedRecipe], total: 1, page: 1, pageSize: 10, totalPages: 1 }) } },
         { provide: LikeService, useValue: likeService },

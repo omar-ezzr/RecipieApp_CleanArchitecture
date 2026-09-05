@@ -1,4 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ActivatedRoute } from '@angular/router';
+import { activatedRouteStub } from '../../testing/route.stub';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { NotificationsComponent } from './notifications.component';
@@ -11,6 +13,7 @@ describe('NotificationsComponent', () => {
     await TestBed.configureTestingModule({
       imports: [NotificationsComponent],
       providers: [
+        { provide: ActivatedRoute, useValue: activatedRouteStub },
         provideRouter([]),
         {
           provide: NotificationService,

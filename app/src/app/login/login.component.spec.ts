@@ -1,4 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ActivatedRoute } from '@angular/router';
+import { activatedRouteStub } from '../testing/route.stub';
 import { Router } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
 import { of, throwError } from 'rxjs';
@@ -18,6 +20,7 @@ describe('LoginComponent', () => {
     await TestBed.configureTestingModule({
       imports: [LoginComponent],
       providers: [
+        { provide: ActivatedRoute, useValue: activatedRouteStub },
         { provide: AuthService, useValue: auth },
         { provide: Router, useValue: router },
         { provide: ToastrService, useValue: jasmine.createSpyObj('ToastrService', ['success', 'error']) }

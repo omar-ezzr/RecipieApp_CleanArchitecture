@@ -1,4 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ActivatedRoute } from '@angular/router';
+import { activatedRouteStub } from '../../../testing/route.stub';
 import { ToastrService } from 'ngx-toastr';
 import { of, throwError } from 'rxjs';
 import { AccountsComponent } from './accounts.component';
@@ -37,6 +39,7 @@ describe('AccountsComponent', () => {
     await TestBed.configureTestingModule({
       imports: [AccountsComponent],
       providers: [
+        { provide: ActivatedRoute, useValue: activatedRouteStub },
         { provide: UserManagementService, useValue: users },
         { provide: AuthService, useValue: auth },
         { provide: ToastrService, useValue: toastr }

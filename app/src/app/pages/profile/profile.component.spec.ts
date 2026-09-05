@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { activatedRouteStub } from '../../testing/route.stub';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { ProfileComponent } from './profile.component';
@@ -13,6 +14,7 @@ describe('ProfileComponent', () => {
     await TestBed.configureTestingModule({
       imports: [ProfileComponent],
       providers: [
+        { provide: ActivatedRoute, useValue: activatedRouteStub },
         provideRouter([]),
         { provide: ActivatedRoute, useValue: { paramMap: of(convertToParamMap({ id: 'user-1' })) } },
         {
