@@ -1,4 +1,5 @@
 using Core.Application.DTO.Categories;
+using Core.Domain.Entities;
 using Core.Application.Interfaces.Repositories;
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -26,4 +27,9 @@ public sealed class CategoryRepository : ICategoryRepository
             })
             .ToListAsync(cancellationToken);
     }
+    public Task<Category?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) => _context.Categories.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+    public Task<bool> IsUsedAsync(Guid id, CancellationToken cancellationToken = default) => _context.Recipies.AsNoTracking().AnyAsync(x => x.CategoryId == id, cancellationToken);
+    public async Task AddAsync(Category category, CancellationToken cancellationToken = default) { _context.Categories.Add(category); await _context.SaveChangesAsync(cancellationToken); }
+    public Task SaveChangesAsync(CancellationToken cancellationToken = default) => _context.SaveChangesAsync(cancellationToken);
+    public async Task DeleteAsync(Category category, CancellationToken cancellationToken = default) { _context.Categories.Remove(category); await _context.SaveChangesAsync(cancellationToken); }
 }

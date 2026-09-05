@@ -65,6 +65,13 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/admin/accounts/accounts.component').then(m => m.AccountsComponent),
     canActivate: [authGuard, adminGuard]
   },
+  { path: 'admin', redirectTo: 'admin/accounts', pathMatch: 'full' },
+  { path: 'admin/recipes', loadComponent: () => import('./pages/admin/moderation/moderation.component').then(m => m.ModerationComponent), canActivate: [authGuard, adminGuard], data: { kind: 'recipes' } },
+  { path: 'admin/comments', loadComponent: () => import('./pages/admin/moderation/moderation.component').then(m => m.ModerationComponent), canActivate: [authGuard, adminGuard], data: { kind: 'comments' } },
+  { path: 'admin/reviews', loadComponent: () => import('./pages/admin/moderation/moderation.component').then(m => m.ModerationComponent), canActivate: [authGuard, adminGuard], data: { kind: 'reviews' } },
+  { path: 'admin/categories', loadComponent: () => import('./pages/admin/reference-data/reference-data.component').then(m => m.ReferenceDataComponent), canActivate: [authGuard, adminGuard], data: { kind: 'categories' } },
+  { path: 'admin/cuisines', loadComponent: () => import('./pages/admin/reference-data/reference-data.component').then(m => m.ReferenceDataComponent), canActivate: [authGuard, adminGuard], data: { kind: 'cuisines' } },
+  { path: 'admin/regions', loadComponent: () => import('./pages/admin/reference-data/reference-data.component').then(m => m.ReferenceDataComponent), canActivate: [authGuard, adminGuard], data: { kind: 'regions' } },
   {
     path: '**',
     redirectTo: 'recipes'

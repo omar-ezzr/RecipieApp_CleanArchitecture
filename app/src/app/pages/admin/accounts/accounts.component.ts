@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
+import { AdminNavComponent } from '../admin-nav.component';
 import { FormsModule } from '@angular/forms';
 import { ToastrService } from 'ngx-toastr';
 import { AuthService } from '../../../services/auth.service';
@@ -9,7 +10,7 @@ import { CreateUserAccountRequest, UserAccount, UserRole } from '../../../models
 @Component({
   selector: 'app-accounts',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, AdminNavComponent],
   templateUrl: './accounts.component.html',
   styleUrl: './accounts.component.css'
 })
