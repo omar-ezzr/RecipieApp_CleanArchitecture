@@ -53,7 +53,7 @@ describe('AccountsComponent', () => {
 
   it('loads and renders accounts', () => {
     expect(users.getPaged).toHaveBeenCalled();
-    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Account Management');
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Account management');
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('user@example.com');
   });
 

@@ -58,7 +58,7 @@ describe('RecipeDetailsComponent', () => {
     recipeService = jasmine.createSpyObj<RecipeService>('RecipeService', ['getById', 'update', 'delete']);
     reviewService = jasmine.createSpyObj<ReviewService>('ReviewService', ['getByRecipe', 'create']);
     auth = jasmine.createSpyObj<AuthService>('AuthService', ['isLoggedIn', 'isAdmin', 'getCurrentUserId']);
-    router = jasmine.createSpyObj<Router>('Router', ['navigate']);
+    router = jasmine.createSpyObj<Router>('Router', ['navigate', 'createUrlTree', 'serializeUrl'], { events: of() as any });
 
     reviewService.getByRecipe.and.returnValue(of([]));
     recipeService.getById.and.returnValue(of({ ...recipe, ingredients: [...recipe.ingredients], steps: [...recipe.steps] }));

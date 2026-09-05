@@ -12,7 +12,7 @@ describe('ErrorInterceptor', () => {
 
   beforeEach(() => {
     auth = jasmine.createSpyObj<AuthService>('AuthService', ['refreshSession', 'logout']);
-    router = jasmine.createSpyObj<Router>('Router', ['navigate']);
+    router = jasmine.createSpyObj<Router>('Router', ['navigate', 'createUrlTree', 'serializeUrl'], { events: of() as any });
     toastr = jasmine.createSpyObj<ToastrService>('ToastrService', ['error']);
   });
 

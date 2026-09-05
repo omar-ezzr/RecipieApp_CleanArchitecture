@@ -145,17 +145,7 @@ export class AuthService {
   }
 
 
-  logout() {
-
-    localStorage.removeItem(
-      'accessToken'
-    );
-
-    localStorage.removeItem(
-      'refreshToken'
-    );
-  }
-
+  logout(): void {    const refreshToken = this.getRefreshToken();    localStorage.removeItem('accessToken');    localStorage.removeItem('refreshToken');    if (refreshToken) {      this.http.post<void>(`${this.apiUrl}/logout`, { refreshToken }).pipe(catchError(() => of(void 0))).subscribe();    }  }
   isTokenExpired(token: string): boolean {
     try {
       const payloadBase64 = token.split('.')[1];

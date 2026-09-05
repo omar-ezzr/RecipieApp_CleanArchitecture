@@ -25,7 +25,7 @@ describe('CreateRecipeComponent', () => {
         { provide: RecipeService, useValue: recipeService },
         { provide: CategoryService, useValue: { getAll: () => of([{ id: 'cat-1', name: 'Dinner' }]) } },
         { provide: CuisineService, useValue: { getAll: () => of([{ id: 'cuisine-1', name: 'Moroccan', slug: 'moroccan', countryCode: 'MA', isActive: true }]), getRegions: () => of([{ id: 'region-1', name: 'Souss-Massa', slug: 'souss-massa', cuisineId: 'cuisine-1', cuisineName: 'Moroccan', isActive: true }]) } },
-        { provide: Router, useValue: jasmine.createSpyObj<Router>('Router', ['navigate']) }
+        { provide: Router, useValue: jasmine.createSpyObj<Router>('Router', ['navigate', 'createUrlTree', 'serializeUrl'], { events: of() as any }) }
       ]
     }).compileComponents();
 

@@ -14,7 +14,7 @@ describe('RegisterComponent', () => {
 
   beforeEach(async () => {
     auth = jasmine.createSpyObj<AuthService>('AuthService', ['register']);
-    router = jasmine.createSpyObj<Router>('Router', ['navigate']);
+    router = jasmine.createSpyObj<Router>('Router', ['navigate', 'createUrlTree', 'serializeUrl'], { events: of() as any });
 
     await TestBed.configureTestingModule({
       imports: [RegisterComponent],

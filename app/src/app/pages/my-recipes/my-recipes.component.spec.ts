@@ -14,7 +14,7 @@ describe('MyRecipesComponent', () => {
 
   beforeEach(async () => {
     recipeService = jasmine.createSpyObj<RecipeService>('RecipeService', ['getMine', 'delete']);
-    router = jasmine.createSpyObj<Router>('Router', ['navigate']);
+    router = jasmine.createSpyObj<Router>('Router', ['navigate', 'createUrlTree', 'serializeUrl'], { events: of() as any });
     recipeService.getMine.and.returnValue(of({
       items: [{
         id: 'recipe-1',
@@ -44,7 +44,6 @@ describe('MyRecipesComponent', () => {
         { provide: ActivatedRoute, useValue: activatedRouteStub },
         { provide: RecipeService, useValue: recipeService },
         { provide: Router, useValue: router },
-        { provide: ActivatedRoute, useValue: {} }
       ]
     }).compileComponents();
 

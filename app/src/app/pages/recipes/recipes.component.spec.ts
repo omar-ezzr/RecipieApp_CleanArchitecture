@@ -53,7 +53,7 @@ describe('RecipesComponent', () => {
       'getCurrentUserId'
     ]);
     favoriteService = jasmine.createSpyObj<FavoriteService>('FavoriteService', ['getMine', 'add', 'remove']);
-    router = jasmine.createSpyObj<Router>('Router', ['navigate']);
+    router = jasmine.createSpyObj<Router>('Router', ['navigate', 'createUrlTree', 'serializeUrl'], { events: of() as any });
 
     recipeService.getPaged.and.returnValue(of({
       items: [recipe],
@@ -78,7 +78,7 @@ describe('RecipesComponent', () => {
         { provide: AuthService, useValue: auth },
         { provide: FavoriteService, useValue: favoriteService },
         { provide: LikeService, useValue: { like: () => of(void 0), unlike: () => of(void 0) } },
-        { provide: ActivatedRoute, useValue: { queryParams: of({}) } },
+        { provide: ActivatedRoute, useValue: { ...activatedRouteStub, queryParams: of({}) } },
         { provide: Router, useValue: router },
         { provide: ToastrService, useValue: jasmine.createSpyObj('ToastrService', ['success', 'error']) }
       ]

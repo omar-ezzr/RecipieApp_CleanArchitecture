@@ -16,7 +16,7 @@ describe('ProfileComponent', () => {
       providers: [
         { provide: ActivatedRoute, useValue: activatedRouteStub },
         provideRouter([]),
-        { provide: ActivatedRoute, useValue: { paramMap: of(convertToParamMap({ id: 'user-1' })) } },
+        { provide: ActivatedRoute, useValue: { ...activatedRouteStub, paramMap: of(convertToParamMap({ id: 'user-1' })) } },
         {
           provide: UserProfileService,
           useValue: {
