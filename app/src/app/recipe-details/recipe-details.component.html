@@ -285,35 +285,8 @@
       <p class="ui-label">Comments</p>
       <h2 class="section-title">Join the conversation</h2>
 
-      <form (ngSubmit)="submitComment()" class="review-form">
-        <label>
-          <span class="form-label">Comment</span>
-          <textarea class="form-control" rows="4" maxlength="1500" [(ngModel)]="newComment" name="newComment"></textarea>
-        </label>
-        <button type="submit" class="btn btn-primary-app">Add comment</button>
-      </form>
-
-      <p *ngIf="comments.length === 0" class="muted-state">No comments yet.</p>
-
-      <article class="review-card" *ngFor="let comment of comments; trackBy: trackComment">
-        <div>
-          <a [routerLink]="['/users', comment.author.id]"><strong>{{ comment.author.displayName }}</strong></a>
-          <span>{{ comment.createdAt | date:'mediumDate' }}</span>
-        </div>
-
-        <p *ngIf="editingCommentId !== comment.id">{{ comment.content }}</p>
-
-        <div *ngIf="editingCommentId === comment.id" class="comment-edit">
-          <textarea class="form-control" rows="3" maxlength="1500" [(ngModel)]="editingCommentContent" name="editComment"></textarea>
-          <button type="button" class="btn btn-primary-app btn-sm" (click)="saveComment(comment)">Save</button>
-          <button type="button" class="btn btn-secondary-app btn-sm" (click)="editingCommentId = null">Cancel</button>
-        </div>
-
-        <div class="recipe-manage-actions" *ngIf="canManageComment(comment)">
-          <button type="button" class="btn btn-secondary-app btn-sm" (click)="startEditComment(comment)" *ngIf="editingCommentId !== comment.id">Edit</button>
-          <button type="button" class="btn btn-danger-app btn-sm" (click)="deleteComment(comment)">Delete</button>
-        </div>
-      </article>
+      <p class="comments-intro">Share a cooking tip, ask a question, or tell others how the recipe worked for you.</p>
+      <form (ngSubmit)="submitComment()" class="comment-composer">        <label>          <span class="form-label">Your comment</span>          <textarea class="form-control" rows="5" maxlength="1500" placeholder="Write something about this recipe..." [(ngModel)]="newComment" name="newComment"></textarea>        </label>        <div class="comment-composer-footer">          <small>Maximum 1500 characters</small>          <button type="submit" class="btn btn-primary-app">Post comment</button>        </div>      </form>      <div *ngIf="comments.length === 0" class="comments-empty">        <strong>No comments yet</strong>        <span>Be the first to start the conversation.</span>      </div>      <article class="comment-card" *ngFor="let comment of comments; trackBy: trackComment">        <div class="comment-avatar" aria-hidden="true">{{ comment.author.displayName.charAt(0) }}</div>        <div class="comment-content">          <div class="comment-meta">            <a [routerLink]="['/users', comment.author.id]"><strong>{{ comment.author.displayName }}</strong></a>            <span>{{ comment.createdAt | date:'mediumDate' }}</span>          </div>          <p *ngIf="editingCommentId !== comment.id">{{ comment.content }}</p>          <div *ngIf="editingCommentId === comment.id" class="comment-edit">            <textarea class="form-control" rows="3" maxlength="1500" [(ngModel)]="editingCommentContent" name="editComment"></textarea>            <button type="button" class="btn btn-primary-app btn-sm" (click)="saveComment(comment)">Save</button>            <button type="button" class="btn btn-secondary-app btn-sm" (click)="editingCommentId = null">Cancel</button>          </div>          <div class="comment-actions" *ngIf="canManageComment(comment)">            <button type="button" class="btn btn-secondary-app btn-sm" (click)="startEditComment(comment)" *ngIf="editingCommentId !== comment.id">Edit</button>            <button type="button" class="btn btn-danger-app btn-sm" (click)="deleteComment(comment)">Delete</button>          </div>        </div>      </article>
     </div>
   </section>
 </section>
