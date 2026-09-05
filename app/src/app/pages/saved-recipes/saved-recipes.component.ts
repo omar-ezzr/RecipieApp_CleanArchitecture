@@ -13,12 +13,15 @@ import { EmptyStateComponent } from '../../shared/components/empty-state/empty-s
 })
 export class SavedRecipesComponent implements OnInit {
   favorites: FavoriteRecipe[] = [];
+  isLoading = true;
+  error = false;
 
   constructor(private favoriteService: FavoriteService) {}
 
   ngOnInit(): void {
     this.favoriteService.getMine().subscribe({
-      next: favorites => this.favorites = favorites
+      next: favorites => { this.favorites = favorites; this.isLoading = false; },
+      error: () => { this.error = true; this.isLoading = false; }
     });
   }
 

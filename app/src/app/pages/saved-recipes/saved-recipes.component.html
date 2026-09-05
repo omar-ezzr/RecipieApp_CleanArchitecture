@@ -4,13 +4,17 @@
     <h1 class="display-title">Private recipe saves</h1>
   </header>
 
+  <p *ngIf="isLoading" class="muted-state" role="status">Loading saved recipes…</p>
+  <div *ngIf="error" class="empty-state"><h2>We couldn't load your saved recipes.</h2><button type="button" class="btn btn-secondary-app" (click)="ngOnInit()">Try again</button></div>
   <app-empty-state
-    *ngIf="favorites.length === 0"
-    title="No saved recipes"
-    message="Save recipes privately from Explore, Feed, or recipe details.">
+    *ngIf="!isLoading && !error && favorites.length === 0"
+    title="No saved recipes yet"
+    message="Explore recipes and save dishes you want to cook later."
+    actionLabel="Explore recipes"
+    actionLink="/recipes">
   </app-empty-state>
 
-  <div class="saved-list" *ngIf="favorites.length">
+  <div class="saved-list" *ngIf="!isLoading && !error && favorites.length">
     <a class="saved-row" *ngFor="let favorite of favorites; trackBy: trackFavorite" [routerLink]="['/recipes', favorite.recipeId]">
       <span>{{ favorite.recipeTitle }}</span>
       <small>{{ favorite.createdAt | date:'mediumDate' }}</small>

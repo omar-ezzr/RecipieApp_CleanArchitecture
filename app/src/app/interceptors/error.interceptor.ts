@@ -63,7 +63,7 @@ export class ErrorInterceptor implements HttpInterceptor {
         if (error.status === 403) {
 
           this.toastr.error(
-            'Access denied'
+            'You do not have permission to perform this action.'
           );
         }
 
@@ -99,7 +99,7 @@ export class ErrorInterceptor implements HttpInterceptor {
     this.auth.logout();
 
     this.toastr.error(
-      'Session expired'
+      'Your session has expired. Please sign in again.'
     );
 
     this.router.navigate([

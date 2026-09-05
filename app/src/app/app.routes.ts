@@ -72,8 +72,7 @@ export const routes: Routes = [
   { path: 'admin/categories', loadComponent: () => import('./pages/admin/reference-data/reference-data.component').then(m => m.ReferenceDataComponent), canActivate: [authGuard, adminGuard], data: { kind: 'categories' } },
   { path: 'admin/cuisines', loadComponent: () => import('./pages/admin/reference-data/reference-data.component').then(m => m.ReferenceDataComponent), canActivate: [authGuard, adminGuard], data: { kind: 'cuisines' } },
   { path: 'admin/regions', loadComponent: () => import('./pages/admin/reference-data/reference-data.component').then(m => m.ReferenceDataComponent), canActivate: [authGuard, adminGuard], data: { kind: 'regions' } },
-  {
-    path: '**',
-    redirectTo: 'recipes'
-  }
+  { path: 'forbidden', loadComponent: () => import('./pages/forbidden/forbidden.component').then(m => m.ForbiddenComponent) },
+  { path: 'not-found', loadComponent: () => import('./pages/not-found/not-found.component').then(m => m.NotFoundComponent) },
+  { path: '**', loadComponent: () => import('./pages/not-found/not-found.component').then(m => m.NotFoundComponent) }
 ];

@@ -191,20 +191,3 @@
 
 
 .recipe-edit-shell,.publish-layout,.publish-sections,.form-section,.recipe-preview,.form-grid,.dynamic-row{display:grid;gap:var(--space-4)}.publish-layout{align-items:start}.publish-sections{gap:var(--space-6)}.form-section,.recipe-preview{border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:var(--space-4);background:rgba(251,250,244,.88)}.section-action-row,.publish-actions{display:flex;flex-wrap:wrap;gap:var(--space-3);justify-content:space-between}.traditional-toggle{display:flex!important;grid-column:1/-1;gap:var(--space-2)}.full-span{grid-column:1/-1}.recipe-preview{align-self:start;height:fit-content;min-height:0}.recipe-preview img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:var(--radius-md)}.recipe-preview h2,.recipe-preview p,.recipe-preview dl,.recipe-preview dd{margin:0}.recipe-preview dl{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-2)}@media (min-width:720px){.form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.ingredient-row{grid-template-columns:minmax(0,1fr) minmax(10rem,.45fr) auto}.step-row{grid-template-columns:44px minmax(0,1fr) auto}}@media (min-width:1100px){.publish-layout{grid-template-columns:minmax(0,1fr) 340px}.recipe-preview{position:sticky;top:100px}}
-.comments-intro { margin: var(--space-2) 0 0; color: var(--color-ink-soft); line-height: 1.6; }
-.comment-composer { display: grid; gap: var(--space-4); margin-top: var(--space-4); padding: clamp(1rem, 3vw, 1.5rem); border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: rgba(251, 250, 244, 0.9); }
-.comment-composer label { display: grid; gap: var(--space-2); }
-.comment-composer textarea { min-height: 120px; resize: vertical; }
-.comment-composer-footer, .comment-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; justify-content: space-between; }
-.comment-composer-footer small { color: var(--color-ink-soft); font-family: var(--font-ui); }
-.comments-empty { display: grid; gap: .25rem; margin-top: var(--space-4); padding: var(--space-5); border: 1px dashed var(--color-border); border-radius: var(--radius-lg); color: var(--color-ink-soft); text-align: center; }
-.comments-empty strong { color: var(--color-forest-900); font-family: var(--font-display); }
-.comment-card { display: grid; grid-template-columns: 2.5rem minmax(0, 1fr); gap: var(--space-3); margin-top: var(--space-3); padding: var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: rgba(251, 250, 244, 0.88); }
-.comment-avatar { display: grid; width: 2.5rem; height: 2.5rem; place-items: center; border-radius: 50%; background: var(--color-sage-100); color: var(--color-forest-900); font-family: var(--font-display); font-weight: 800; }
-.comment-content { min-width: 0; display: grid; gap: var(--space-2); }
-.comment-meta { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: baseline; }
-.comment-meta a { color: var(--color-forest-900); text-decoration: none; }
-.comment-meta span { color: var(--color-ink-soft); font-family: var(--font-ui); font-size: .875rem; }
-.comment-content p { margin: 0; overflow-wrap: anywhere; line-height: 1.7; }
-.comment-actions { justify-content: flex-end; margin-top: var(--space-1); }
-@media (max-width: 520px) { .comment-composer-footer { align-items: stretch; } .comment-composer-footer .btn { width: 100%; } .comment-actions { justify-content: flex-start; } }

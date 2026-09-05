@@ -9,7 +9,7 @@ export const adminGuard: CanActivateFn = () => {
   const token = auth.getAccessToken();
 
   if (token && !auth.isTokenExpired(token)) {
-    return auth.isAdmin() ? true : router.createUrlTree(['/recipes']);
+    return auth.isAdmin() ? true : router.createUrlTree(['/forbidden']);
   }
 
   return auth.restoreSession().pipe(
@@ -18,7 +18,7 @@ export const adminGuard: CanActivateFn = () => {
         return router.createUrlTree(['/login']);
       }
 
-      return auth.isAdmin() ? true : router.createUrlTree(['/recipes']);
+      return auth.isAdmin() ? true : router.createUrlTree(['/forbidden']);
     })
   );
 };
