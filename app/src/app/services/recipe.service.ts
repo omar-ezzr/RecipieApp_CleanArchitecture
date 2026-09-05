@@ -53,15 +53,21 @@ return this.http.put<Recipe>(
 );    
 }
 
-    uploadImage(id: string, file: File): Observable<{ imageUrl: string }> {
-      const data = new FormData();
-      data.append("file", file);
-      return this.http.post<{ imageUrl: string }>(`//image`, data);
-    }
+uploadImage(id: string, file: File): Observable<{ imageUrl: string }> {
+  const data = new FormData();
+  data.append('file', file);
 
-    removeImage(id: string): Observable<void> {
-      return this.http.delete<void>(`//image`);
-    }
+  return this.http.post<{ imageUrl: string }>(
+    `${this.apiUrl}/${id}/image`,
+    data
+  );
+}
+
+removeImage(id: string): Observable<void> {
+  return this.http.delete<void>(
+    `${this.apiUrl}/${id}/image`
+  );
+}
 
     delete(id: string) {
 return this.http.delete(
