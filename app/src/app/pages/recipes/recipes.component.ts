@@ -1,5 +1,5 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
+
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { Subject } from 'rxjs';
@@ -13,7 +13,7 @@ import { RecipeService } from '../../services/recipe.service';
 import { CategoryService } from '../../services/category.service';
 import { CuisineService } from '../../services/cuisine.service';
 import { AuthService } from '../../services/auth.service';
-import { ToastrService } from 'ngx-toastr';
+import { ToastrService } from '@openng/ngx-toastr';
 import { FavoriteService } from '../../services/favorite.service';
 import { LikeService } from '../../services/like.service';
 import { API_BASE_URL } from '../../app-api.config';
@@ -22,11 +22,11 @@ import { EmptyStateComponent } from '../../shared/components/empty-state/empty-s
 import { RecipeCardComponent } from '../../shared/components/recipe-card/recipe-card.component';
 import { RecipeCardSkeletonComponent } from '../../shared/components/recipe-card-skeleton/recipe-card-skeleton.component';
 @Component({
-  selector: 'app-recipes',
-  standalone: true,
-imports: [CommonModule, FormsModule, RouterModule, EmptyStateComponent, RecipeCardComponent, RecipeCardSkeletonComponent],
-  templateUrl: './recipes.component.html',
-  styleUrls: ['./recipes.component.css']
+    selector: 'app-recipes',
+    imports: [FormsModule, RouterModule, EmptyStateComponent, RecipeCardComponent, RecipeCardSkeletonComponent],
+    templateUrl: './recipes.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
+    styleUrls: ['./recipes.component.css']
 })
 export class RecipesComponent implements OnInit {
 
@@ -67,7 +67,7 @@ totalPages: number = 0;
 sortBy: string = '';
 visiblePages: (number | string)[] = [];
 
-  
+
 constructor(
   private recipeService: RecipeService,
   private categoryService: CategoryService,
@@ -394,7 +394,7 @@ deleteRecipe(recipeOrId: Recipe | string) {
 
     next: () => {
 
-      this.toastr.success('Recipe deleted successfully');
+      this.toastr.success('Recipe deleted successfully');
     },
 
     error: (error) => {
@@ -520,7 +520,7 @@ toggleLikeRecipe(recipe: Recipe): void {
 
   request.subscribe({
     next: () => {
-      this.busyLikes.delete(recipe.id);
+      this.busyLikes.delete(recipe.id);
     },
     error: error => {
       recipe.isLikedByCurrentUser = wasLiked;

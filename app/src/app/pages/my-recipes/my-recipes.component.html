@@ -8,39 +8,53 @@
     <a class="btn btn-primary-app" routerLink="/create-recipe">Create Recipe</a>
   </header>
 
-  <div class="library-count" *ngIf="!isLoading && !error">
-    <strong>{{ totalItems }}</strong>
-    <span>{{ totalItems === 1 ? 'published recipe' : 'published recipes' }}</span>
-  </div>
+  @if (!isLoading && !error) {
+    <div class="library-count">
+      <strong>{{ totalItems }}</strong>
+      <span>{{ totalItems === 1 ? 'published recipe' : 'published recipes' }}</span>
+    </div>
+  }
 
-  <div class="alert alert-danger" *ngIf="error">{{ error }}</div>
+  @if (error) {
+    <div class="alert alert-danger">{{ error }}</div>
+  }
 
-  <div class="recipe-grid" *ngIf="isLoading">
-    <app-recipe-card-skeleton *ngFor="let skeleton of skeletonCards"></app-recipe-card-skeleton>
-  </div>
+  @if (isLoading) {
+    <div class="recipe-grid">
+      @for (skeleton of skeletonCards; track skeleton) {
+        <app-recipe-card-skeleton></app-recipe-card-skeleton>
+      }
+    </div>
+  }
 
-  <app-empty-state
-    *ngIf="!isLoading && !error && recipes.length === 0"
-    title="Your kitchen is still quiet."
-    message="Publish your first recipe and share where it comes from."
-    actionText="Create Recipe"
-    actionLink="/create-recipe">
-  </app-empty-state>
+  @if (!isLoading && !error && recipes.length === 0) {
+    <app-empty-state
+      title="Your kitchen is still quiet."
+      message="Publish your first recipe and share where it comes from."
+      actionText="Create Recipe"
+      actionLink="/create-recipe">
+    </app-empty-state>
+  }
 
-  <div class="recipe-grid" *ngIf="!isLoading && recipes.length > 0">
-    <app-recipe-card
-      *ngFor="let recipe of recipes; trackBy: trackRecipe"
-      [recipe]="recipe"
-      [showFavorite]="false"
-      [canManage]="true"
-      (edit)="editRecipe($event)"
-      (delete)="deleteRecipe($event)">
-    </app-recipe-card>
-  </div>
+  @if (!isLoading && recipes.length > 0) {
+    <div class="recipe-grid">
+      @for (recipe of recipes; track trackRecipe($index, recipe)) {
+        <app-recipe-card
+          [recipe]="recipe"
+          [showFavorite]="false"
+          [canManage]="true"
+          (edit)="editRecipe($event)"
+          (delete)="deleteRecipe($event)">
+        </app-recipe-card>
+      }
+    </div>
+  }
 
-  <nav class="library-pagination" *ngIf="totalPages > 1" aria-label="My recipes pagination">
-    <button class="btn btn-secondary-app" [disabled]="currentPage === 1" (click)="goToPage(currentPage - 1)">Previous</button>
-    <span>Page {{ currentPage }} of {{ totalPages }}</span>
-    <button class="btn btn-secondary-app" [disabled]="currentPage === totalPages" (click)="goToPage(currentPage + 1)">Next</button>
-  </nav>
+  @if (totalPages > 1) {
+    <nav class="library-pagination" aria-label="My recipes pagination">
+      <button class="btn btn-secondary-app" [disabled]="currentPage === 1" (click)="goToPage(currentPage - 1)">Previous</button>
+      <span>Page {{ currentPage }} of {{ totalPages }}</span>
+      <button class="btn btn-secondary-app" [disabled]="currentPage === totalPages" (click)="goToPage(currentPage + 1)">Next</button>
+    </nav>
+  }
 </section>

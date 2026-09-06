@@ -1,7 +1,7 @@
-import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { RouterModule } from '@angular/router';
-import { ToastrService } from 'ngx-toastr';
+import { ToastrService } from '@openng/ngx-toastr';
 import { FeedRecipe } from '../../models/feed.model';
 import { DifficultyLevel, Recipe } from '../../models/recipe.model';
 import { FavoriteService } from '../../services/favorite.service';
@@ -12,11 +12,11 @@ import { RecipeCardComponent } from '../../shared/components/recipe-card/recipe-
 import { RecipeCardSkeletonComponent } from '../../shared/components/recipe-card-skeleton/recipe-card-skeleton.component';
 
 @Component({
-  selector: 'app-feed',
-  standalone: true,
-  imports: [CommonModule, RouterModule, EmptyStateComponent, RecipeCardComponent, RecipeCardSkeletonComponent],
-  templateUrl: './feed.component.html',
-  styleUrl: './feed.component.css'
+    selector: 'app-feed',
+    imports: [RouterModule, EmptyStateComponent, RecipeCardComponent, RecipeCardSkeletonComponent],
+    templateUrl: './feed.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
+    styleUrl: './feed.component.css'
 })
 export class FeedComponent implements OnInit {
   recipes: Recipe[] = [];

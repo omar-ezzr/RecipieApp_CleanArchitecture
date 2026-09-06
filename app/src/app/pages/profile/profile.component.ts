@@ -1,7 +1,7 @@
-import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { ToastrService } from 'ngx-toastr';
+import { ToastrService } from '@openng/ngx-toastr';
 import { PagedResult } from '../../models/paged-result.model';
 import { Recipe } from '../../models/recipe.model';
 import { PublicUserProfile, UserSummary } from '../../models/user-profile.model';
@@ -12,11 +12,11 @@ import { EmptyStateComponent } from '../../shared/components/empty-state/empty-s
 import { RecipeCardComponent } from '../../shared/components/recipe-card/recipe-card.component';
 
 @Component({
-  selector: 'app-profile',
-  standalone: true,
-  imports: [CommonModule, RouterModule, EmptyStateComponent, RecipeCardComponent],
-  templateUrl: './profile.component.html',
-  styleUrl: './profile.component.css'
+    selector: 'app-profile',
+    imports: [RouterModule, EmptyStateComponent, RecipeCardComponent],
+    templateUrl: './profile.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
+    styleUrl: './profile.component.css'
 })
 export class ProfileComponent implements OnInit {
   profile?: PublicUserProfile;

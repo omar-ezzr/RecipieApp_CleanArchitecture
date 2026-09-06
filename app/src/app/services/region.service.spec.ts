@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { RegionService } from './region.service';
 
@@ -9,7 +9,7 @@ describe('RegionService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [RegionService, provideHttpClient(), provideHttpClientTesting()]
+      providers: [RegionService, provideHttpClient(withXhr()), provideHttpClientTesting()]
     });
 
     service = TestBed.inject(RegionService);

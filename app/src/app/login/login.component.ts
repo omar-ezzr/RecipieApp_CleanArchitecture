@@ -1,23 +1,23 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 
 import { Router } from '@angular/router';
 import { RouterLink } from '@angular/router';
 
 import { FormsModule } from '@angular/forms';
 
-import { CommonModule } from '@angular/common';
 
-import { ToastrService } from 'ngx-toastr';
+
+import { ToastrService } from '@openng/ngx-toastr';
 
 import { AuthService } from '../services/auth.service';
 
 
 @Component({
-  selector: 'app-login',
-  standalone: true,
-  imports: [FormsModule, CommonModule, RouterLink],
-  templateUrl: './login.component.html',
-  styleUrl: './login.component.css'
+    selector: 'app-login',
+    imports: [FormsModule, RouterLink],
+    templateUrl: './login.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
+    styleUrl: './login.component.css'
 })
 
 export class LoginComponent {

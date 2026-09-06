@@ -1,6 +1,6 @@
 import { HttpErrorResponse, HttpHandler, HttpRequest } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { ToastrService } from 'ngx-toastr';
+import { ToastrService } from '@openng/ngx-toastr';
 import { of, throwError } from 'rxjs';
 import { ErrorInterceptor } from './error.interceptor';
 import { AuthService } from '../services/auth.service';

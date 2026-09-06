@@ -1,18 +1,18 @@
-import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { AdminNavComponent } from '../admin-nav.component';
 import { FormsModule } from '@angular/forms';
-import { ToastrService } from 'ngx-toastr';
+import { ToastrService } from '@openng/ngx-toastr';
 import { AuthService } from '../../../services/auth.service';
 import { UserManagementService } from '../../../services/user-management.service';
 import { CreateUserAccountRequest, UserAccount, UserRole } from '../../../models/user-account.model';
 
 @Component({
-  selector: 'app-accounts',
-  standalone: true,
-  imports: [CommonModule, FormsModule, AdminNavComponent],
-  templateUrl: './accounts.component.html',
-  styleUrl: './accounts.component.css'
+    selector: 'app-accounts',
+    imports: [FormsModule, AdminNavComponent],
+    templateUrl: './accounts.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
+    styleUrl: './accounts.component.css'
 })
 export class AccountsComponent implements OnInit {
   accounts: UserAccount[] = [];

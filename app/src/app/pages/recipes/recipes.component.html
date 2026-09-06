@@ -18,43 +18,53 @@
           [(ngModel)]="searchTerm"
           (input)="onSearchChange()"
           placeholder="Search by title, origin, or ingredient">
-        <button type="button" *ngIf="searchTerm" (click)="clearSearch()" aria-label="Clear search">×</button>
+        @if (searchTerm) {
+          <button type="button" (click)="clearSearch()" aria-label="Clear search">×</button>
+        }
       </div>
 
       <div class="hero-links">
         <a class="btn btn-primary-app" routerLink="/recipes">Explore recipes</a>
-        <a class="btn btn-secondary-app" routerLink="/create-recipe" *ngIf="auth.isLoggedIn()">Share a recipe</a>
+        @if (auth.isLoggedIn()) {
+          <a class="btn btn-secondary-app" routerLink="/create-recipe">Share a recipe</a>
+        }
       </div>
     </div>
   </header>
 
-  <section class="culture-section" *ngIf="cuisines.length">
-    <div class="section-heading">
-      <div>
-        <p class="ui-label">Cuisine atlas</p>
-        <h2 class="section-title">Explore by cuisine</h2>
+  @if (cuisines.length) {
+    <section class="culture-section">
+      <div class="section-heading">
+        <div>
+          <p class="ui-label">Cuisine atlas</p>
+          <h2 class="section-title">Explore by cuisine</h2>
+        </div>
+        @if (selectedCuisine) {
+          <button type="button" class="btn btn-secondary-app btn-sm" (click)="clearCuisineFilter()">
+            Clear cuisine
+          </button>
+        }
       </div>
-      <button type="button" class="btn btn-secondary-app btn-sm" *ngIf="selectedCuisine" (click)="clearCuisineFilter()">
-        Clear cuisine
-      </button>
-    </div>
-
-    <div class="culture-rail" aria-label="Cuisine filters">
-      <button
-        type="button"
-        class="culture-tile"
-        [class.active]="selectedCuisine === cuisine.id"
-        *ngFor="let cuisine of cuisines; trackBy: trackCuisine"
-        (click)="selectCuisine(cuisine.id)">
-        <img [src]="resolveImageUrl(cuisine.imageUrl)" [alt]="cuisine.name" loading="lazy">
-        <span>
-          <strong>{{ cuisine.name }}</strong>
-          <small>{{ cuisine.countryCode }}</small>
-        </span>
-        <em *ngIf="cuisine.recipeCount !== undefined">{{ cuisine.recipeCount }} recipes</em>
-      </button>
-    </div>
-  </section>
+      <div class="culture-rail" aria-label="Cuisine filters">
+        @for (cuisine of cuisines; track trackCuisine($index, cuisine)) {
+          <button
+            type="button"
+            class="culture-tile"
+            [class.active]="selectedCuisine === cuisine.id"
+            (click)="selectCuisine(cuisine.id)">
+            <img [src]="resolveImageUrl(cuisine.imageUrl)" [alt]="cuisine.name" loading="lazy">
+            <span>
+              <strong>{{ cuisine.name }}</strong>
+              <small>{{ cuisine.countryCode }}</small>
+            </span>
+            @if (cuisine.recipeCount !== undefined) {
+              <em>{{ cuisine.recipeCount }} recipes</em>
+            }
+          </button>
+        }
+      </div>
+    </section>
+  }
 
   <div class="mobile-filter-toggle">
     <button
@@ -78,7 +88,9 @@
         <label class="form-label" for="categoryFilter">Category</label>
         <select id="categoryFilter" [(ngModel)]="selectedCategory" class="form-select" (change)="applyFilters()">
           <option value="">All categories</option>
-          <option *ngFor="let c of categories" [value]="c.id">{{ c.name }}</option>
+          @for (c of categories; track c) {
+            <option [value]="c.id">{{ c.name }}</option>
+          }
         </select>
       </div>
 
@@ -86,9 +98,11 @@
         <label class="form-label" for="cuisineFilter">Cuisine</label>
         <select id="cuisineFilter" [(ngModel)]="selectedCuisine" class="form-select" (change)="onCuisineFilterChange()">
           <option value="">All cuisines</option>
-          <option *ngFor="let cuisine of cuisines; trackBy: trackCuisine" [value]="cuisine.id">
-            {{ cuisine.name }}
-          </option>
+          @for (cuisine of cuisines; track trackCuisine($index, cuisine)) {
+            <option [value]="cuisine.id">
+              {{ cuisine.name }}
+            </option>
+          }
         </select>
       </div>
 
@@ -96,7 +110,9 @@
         <label class="form-label" for="regionFilter">Region</label>
         <select id="regionFilter" [(ngModel)]="selectedRegion" class="form-select" [disabled]="!selectedCuisine" (change)="onRegionFilterChange()">
           <option value="">All regions</option>
-          <option *ngFor="let region of regions; trackBy: trackRegion" [value]="region.id">{{ region.name }}</option>
+          @for (region of regions; track trackRegion($index, region)) {
+            <option [value]="region.id">{{ region.name }}</option>
+          }
         </select>
       </div>
 
@@ -142,55 +158,68 @@
           <p class="ui-label">Latest recipes</p>
           <h2 class="section-title">{{ totalItems }} {{ totalItems === 1 ? 'recipe' : 'recipes' }}</h2>
         </div>
-        <a class="btn btn-primary-app" routerLink="/create-recipe" *ngIf="auth.isLoggedIn()">Create Recipe</a>
+        @if (auth.isLoggedIn()) {
+          <a class="btn btn-primary-app" routerLink="/create-recipe">Create Recipe</a>
+        }
       </div>
 
-      <div class="recipe-grid" *ngIf="isLoading">
-        <app-recipe-card-skeleton *ngFor="let skeleton of skeletonCards"></app-recipe-card-skeleton>
-      </div>
+      @if (isLoading) {
+        <div class="recipe-grid">
+          @for (skeleton of skeletonCards; track skeleton) {
+            <app-recipe-card-skeleton></app-recipe-card-skeleton>
+          }
+        </div>
+      }
 
-      <app-empty-state
-        *ngIf="!isLoading && !filteredRecipes.length"
-        title="No recipes found"
-        message="Try removing a filter or searching for another ingredient."
-        actionText="Clear all filters"
-        (action)="clearAllFilters()">
-      </app-empty-state>
+      @if (!isLoading && !filteredRecipes.length) {
+        <app-empty-state
+          title="No recipes found"
+          message="Try removing a filter or searching for another ingredient."
+          actionText="Clear all filters"
+          (action)="clearAllFilters()">
+        </app-empty-state>
+      }
 
-      <div class="recipe-grid" *ngIf="!isLoading && filteredRecipes.length">
-        <app-recipe-card
-          *ngFor="let recipe of filteredRecipes; trackBy: trackRecipe"
-          [recipe]="recipe"
-          [isLiked]="!!recipe.isLikedByCurrentUser"
-          [isFavorite]="isFavorite(recipe.id)"
-          [isLikeBusy]="busyLikes.has(recipe.id)"
-          [showFavorite]="auth.isLoggedIn()"
-          [canManage]="canManageRecipe(recipe)"
-          (likeToggled)="toggleLikeRecipe($event)"
-          (favoriteToggled)="toggleFavoriteRecipe($event)"
-          (edit)="editRecipe($event)"
-          (delete)="deleteRecipe($event)">
-        </app-recipe-card>
-      </div>
+      @if (!isLoading && filteredRecipes.length) {
+        <div class="recipe-grid">
+          @for (recipe of filteredRecipes; track trackRecipe($index, recipe)) {
+            <app-recipe-card
+              [recipe]="recipe"
+              [isLiked]="!!recipe.isLikedByCurrentUser"
+              [isFavorite]="isFavorite(recipe.id)"
+              [isLikeBusy]="busyLikes.has(recipe.id)"
+              [showFavorite]="auth.isLoggedIn()"
+              [canManage]="canManageRecipe(recipe)"
+              (likeToggled)="toggleLikeRecipe($event)"
+              (favoriteToggled)="toggleFavoriteRecipe($event)"
+              (edit)="editRecipe($event)"
+              (delete)="deleteRecipe($event)">
+            </app-recipe-card>
+          }
+        </div>
+      }
 
-      <nav class="pagination-wrap" *ngIf="totalPages > 1" aria-label="Recipe pagination">
-        <button type="button" class="btn btn-secondary-app" [disabled]="currentPage === 1" (click)="goToPage(currentPage - 1)">
-          Previous
-        </button>
-        <button
-          type="button"
-          class="page-number"
-          *ngFor="let page of visiblePages; trackBy: trackPage"
-          [class.active]="page === currentPage"
-          [attr.aria-current]="page === currentPage ? 'page' : null"
-          [disabled]="page === '...'"
-          (click)="page !== '...' && goToPage(+page)">
-          {{ page }}
-        </button>
-        <button type="button" class="btn btn-secondary-app" [disabled]="currentPage === totalPages" (click)="goToPage(currentPage + 1)">
-          Next
-        </button>
-      </nav>
+      @if (totalPages > 1) {
+        <nav class="pagination-wrap" aria-label="Recipe pagination">
+          <button type="button" class="btn btn-secondary-app" [disabled]="currentPage === 1" (click)="goToPage(currentPage - 1)">
+            Previous
+          </button>
+          @for (page of visiblePages; track trackPage($index, page)) {
+            <button
+              type="button"
+              class="page-number"
+              [class.active]="page === currentPage"
+              [attr.aria-current]="page === currentPage ? 'page' : null"
+              [disabled]="page === '...'"
+              (click)="page !== '...' && goToPage(+page)">
+              {{ page }}
+            </button>
+          }
+          <button type="button" class="btn btn-secondary-app" [disabled]="currentPage === totalPages" (click)="goToPage(currentPage + 1)">
+            Next
+          </button>
+        </nav>
+      }
     </section>
   </div>
 </section>

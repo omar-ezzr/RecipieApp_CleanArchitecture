@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
@@ -476,6 +477,12 @@ public sealed class RecipeApiFactory : WebApplicationFactory<Program>, IAsyncLif
             if (dbContextDescriptor is not null)
             {
                 services.Remove(dbContextDescriptor);
+            }
+            var configurationDescriptor = services.SingleOrDefault(
+                descriptor => descriptor.ServiceType == typeof(IDbContextOptionsConfiguration<AppDbContext>));
+            if (configurationDescriptor is not null)
+            {
+                services.Remove(configurationDescriptor);
             }
 
             services.AddSingleton(_connection);

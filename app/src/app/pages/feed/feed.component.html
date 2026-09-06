@@ -7,36 +7,46 @@
     <a class="btn btn-secondary-app" routerLink="/recipes">Explore recipes</a>
   </header>
 
-  <div class="recipe-grid" *ngIf="isLoading">
-    <app-recipe-card-skeleton *ngFor="let skeleton of skeletonCards"></app-recipe-card-skeleton>
-  </div>
+  @if (isLoading) {
+    <div class="recipe-grid">
+      @for (skeleton of skeletonCards; track skeleton) {
+        <app-recipe-card-skeleton></app-recipe-card-skeleton>
+      }
+    </div>
+  }
 
-  <app-empty-state
-    *ngIf="!isLoading && recipes.length === 0"
-    title="Your feed is empty"
-    message="Follow cooks to see their latest recipes."
-    actionLabel="Explore recipes"
-    actionLink="/recipes">
-  </app-empty-state>
+  @if (!isLoading && recipes.length === 0) {
+    <app-empty-state
+      title="Your feed is empty"
+      message="Follow cooks to see their latest recipes."
+      actionLabel="Explore recipes"
+      actionLink="/recipes">
+    </app-empty-state>
+  }
 
-  <div class="recipe-grid" *ngIf="!isLoading && recipes.length">
-    <app-recipe-card
-      *ngFor="let recipe of recipes; trackBy: trackRecipe"
-      [recipe]="recipe"
-      [isLiked]="!!recipe.isLikedByCurrentUser"
-      [isFavorite]="!!recipe.isFavoriteByCurrentUser"
-      [isLikeBusy]="busyLikes.has(recipe.id)"
-      [showFavorite]="true"
-      [showLike]="true"
-      [showManageActions]="false"
-      (likeToggled)="toggleLike($event)"
-      (favoriteToggled)="toggleFavorite($event)">
-    </app-recipe-card>
-  </div>
+  @if (!isLoading && recipes.length) {
+    <div class="recipe-grid">
+      @for (recipe of recipes; track trackRecipe($index, recipe)) {
+        <app-recipe-card
+          [recipe]="recipe"
+          [isLiked]="!!recipe.isLikedByCurrentUser"
+          [isFavorite]="!!recipe.isFavoriteByCurrentUser"
+          [isLikeBusy]="busyLikes.has(recipe.id)"
+          [showFavorite]="true"
+          [showLike]="true"
+          [showManageActions]="false"
+          (likeToggled)="toggleLike($event)"
+          (favoriteToggled)="toggleFavorite($event)">
+        </app-recipe-card>
+      }
+    </div>
+  }
 
-  <nav class="pagination-wrap" *ngIf="totalPages > 1" aria-label="Feed pagination">
-    <button type="button" class="btn btn-secondary-app" [disabled]="currentPage === 1" (click)="goToPage(currentPage - 1)">Previous</button>
-    <span>{{ currentPage }} / {{ totalPages }}</span>
-    <button type="button" class="btn btn-secondary-app" [disabled]="currentPage === totalPages" (click)="goToPage(currentPage + 1)">Next</button>
-  </nav>
+  @if (totalPages > 1) {
+    <nav class="pagination-wrap" aria-label="Feed pagination">
+      <button type="button" class="btn btn-secondary-app" [disabled]="currentPage === 1" (click)="goToPage(currentPage - 1)">Previous</button>
+      <span>{{ currentPage }} / {{ totalPages }}</span>
+      <button type="button" class="btn btn-secondary-app" [disabled]="currentPage === totalPages" (click)="goToPage(currentPage + 1)">Next</button>
+    </nav>
+  }
 </section>

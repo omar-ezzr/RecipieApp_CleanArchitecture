@@ -1,6 +1,6 @@
 # Recepie
 
-RecepieV3 is a full-stack social recipe platform built with ASP.NET Core, EF Core, SQL Server, and Angular 18 standalone components.
+RecepieV3 is a full-stack social recipe platform built with ASP.NET Core 10, EF Core 10, SQL Server, and Angular 21 standalone components.
 
 The product is a public cooking network, not an Admin-only recipe catalog. Authenticated users publish their own recipes, manage the recipes they created, browse cultural cooking styles, follow cooks, react to recipes with Likes, save recipes privately, comment, and write reviews. Admins moderate the platform and can manage any recipe or user account when authorized.
 
@@ -36,7 +36,7 @@ Core.Domain        Entities, enums, constants
 Core.Application   DTOs, interfaces, services/use cases, validators
 Infrastructure     EF Core DbContext, configurations, repositories, migrations, seeders
 tests/             xUnit unit and integration tests
-app/               Angular 18 standalone frontend
+app/               Angular 21 standalone frontend
 ```
 
 Main request flow:
@@ -59,7 +59,7 @@ The Angular app lives in `app/`.
 
 The frontend uses:
 
-- Angular 18 standalone components.
+- Angular 21 standalone components.
 - Angular Router guards and HTTP interceptors.
 - ngx-toastr.
 - Bootstrap as a dependency, with a custom editorial design system layered on top.
@@ -125,6 +125,17 @@ Default local URLs:
 - API HTTP launch profile: `http://localhost:5130`
 - Angular dev server: `http://localhost:4203`
 - Swagger is available in Development when the API is running.
+
+## Production Docker deployment
+
+The application can run as an Angular/Nginx web container, ASP.NET Core API container, and persistent SQL Server container. Copy `.env.example` to an untracked `.env`, set secure values, then run:
+
+```bash
+docker compose build
+docker compose up -d
+```
+
+The web container is exposed at `http://localhost:8080`; it proxies `/api/` and `/images/` to the API. Health endpoints are `/health/live` and `/health/ready`. Production configuration is environment-variable based; no secrets belong in repository configuration or Docker images. Database migrations are explicit and must be applied before deploying the API. See [the production runbook](docs/PRODUCTION_RUNBOOK.md) for migrations, backups/restores, image persistence, TLS, validation, and rollback.
 
 ## Validation Status
 

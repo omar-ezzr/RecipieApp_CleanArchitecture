@@ -52,8 +52,12 @@
 
     <button class="btn btn-primary-app w-100" type="submit">Register</button>
 
-    <div *ngIf="message" class="alert alert-success">{{ message }}</div>
-    <div *ngIf="error" class="alert alert-danger">{{ error }}</div>
+    @if (message) {
+      <div class="alert alert-success">{{ message }}</div>
+    }
+    @if (error) {
+      <div class="alert alert-danger">{{ error }}</div>
+    }
 
     <p class="auth-switch">
       Already have an account?

@@ -1,17 +1,17 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { RouterModule } from '@angular/router';
-import { ToastrService } from 'ngx-toastr';
+import { ToastrService } from '@openng/ngx-toastr';
 import { SocialNotification } from '../../models/notification.model';
 import { NotificationService } from '../../services/notification.service';
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
 
 @Component({
-  selector: 'app-notifications',
-  standalone: true,
-  imports: [CommonModule, RouterModule, EmptyStateComponent],
-  templateUrl: './notifications.component.html',
-  styleUrl: './notifications.component.css'
+    selector: 'app-notifications',
+    imports: [CommonModule, RouterModule, EmptyStateComponent],
+    templateUrl: './notifications.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
+    styleUrl: './notifications.component.css'
 })
 export class NotificationsComponent implements OnInit {
   notifications: SocialNotification[] = [];

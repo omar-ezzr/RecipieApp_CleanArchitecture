@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { RouterModule } from '@angular/router';
@@ -11,7 +11,7 @@ import { API_BASE_URL } from '../app-api.config';
 import { resolveAssetUrl } from '../core/utils/asset-url.util';
 import { FavoriteService } from '../services/favorite.service';
 import { AuthService } from '../services/auth.service';
-import { ToastrService } from 'ngx-toastr';
+import { ToastrService } from '@openng/ngx-toastr';
 import { CommentService } from '../services/comment.service';
 import { RecipeComment } from '../models/recipe-comment.model';
 import { LikeService } from '../services/like.service';
@@ -23,11 +23,11 @@ import { CuisineService } from '../services/cuisine.service';
 import { RecipeFormMapper } from '../core/recipes/recipe-form.mapper';
 
 @Component({
-  selector: 'app-recipe-details',
-  standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
-  templateUrl: './recipe-details.component.html',
-  styleUrl: './recipe-details.component.css'
+    selector: 'app-recipe-details',
+    imports: [CommonModule, FormsModule, RouterModule],
+    templateUrl: './recipe-details.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
+    styleUrl: './recipe-details.component.css'
 })
 export class RecipeDetailsComponent implements OnInit {
   recipe?: Recipe;
@@ -574,11 +574,11 @@ export class RecipeDetailsComponent implements OnInit {
     return this.auth.isAdmin() || (!!currentUserId && comment.author.id === currentUserId);
   }
 
-  trackIngredient(index: number): number {
+  trackIngredient(index: number, _ingredient: unknown): number {
     return index;
   }
 
-  trackStep(index: number): number {
+  trackStep(index: number, _step: unknown): number {
     return index;
   }
 

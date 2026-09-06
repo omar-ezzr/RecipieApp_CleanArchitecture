@@ -6,14 +6,15 @@ import {
 import {
   provideHttpClient,
   withInterceptorsFromDi,
-  HTTP_INTERCEPTORS
+  HTTP_INTERCEPTORS,
+  withXhr
 } from '@angular/common/http';
 
 import { provideRouter } from '@angular/router';
 
 import { provideAnimations } from '@angular/platform-browser/animations';
 
-import { provideToastr } from 'ngx-toastr';
+import { provideToastr } from '@openng/ngx-toastr';
 
 import { routes } from './app.routes';
 
@@ -31,7 +32,7 @@ export const appConfig: ApplicationConfig = {
 
     provideRouter(routes),
 
-    provideHttpClient(
+    provideHttpClient(withXhr(), 
       withInterceptorsFromDi()
     ),
 

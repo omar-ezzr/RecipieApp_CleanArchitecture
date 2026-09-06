@@ -15,8 +15,12 @@
 
     <nav class="footer-links" aria-label="Footer navigation">
       <a routerLink="/recipes">Explore Recipes</a>
-      <a *ngIf="auth.isLoggedIn()" routerLink="/create-recipe">Create Recipe</a>
-      <a *ngIf="auth.isLoggedIn()" routerLink="/my-recipes">My Recipes</a>
+      @if (auth.isLoggedIn()) {
+        <a routerLink="/create-recipe">Create Recipe</a>
+      }
+      @if (auth.isLoggedIn()) {
+        <a routerLink="/my-recipes">My Recipes</a>
+      }
     </nav>
 
     <p class="footer-year">&copy; {{ currentYear }} Recipie</p>

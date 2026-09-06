@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { CuisineService } from './cuisine.service';
 
@@ -9,7 +9,7 @@ describe('CuisineService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [CuisineService, provideHttpClient(), provideHttpClientTesting()]
+      providers: [CuisineService, provideHttpClient(withXhr()), provideHttpClientTesting()]
     });
 
     service = TestBed.inject(CuisineService);

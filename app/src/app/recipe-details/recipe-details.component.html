@@ -1,292 +1,347 @@
 <section class="page-shell recipe-details-shell">
-  <div *ngIf="isLoading" class="details-loading">
-    <div class="spinner-border" role="status" aria-label="Loading recipe"></div>
-  </div>
-
-  <article *ngIf="recipe && !isLoading && !isEditMode" class="recipe-article">
-    <a class="back-link" routerLink="/recipes">Back to recipes</a>
-
-    <header class="recipe-hero">
-      <div class="recipe-headline">
-        <p class="ui-label">
-          <a [routerLink]="['/recipes']" [queryParams]="{ cuisineId: recipe.cuisineId }">{{ recipe.cuisineName }}</a>
-          <span *ngIf="recipe.regionId && recipe.regionName"> / </span>
-          <a
-            *ngIf="recipe.regionId && recipe.regionName"
-            [routerLink]="['/recipes']"
-            [queryParams]="{ cuisineId: recipe.cuisineId, regionId: recipe.regionId }">
-            {{ recipe.regionName }}
-          </a>
-        </p>
-        <h1 class="display-title">{{ recipe.title }}</h1>
-        <p class="traditional-name" *ngIf="recipe.traditionalName">{{ recipe.traditionalName }}</p>
-        <p class="body-copy">{{ recipe.description }}</p>
-        <p class="author-line" *ngIf="recipe.author">
-          Published by <a [routerLink]="['/users', recipe.author.id]"><strong>{{ recipe.author.displayName }}</strong></a>
-        </p>
-
-        <div class="hero-actions">
-          <button type="button" class="btn btn-secondary-app" [disabled]="isLikeBusy" (click)="toggleLike()">
-            {{ isLiked ? 'Liked' : 'Like' }} ({{ likeCount }})
-          </button>
-          <button type="button" class="btn btn-secondary-app" (click)="toggleFavorite()">
-            {{ isFavorite ? 'Saved' : 'Save recipe' }}
-          </button>
-          <button type="button" class="btn btn-secondary-app" *ngIf="canManageRecipe()" (click)="editRecipe()">Edit</button>
-          <button type="button" class="btn btn-danger-app" *ngIf="canManageRecipe()" [disabled]="isDeleting" (click)="deleteRecipe()">
-            {{ isDeleting ? 'Deleting...' : 'Delete' }}
-          </button>
-        </div>
-      </div>
-
-      <img
-        class="hero-image"
-        [src]="resolveImageUrl(recipe.imageUrl)"
-        [alt]="recipe.title"
-        width="900"
-        height="675"
-        loading="eager">
-    </header>
-
-    <section class="meta-strip" aria-label="Recipe summary">
-      <div><span>Time</span><strong>{{ recipe.preparationTimeMinutes }} min</strong></div>
-      <div><span>Difficulty</span><strong>{{ difficultyLabel() }}</strong></div>
-      <div><span>Category</span><strong>{{ recipe.category }}</strong></div>
-      <div><span>Tradition</span><strong>{{ recipe.isTraditional ? 'Traditional' : 'Modern' }}</strong></div>
-      <div *ngIf="recipe.servingOccasion"><span>Occasion</span><strong>{{ recipe.servingOccasion }}</strong></div>
-    </section>
-
-    <section class="reading-shell origin-block" *ngIf="recipe.originDescription || recipe.servingOccasion">
-      <p class="ui-label">Cultural origin</p>
-      <h2 class="section-title">The story behind the dish</h2>
-      <p class="body-copy" *ngIf="recipe.originDescription">{{ recipe.originDescription }}</p>
-      <p class="occasion" *ngIf="recipe.servingOccasion">Often served for {{ recipe.servingOccasion }}.</p>
-    </section>
-
-    <div class="recipe-body-grid">
-      <section class="ingredients-panel">
-        <p class="ui-label">Ingredients</p>
-        <h2 class="section-title">What you need</h2>
-        <ul *ngIf="recipe.ingredients?.length">
-          <li *ngFor="let ingredient of recipe.ingredients; trackBy: trackIngredient">
-            <label>
-              <input type="checkbox">
-              <span class="ingredient-name">{{ ingredient.name }}</span>
-              <span class="ingredient-quantity" *ngIf="ingredient.quantity">{{ ingredient.quantity }}</span>
-            </label>
-          </li>
-        </ul>
-        <p *ngIf="!recipe.ingredients?.length" class="text-muted">No ingredients available.</p>
-      </section>
-
-      <section class="steps-panel">
-        <p class="ui-label">Method</p>
-        <h2 class="section-title">Cook it step by step</h2>
-        <ol *ngIf="recipe.steps?.length">
-          <li *ngFor="let step of recipe.steps; trackBy: trackStep">
-            <span>{{ step.stepNumber | number:'2.0' }}</span>
-            <p>{{ step.instruction }}</p>
-          </li>
-        </ol>
-        <p *ngIf="!recipe.steps?.length" class="text-muted">No steps available.</p>
-      </section>
+  @if (isLoading) {
+    <div class="details-loading">
+      <div class="spinner-border" role="status" aria-label="Loading recipe"></div>
     </div>
-  </article>
+  }
 
-  <section *ngIf="recipe && !isLoading && isEditMode && editRecipeModel" class="recipe-edit-shell">
-    <a class="back-link" [routerLink]="['/recipes', recipe.id]">Back to recipe</a>
-
-    <header class="edit-header">
-      <p class="ui-label">Edit recipe</p>
-      <h1 class="page-title">Edit {{ recipe.title }}</h1>
-      <p class="body-copy">Update the recipe story, ingredients, and method.</p>
-    </header>
-
-    <form class="publish-layout" (ngSubmit)="saveRecipe()">
-      <div class="publish-sections">
-        <section class="form-section">
-          <div>
-            <p class="ui-label">1. Recipe identity</p>
-            <h2>What are you sharing?</h2>
+  @if (recipe && !isLoading && !isEditMode) {
+    <article class="recipe-article">
+      <a class="back-link" routerLink="/recipes">Back to recipes</a>
+      <header class="recipe-hero">
+        <div class="recipe-headline">
+          <p class="ui-label">
+            <a [routerLink]="['/recipes']" [queryParams]="{ cuisineId: recipe.cuisineId }">{{ recipe.cuisineName }}</a>
+            @if (recipe.regionId && recipe.regionName) {
+              <span> / </span>
+            }
+            @if (recipe.regionId && recipe.regionName) {
+              <a
+                [routerLink]="['/recipes']"
+                [queryParams]="{ cuisineId: recipe.cuisineId, regionId: recipe.regionId }">
+                {{ recipe.regionName }}
+              </a>
+            }
+          </p>
+          <h1 class="display-title">{{ recipe.title }}</h1>
+          @if (recipe.traditionalName) {
+            <p class="traditional-name">{{ recipe.traditionalName }}</p>
+          }
+          <p class="body-copy">{{ recipe.description }}</p>
+          @if (recipe.author) {
+            <p class="author-line">
+              Published by <a [routerLink]="['/users', recipe.author.id]"><strong>{{ recipe.author.displayName }}</strong></a>
+            </p>
+          }
+          <div class="hero-actions">
+            <button type="button" class="btn btn-secondary-app" [disabled]="isLikeBusy" (click)="toggleLike()">
+              {{ isLiked ? 'Liked' : 'Like' }} ({{ likeCount }})
+            </button>
+            <button type="button" class="btn btn-secondary-app" (click)="toggleFavorite()">
+              {{ isFavorite ? 'Saved' : 'Save recipe' }}
+            </button>
+            @if (canManageRecipe()) {
+              <button type="button" class="btn btn-secondary-app" (click)="editRecipe()">Edit</button>
+            }
+            @if (canManageRecipe()) {
+              <button type="button" class="btn btn-danger-app" [disabled]="isDeleting" (click)="deleteRecipe()">
+                {{ isDeleting ? 'Deleting...' : 'Delete' }}
+              </button>
+            }
           </div>
-          <div class="form-grid">
-            <label class="full-span">
-              <span class="form-label">Title</span>
-              <input id="editTitle" class="form-control" name="title" [(ngModel)]="editRecipeModel.title" required maxlength="200" autocomplete="off">
-            </label>
-            <label class="full-span">
-              <span class="form-label">Description</span>
-              <textarea id="editDescription" class="form-control" name="description" [(ngModel)]="editRecipeModel.description" required maxlength="5000"></textarea>
-            </label>
-            <label>
-              <span class="form-label">Category</span>
-              <select id="editCategory" class="form-select" name="categoryId" [(ngModel)]="editRecipeModel.categoryId" required>
-                <option value="">Select category</option>
-                <option *ngFor="let category of categories" [value]="category.id">{{ category.name }}</option>
-              </select>
-            </label>
-            <label>
-              <span class="form-label">Preparation time</span>
-              <input id="editPreparationTime" class="form-control" type="number" min="1" name="preparationTimeMinutes" [(ngModel)]="editRecipeModel.preparationTimeMinutes" required>
-            </label>
-            <label>
-              <span class="form-label">Difficulty</span>
-              <select id="editDifficulty" class="form-select" name="difficulty" [(ngModel)]="editRecipeModel.difficulty" required>
-                <option [ngValue]="DifficultyLevel.Easy">Easy</option>
-                <option [ngValue]="DifficultyLevel.Medium">Medium</option>
-                <option [ngValue]="DifficultyLevel.Hard">Hard</option>
-              </select>
-            </label>
-          </div>
-        </section>
-
-        <section class="form-section">
-          <div>
-            <p class="ui-label">2. Cultural origin</p>
-            <h2>Where does it come from?</h2>
-          </div>
-          <div class="form-grid">
-            <label>
-              <span class="form-label">Cuisine</span>
-              <select id="editCuisine" class="form-select" name="cuisineId" [(ngModel)]="editRecipeModel.cuisineId" (change)="onEditCuisineChange()" required>
-                <option value="">Select cuisine</option>
-                <option *ngFor="let cuisine of cuisines" [value]="cuisine.id">{{ cuisine.name }} ({{ cuisine.countryCode }})</option>
-              </select>
-            </label>
-            <label>
-              <span class="form-label">Region</span>
-              <select id="editRegion" class="form-select" name="regionId" [(ngModel)]="editRecipeModel.regionId" [disabled]="!editRecipeModel.cuisineId">
-                <option [ngValue]="null">No region</option>
-                <option *ngFor="let region of regions" [value]="region.id">{{ region.name }}</option>
-              </select>
-            </label>
-            <label>
-              <span class="form-label">Traditional name</span>
-              <input id="editTraditionalName" class="form-control" name="traditionalName" [(ngModel)]="editRecipeModel.traditionalName" maxlength="200">
-            </label>
-            <label>
-              <span class="form-label">Serving occasion</span>
-              <input id="editServingOccasion" class="form-control" name="servingOccasion" [(ngModel)]="editRecipeModel.servingOccasion" maxlength="200">
-            </label>
-            <label class="traditional-toggle">
-              <input id="editIsTraditional" type="checkbox" name="isTraditional" [(ngModel)]="editRecipeModel.isTraditional">
-              <span>Traditional recipe</span>
-            </label>
-            <label class="full-span">
-              <span class="form-label">Origin description</span>
-              <textarea id="editOriginDescription" class="form-control" name="originDescription" [(ngModel)]="editRecipeModel.originDescription" maxlength="2000"></textarea>
-            </label>
-          </div>
-        </section>
-
-        <section class="form-section">
-          <div class="section-action-row">
-            <div>
-              <p class="ui-label">3. Ingredients</p>
-              <h2>What goes in?</h2>
-            </div>
-            <button class="btn btn-secondary-app btn-sm" type="button" (click)="addIngredient()">Add ingredient</button>
-          </div>
-          <div class="dynamic-row ingredient-row" *ngFor="let ingredient of editRecipeModel.ingredients; let i = index; trackBy: trackIngredient">
-            <input class="form-control" [name]="'ingredientName' + i" [(ngModel)]="ingredient.name" placeholder="Ingredient name" required maxlength="150" [attr.aria-label]="'Ingredient ' + (i + 1) + ' name'">
-            <input class="form-control" [name]="'ingredientQuantity' + i" [(ngModel)]="ingredient.quantity" placeholder="Quantity (optional)" maxlength="100" [attr.aria-label]="'Ingredient ' + (i + 1) + ' quantity'">
-            <button class="btn btn-danger-app" type="button" [disabled]="editRecipeModel.ingredients.length === 1" (click)="removeIngredient(i)">Remove</button>
-          </div>
-        </section>
-
-        <section class="form-section">
-          <div class="section-action-row">
-            <div>
-              <p class="ui-label">4. Method</p>
-              <h2>How should it be cooked?</h2>
-            </div>
-            <button class="btn btn-secondary-app btn-sm" type="button" (click)="addStep()">Add step</button>
-          </div>
-          <div class="dynamic-row step-row" *ngFor="let step of editRecipeModel.steps; let i = index; trackBy: trackStep">
-            <span class="step-number">{{ i + 1 }}</span>
-            <input class="form-control" [name]="'stepInstruction' + i" [(ngModel)]="step.instruction" placeholder="Instruction" required maxlength="1000" [attr.aria-label]="'Step ' + (i + 1) + ' instruction'">
-            <button class="btn btn-danger-app" type="button" [disabled]="editRecipeModel.steps.length === 1" (click)="removeStep(i)">Remove</button>
-          </div>
-        </section>
-
-        <section class="form-section">
-          <div>
-            <p class="ui-label">5. Image and final details</p>
-            <h2>Give it a visual anchor</h2>
-          </div>
-          <div><span class="form-label">Recipe image</span><input class="form-control" type="file" accept="image/jpeg,image/png,image/webp" (change)="onEditImageSelected($event)"><button type="button" class="btn btn-secondary-app btn-sm" [disabled]="!selectedEditImage || isImageChanging" (click)="uploadSelectedEditImage()">Replace image</button><button type="button" class="btn btn-danger-app btn-sm" [disabled]="!recipe.imageUrl || isImageChanging" (click)="removeRecipeImage()">Remove image</button></div>
-        </section>
-
-        <div class="alert alert-danger" *ngIf="editError">{{ editError }}</div>
-
-        <div class="publish-actions">
-          <button class="btn btn-primary-app" type="submit" [disabled]="isSaving">
-            {{ isSaving ? 'Saving...' : 'Save recipe' }}
-          </button>
-          <button class="btn btn-secondary-app" type="button" (click)="cancelEdit()">Cancel</button>
         </div>
+        <img
+          class="hero-image"
+          [src]="resolveImageUrl(recipe.imageUrl)"
+          [alt]="recipe.title"
+          width="900"
+          height="675"
+          loading="eager">
+      </header>
+      <section class="meta-strip" aria-label="Recipe summary">
+        <div><span>Time</span><strong>{{ recipe.preparationTimeMinutes }} min</strong></div>
+        <div><span>Difficulty</span><strong>{{ difficultyLabel() }}</strong></div>
+        <div><span>Category</span><strong>{{ recipe.category }}</strong></div>
+        <div><span>Tradition</span><strong>{{ recipe.isTraditional ? 'Traditional' : 'Modern' }}</strong></div>
+        @if (recipe.servingOccasion) {
+          <div><span>Occasion</span><strong>{{ recipe.servingOccasion }}</strong></div>
+        }
+      </section>
+      @if (recipe.originDescription || recipe.servingOccasion) {
+        <section class="reading-shell origin-block">
+          <p class="ui-label">Cultural origin</p>
+          <h2 class="section-title">The story behind the dish</h2>
+          @if (recipe.originDescription) {
+            <p class="body-copy">{{ recipe.originDescription }}</p>
+          }
+          @if (recipe.servingOccasion) {
+            <p class="occasion">Often served for {{ recipe.servingOccasion }}.</p>
+          }
+        </section>
+      }
+      <div class="recipe-body-grid">
+        <section class="ingredients-panel">
+          <p class="ui-label">Ingredients</p>
+          <h2 class="section-title">What you need</h2>
+          @if (recipe.ingredients?.length) {
+            <ul>
+              @for (ingredient of recipe.ingredients; track trackIngredient($index, ingredient)) {
+                <li>
+                  <label>
+                    <input type="checkbox">
+                    <span class="ingredient-name">{{ ingredient.name }}</span>
+                    @if (ingredient.quantity) {
+                      <span class="ingredient-quantity">{{ ingredient.quantity }}</span>
+                    }
+                  </label>
+                </li>
+              }
+            </ul>
+          }
+          @if (!recipe.ingredients?.length) {
+            <p class="text-muted">No ingredients available.</p>
+          }
+        </section>
+        <section class="steps-panel">
+          <p class="ui-label">Method</p>
+          <h2 class="section-title">Cook it step by step</h2>
+          @if (recipe.steps?.length) {
+            <ol>
+              @for (step of recipe.steps; track trackStep($index, step)) {
+                <li>
+                  <span>{{ step.stepNumber | number:'2.0' }}</span>
+                  <p>{{ step.instruction }}</p>
+                </li>
+              }
+            </ol>
+          }
+          @if (!recipe.steps?.length) {
+            <p class="text-muted">No steps available.</p>
+          }
+        </section>
       </div>
+    </article>
+  }
 
-      <aside class="recipe-preview">
-        <p class="ui-label">Preview</p>
-        <img [src]="previewEditImageUrl()" [alt]="editRecipeModel.title || 'Recipe preview'" width="480" height="360">
-        <h2>{{ editRecipeModel.title || 'Untitled recipe' }}</h2>
-        <p>{{ editRecipeModel.description || 'Add a short story about the dish, its origin, and why it belongs on the table.' }}</p>
-        <dl>
-          <div><dt>Ingredients</dt><dd>{{ editRecipeModel.ingredients.length }}</dd></div>
-          <div><dt>Steps</dt><dd>{{ editRecipeModel.steps.length }}</dd></div>
-          <div><dt>Time</dt><dd>{{ editRecipeModel.preparationTimeMinutes }} min</dd></div>
-        </dl>
-      </aside>
-    </form>
-  </section>
-
-
-  <section class="reviews-section" *ngIf="recipe && !isLoading && !isEditMode">
-    <div class="reading-shell">
-      <p class="ui-label">Community reviews</p>
-      <h2 class="section-title">What cooks are saying</h2>
-
-      <form (ngSubmit)="submitReview()" class="review-form">
-        <label>
-          <span class="form-label">Rating</span>
-          <select class="form-select" [(ngModel)]="newReview.rating" name="rating">
-            <option [ngValue]="1">1 star</option>
-            <option [ngValue]="2">2 stars</option>
-            <option [ngValue]="3">3 stars</option>
-            <option [ngValue]="4">4 stars</option>
-            <option [ngValue]="5">5 stars</option>
-          </select>
-        </label>
-        <label>
-          <span class="form-label">Comment</span>
-          <textarea class="form-control" rows="4" [(ngModel)]="newReview.comment" name="comment"></textarea>
-        </label>
-        <div class="alert alert-danger" *ngIf="reviewError">{{ reviewError }}</div>
-        <div class="alert alert-success" *ngIf="reviewSuccess">{{ reviewSuccess }}</div>
-        <button type="submit" class="btn btn-primary-app">Add review</button>
+  @if (recipe && !isLoading && isEditMode && editRecipeModel) {
+    <section class="recipe-edit-shell">
+      <a class="back-link" [routerLink]="['/recipes', recipe.id]">Back to recipe</a>
+      <header class="edit-header">
+        <p class="ui-label">Edit recipe</p>
+        <h1 class="page-title">Edit {{ recipe.title }}</h1>
+        <p class="body-copy">Update the recipe story, ingredients, and method.</p>
+      </header>
+      <form class="publish-layout" (ngSubmit)="saveRecipe()">
+        <div class="publish-sections">
+          <section class="form-section">
+            <div>
+              <p class="ui-label">1. Recipe identity</p>
+              <h2>What are you sharing?</h2>
+            </div>
+            <div class="form-grid">
+              <label class="full-span">
+                <span class="form-label">Title</span>
+                <input id="editTitle" class="form-control" name="title" [(ngModel)]="editRecipeModel.title" required maxlength="200" autocomplete="off">
+              </label>
+              <label class="full-span">
+                <span class="form-label">Description</span>
+                <textarea id="editDescription" class="form-control" name="description" [(ngModel)]="editRecipeModel.description" required maxlength="5000"></textarea>
+              </label>
+              <label>
+                <span class="form-label">Category</span>
+                <select id="editCategory" class="form-select" name="categoryId" [(ngModel)]="editRecipeModel.categoryId" required>
+                  <option value="">Select category</option>
+                  @for (category of categories; track category) {
+                    <option [value]="category.id">{{ category.name }}</option>
+                  }
+                </select>
+              </label>
+              <label>
+                <span class="form-label">Preparation time</span>
+                <input id="editPreparationTime" class="form-control" type="number" min="1" name="preparationTimeMinutes" [(ngModel)]="editRecipeModel.preparationTimeMinutes" required>
+              </label>
+              <label>
+                <span class="form-label">Difficulty</span>
+                <select id="editDifficulty" class="form-select" name="difficulty" [(ngModel)]="editRecipeModel.difficulty" required>
+                  <option [ngValue]="DifficultyLevel.Easy">Easy</option>
+                  <option [ngValue]="DifficultyLevel.Medium">Medium</option>
+                  <option [ngValue]="DifficultyLevel.Hard">Hard</option>
+                </select>
+              </label>
+            </div>
+          </section>
+          <section class="form-section">
+            <div>
+              <p class="ui-label">2. Cultural origin</p>
+              <h2>Where does it come from?</h2>
+            </div>
+            <div class="form-grid">
+              <label>
+                <span class="form-label">Cuisine</span>
+                <select id="editCuisine" class="form-select" name="cuisineId" [(ngModel)]="editRecipeModel.cuisineId" (change)="onEditCuisineChange()" required>
+                  <option value="">Select cuisine</option>
+                  @for (cuisine of cuisines; track cuisine) {
+                    <option [value]="cuisine.id">{{ cuisine.name }} ({{ cuisine.countryCode }})</option>
+                  }
+                </select>
+              </label>
+              <label>
+                <span class="form-label">Region</span>
+                <select id="editRegion" class="form-select" name="regionId" [(ngModel)]="editRecipeModel.regionId" [disabled]="!editRecipeModel.cuisineId">
+                  <option [ngValue]="null">No region</option>
+                  @for (region of regions; track region) {
+                    <option [value]="region.id">{{ region.name }}</option>
+                  }
+                </select>
+              </label>
+              <label>
+                <span class="form-label">Traditional name</span>
+                <input id="editTraditionalName" class="form-control" name="traditionalName" [(ngModel)]="editRecipeModel.traditionalName" maxlength="200">
+              </label>
+              <label>
+                <span class="form-label">Serving occasion</span>
+                <input id="editServingOccasion" class="form-control" name="servingOccasion" [(ngModel)]="editRecipeModel.servingOccasion" maxlength="200">
+              </label>
+              <label class="traditional-toggle">
+                <input id="editIsTraditional" type="checkbox" name="isTraditional" [(ngModel)]="editRecipeModel.isTraditional">
+                <span>Traditional recipe</span>
+              </label>
+              <label class="full-span">
+                <span class="form-label">Origin description</span>
+                <textarea id="editOriginDescription" class="form-control" name="originDescription" [(ngModel)]="editRecipeModel.originDescription" maxlength="2000"></textarea>
+              </label>
+            </div>
+          </section>
+          <section class="form-section">
+            <div class="section-action-row">
+              <div>
+                <p class="ui-label">3. Ingredients</p>
+                <h2>What goes in?</h2>
+              </div>
+              <button class="btn btn-secondary-app btn-sm" type="button" (click)="addIngredient()">Add ingredient</button>
+            </div>
+            @for (ingredient of editRecipeModel.ingredients; track trackIngredient(i, ingredient); let i = $index) {
+              <div class="dynamic-row ingredient-row">
+                <input class="form-control" [name]="'ingredientName' + i" [(ngModel)]="ingredient.name" placeholder="Ingredient name" required maxlength="150" [attr.aria-label]="'Ingredient ' + (i + 1) + ' name'">
+                <input class="form-control" [name]="'ingredientQuantity' + i" [(ngModel)]="ingredient.quantity" placeholder="Quantity (optional)" maxlength="100" [attr.aria-label]="'Ingredient ' + (i + 1) + ' quantity'">
+                <button class="btn btn-danger-app" type="button" [disabled]="editRecipeModel.ingredients.length === 1" (click)="removeIngredient(i)">Remove</button>
+              </div>
+            }
+          </section>
+          <section class="form-section">
+            <div class="section-action-row">
+              <div>
+                <p class="ui-label">4. Method</p>
+                <h2>How should it be cooked?</h2>
+              </div>
+              <button class="btn btn-secondary-app btn-sm" type="button" (click)="addStep()">Add step</button>
+            </div>
+            @for (step of editRecipeModel.steps; track trackStep(i, step); let i = $index) {
+              <div class="dynamic-row step-row">
+                <span class="step-number">{{ i + 1 }}</span>
+                <input class="form-control" [name]="'stepInstruction' + i" [(ngModel)]="step.instruction" placeholder="Instruction" required maxlength="1000" [attr.aria-label]="'Step ' + (i + 1) + ' instruction'">
+                <button class="btn btn-danger-app" type="button" [disabled]="editRecipeModel.steps.length === 1" (click)="removeStep(i)">Remove</button>
+              </div>
+            }
+          </section>
+          <section class="form-section">
+            <div>
+              <p class="ui-label">5. Image and final details</p>
+              <h2>Give it a visual anchor</h2>
+            </div>
+            <div><span class="form-label">Recipe image</span><input class="form-control" type="file" accept="image/jpeg,image/png,image/webp" (change)="onEditImageSelected($event)"><button type="button" class="btn btn-secondary-app btn-sm" [disabled]="!selectedEditImage || isImageChanging" (click)="uploadSelectedEditImage()">Replace image</button><button type="button" class="btn btn-danger-app btn-sm" [disabled]="!recipe.imageUrl || isImageChanging" (click)="removeRecipeImage()">Remove image</button></div>
+          </section>
+          @if (editError) {
+            <div class="alert alert-danger">{{ editError }}</div>
+          }
+          <div class="publish-actions">
+            <button class="btn btn-primary-app" type="submit" [disabled]="isSaving">
+              {{ isSaving ? 'Saving...' : 'Save recipe' }}
+            </button>
+            <button class="btn btn-secondary-app" type="button" (click)="cancelEdit()">Cancel</button>
+          </div>
+        </div>
+        <aside class="recipe-preview">
+          <p class="ui-label">Preview</p>
+          <img [src]="previewEditImageUrl()" [alt]="editRecipeModel.title || 'Recipe preview'" width="480" height="360">
+          <h2>{{ editRecipeModel.title || 'Untitled recipe' }}</h2>
+          <p>{{ editRecipeModel.description || 'Add a short story about the dish, its origin, and why it belongs on the table.' }}</p>
+          <dl>
+            <div><dt>Ingredients</dt><dd>{{ editRecipeModel.ingredients.length }}</dd></div>
+            <div><dt>Steps</dt><dd>{{ editRecipeModel.steps.length }}</dd></div>
+            <div><dt>Time</dt><dd>{{ editRecipeModel.preparationTimeMinutes }} min</dd></div>
+          </dl>
+        </aside>
       </form>
+    </section>
+  }
 
-      <p *ngIf="reviews.length === 0" class="muted-state">No reviews yet.</p>
 
-      <article class="review-card" *ngFor="let review of reviews; trackBy: trackReview">
-        <div>
-          <strong>{{ displayReviewAuthor(review) }}</strong>
-          <span>{{ review.rating }}/5</span>
-        </div>
-        <p>{{ review.comment }}</p>
-        <small>{{ review.createdAt | date:'mediumDate' }}</small>
-      </article>
+  @if (recipe && !isLoading && !isEditMode) {
+    <section class="reviews-section">
+      <div class="reading-shell">
+        <p class="ui-label">Community reviews</p>
+        <h2 class="section-title">What cooks are saying</h2>
+        <form (ngSubmit)="submitReview()" class="review-form">
+          <label>
+            <span class="form-label">Rating</span>
+            <select class="form-select" [(ngModel)]="newReview.rating" name="rating">
+              <option [ngValue]="1">1 star</option>
+              <option [ngValue]="2">2 stars</option>
+              <option [ngValue]="3">3 stars</option>
+              <option [ngValue]="4">4 stars</option>
+              <option [ngValue]="5">5 stars</option>
+            </select>
+          </label>
+          <label>
+            <span class="form-label">Comment</span>
+            <textarea class="form-control" rows="4" [(ngModel)]="newReview.comment" name="comment"></textarea>
+          </label>
+          @if (reviewError) {
+            <div class="alert alert-danger">{{ reviewError }}</div>
+          }
+          @if (reviewSuccess) {
+            <div class="alert alert-success">{{ reviewSuccess }}</div>
+          }
+          <button type="submit" class="btn btn-primary-app">Add review</button>
+        </form>
+        @if (reviews.length === 0) {
+          <p class="muted-state">No reviews yet.</p>
+        }
+        @for (review of reviews; track trackReview($index, review)) {
+          <article class="review-card">
+            <div>
+              <strong>{{ displayReviewAuthor(review) }}</strong>
+              <span>{{ review.rating }}/5</span>
+            </div>
+            <p>{{ review.comment }}</p>
+            <small>{{ review.createdAt | date:'mediumDate' }}</small>
+          </article>
+        }
+      </div>
+    </section>
+  }
+
+  @if (recipe && !isLoading && !isEditMode) {
+    <section class="comments-section">
+      <div class="reading-shell">
+        <p class="ui-label">Comments</p>
+        <h2 class="section-title">Join the conversation</h2>
+        <p class="comments-intro">Share a cooking tip, ask a question, or tell others how the recipe worked for you.</p>
+        <form (ngSubmit)="submitComment()" class="comment-composer">        <label>          <span class="form-label">Your comment</span>          <textarea class="form-control" rows="5" maxlength="1500" placeholder="Write something about this recipe..." [(ngModel)]="newComment" name="newComment"></textarea>        </label>        <div class="comment-composer-footer">          <small>Maximum 1500 characters</small>          <button type="submit" class="btn btn-primary-app">Post comment</button>        </div>      </form>      @if (comments.length === 0) {
+        <div class="comments-empty">        <strong>No comments yet</strong>        <span>Be the first to start the conversation.</span>      </div>
+        }      @for (comment of comments; track trackComment($index, comment)) {
+        <article class="comment-card">        <div class="comment-avatar" aria-hidden="true">{{ comment.author.displayName.charAt(0) }}</div>        <div class="comment-content">          <div class="comment-meta">            <a [routerLink]="['/users', comment.author.id]"><strong>{{ comment.author.displayName }}</strong></a>            <span>{{ comment.createdAt | date:'mediumDate' }}</span>          </div>          @if (editingCommentId !== comment.id) {
+        <p>{{ comment.content }}</p>
+        }          @if (editingCommentId === comment.id) {
+        <div class="comment-edit">            <textarea class="form-control" rows="3" maxlength="1500" [(ngModel)]="editingCommentContent" name="editComment"></textarea>            <button type="button" class="btn btn-primary-app btn-sm" (click)="saveComment(comment)">Save</button>            <button type="button" class="btn btn-secondary-app btn-sm" (click)="editingCommentId = null">Cancel</button>          </div>
+        }          @if (canManageComment(comment)) {
+        <div class="comment-actions">            @if (editingCommentId !== comment.id) {
+          <button type="button" class="btn btn-secondary-app btn-sm" (click)="startEditComment(comment)">Edit</button>
+          }            <button type="button" class="btn btn-danger-app btn-sm" (click)="deleteComment(comment)">Delete</button>          </div>
+        }        </div>      </article>
+      }
     </div>
   </section>
-
-  <section class="comments-section" *ngIf="recipe && !isLoading && !isEditMode">
-    <div class="reading-shell">
-      <p class="ui-label">Comments</p>
-      <h2 class="section-title">Join the conversation</h2>
-
-      <p class="comments-intro">Share a cooking tip, ask a question, or tell others how the recipe worked for you.</p>
-      <form (ngSubmit)="submitComment()" class="comment-composer">        <label>          <span class="form-label">Your comment</span>          <textarea class="form-control" rows="5" maxlength="1500" placeholder="Write something about this recipe..." [(ngModel)]="newComment" name="newComment"></textarea>        </label>        <div class="comment-composer-footer">          <small>Maximum 1500 characters</small>          <button type="submit" class="btn btn-primary-app">Post comment</button>        </div>      </form>      <div *ngIf="comments.length === 0" class="comments-empty">        <strong>No comments yet</strong>        <span>Be the first to start the conversation.</span>      </div>      <article class="comment-card" *ngFor="let comment of comments; trackBy: trackComment">        <div class="comment-avatar" aria-hidden="true">{{ comment.author.displayName.charAt(0) }}</div>        <div class="comment-content">          <div class="comment-meta">            <a [routerLink]="['/users', comment.author.id]"><strong>{{ comment.author.displayName }}</strong></a>            <span>{{ comment.createdAt | date:'mediumDate' }}</span>          </div>          <p *ngIf="editingCommentId !== comment.id">{{ comment.content }}</p>          <div *ngIf="editingCommentId === comment.id" class="comment-edit">            <textarea class="form-control" rows="3" maxlength="1500" [(ngModel)]="editingCommentContent" name="editComment"></textarea>            <button type="button" class="btn btn-primary-app btn-sm" (click)="saveComment(comment)">Save</button>            <button type="button" class="btn btn-secondary-app btn-sm" (click)="editingCommentId = null">Cancel</button>          </div>          <div class="comment-actions" *ngIf="canManageComment(comment)">            <button type="button" class="btn btn-secondary-app btn-sm" (click)="startEditComment(comment)" *ngIf="editingCommentId !== comment.id">Edit</button>            <button type="button" class="btn btn-danger-app btn-sm" (click)="deleteComment(comment)">Delete</button>          </div>        </div>      </article>
-    </div>
-  </section>
+}
 </section>

@@ -10,7 +10,7 @@ import { FavoriteService } from '../services/favorite.service';
 import { LikeService } from '../services/like.service';
 import { CommentService } from '../services/comment.service';
 import { AuthService } from '../services/auth.service';
-import { ToastrService } from 'ngx-toastr';
+import { ToastrService } from '@openng/ngx-toastr';
 import { CategoryService } from '../services/category.service';
 import { CuisineService } from '../services/cuisine.service';
 

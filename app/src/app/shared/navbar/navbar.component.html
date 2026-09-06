@@ -19,14 +19,15 @@
 
     <div id="primary-navigation" class="nav-panel" [class.is-open]="isMenuOpen">
       <div class="nav-links">
-        <a
-          class="nav-link"
-          routerLink="/feed"
-          routerLinkActive="active"
-          *ngIf="isLoggedIn()"
-          (click)="closeMenu()">
-          Feed
-        </a>
+        @if (isLoggedIn()) {
+          <a
+            class="nav-link"
+            routerLink="/feed"
+            routerLinkActive="active"
+            (click)="closeMenu()">
+            Feed
+          </a>
+        }
 
         <a
           class="nav-link"
@@ -37,76 +38,89 @@
           Explore
         </a>
 
-        <a
-          class="nav-link"
-          routerLink="/create-recipe"
-          routerLinkActive="active"
-          *ngIf="isLoggedIn()"
-          (click)="closeMenu()">
-          Create
-        </a>
+        @if (isLoggedIn()) {
+          <a
+            class="nav-link"
+            routerLink="/create-recipe"
+            routerLinkActive="active"
+            (click)="closeMenu()">
+            Create
+          </a>
+        }
 
-        <a
-          class="nav-link"
-          routerLink="/saved"
-          routerLinkActive="active"
-          *ngIf="isLoggedIn()"
-          (click)="closeMenu()">
-          Saved
-        </a>
+        @if (isLoggedIn()) {
+          <a
+            class="nav-link"
+            routerLink="/saved"
+            routerLinkActive="active"
+            (click)="closeMenu()">
+            Saved
+          </a>
+        }
 
-        <a
-          class="nav-link"
-          routerLink="/my-recipes"
-          routerLinkActive="active"
-          *ngIf="isLoggedIn()"
-          (click)="closeMenu()">
-          My Recipes
-        </a>
+        @if (isLoggedIn()) {
+          <a
+            class="nav-link"
+            routerLink="/my-recipes"
+            routerLinkActive="active"
+            (click)="closeMenu()">
+            My Recipes
+          </a>
+        }
 
-        <a
-          class="nav-link"
-          routerLink="/notifications"
-          routerLinkActive="active"
-          *ngIf="isLoggedIn()"
-          (click)="closeMenu()">
-          Notifications
-          <span class="notification-badge" *ngIf="unreadCount > 0">{{ unreadCount }}</span>
-        </a>
+        @if (isLoggedIn()) {
+          <a
+            class="nav-link"
+            routerLink="/notifications"
+            routerLinkActive="active"
+            (click)="closeMenu()">
+            Notifications
+            @if (unreadCount > 0) {
+              <span class="notification-badge">{{ unreadCount }}</span>
+            }
+          </a>
+        }
 
-        <a
-          class="nav-link"
-          routerLink="/admin/accounts"
-          routerLinkActive="active"
-          *ngIf="isAdmin()"
-          (click)="closeMenu()">
-          Admin
-        </a>
+        @if (isAdmin()) {
+          <a
+            class="nav-link"
+            routerLink="/admin/accounts"
+            routerLinkActive="active"
+            (click)="closeMenu()">
+            Admin
+          </a>
+        }
       </div>
 
       <div class="nav-actions">
-        <a class="user-pill" *ngIf="isLoggedIn()" [routerLink]="profileLink()" (click)="closeMenu()">{{ displayName() }}</a>
+        @if (isLoggedIn()) {
+          <a class="user-pill" [routerLink]="profileLink()" (click)="closeMenu()">{{ displayName() }}</a>
+        }
 
-        <a
-          class="nav-link"
-          routerLink="/login"
-          routerLinkActive="active"
-          *ngIf="!isLoggedIn()"
-          (click)="closeMenu()">
-          Login
-        </a>
+        @if (!isLoggedIn()) {
+          <a
+            class="nav-link"
+            routerLink="/login"
+            routerLinkActive="active"
+            (click)="closeMenu()">
+            Login
+          </a>
+        }
 
-        <a
-          class="btn btn-primary-app btn-sm"
-          routerLink="/register"
-          *ngIf="!isLoggedIn()"
-          (click)="closeMenu()">
-          Register
-        </a>
+        @if (!isLoggedIn()) {
+          <a
+            class="btn btn-primary-app btn-sm"
+            routerLink="/register"
+            (click)="closeMenu()">
+            Register
+          </a>
+        }
 
-        <button type="button" class="btn btn-secondary-app btn-sm" *ngIf="isLoggedIn()" (click)="logout()">
-          Logout
-        </button>
+        @if (isLoggedIn()) {
+          <button type="button" class="btn btn-secondary-app btn-sm" (click)="logout()">
+            Logout
+          </button>
+        }
       </div>
     </div>
   </div>

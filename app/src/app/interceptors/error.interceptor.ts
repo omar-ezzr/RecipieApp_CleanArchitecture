@@ -14,7 +14,7 @@ import { Observable, throwError } from 'rxjs';
 
 import { catchError, switchMap } from 'rxjs/operators';
 
-import { ToastrService } from 'ngx-toastr';
+import { ToastrService } from '@openng/ngx-toastr';
 
 import { AuthService } from '../services/auth.service';
 

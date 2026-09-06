@@ -1,5 +1,5 @@
-import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
 import { DifficultyLevel, Recipe } from '../../models/recipe.model';
 import { RecipeService } from '../../services/recipe.service';
@@ -8,11 +8,11 @@ import { RecipeCardComponent } from '../../shared/components/recipe-card/recipe-
 import { RecipeCardSkeletonComponent } from '../../shared/components/recipe-card-skeleton/recipe-card-skeleton.component';
 
 @Component({
-  selector: 'app-my-recipes',
-  standalone: true,
-  imports: [CommonModule, RouterModule, EmptyStateComponent, RecipeCardComponent, RecipeCardSkeletonComponent],
-  templateUrl: './my-recipes.component.html',
-  styleUrl: './my-recipes.component.css'
+    selector: 'app-my-recipes',
+    imports: [RouterModule, EmptyStateComponent, RecipeCardComponent, RecipeCardSkeletonComponent],
+    templateUrl: './my-recipes.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
+    styleUrl: './my-recipes.component.css'
 })
 export class MyRecipesComponent implements OnInit {
   recipes: Recipe[] = [];

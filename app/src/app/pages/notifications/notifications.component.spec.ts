@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ToastrService } from 'ngx-toastr';
+import { ToastrService } from '@openng/ngx-toastr';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { NotificationsComponent } from './notifications.component';

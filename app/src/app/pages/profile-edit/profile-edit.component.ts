@@ -1,17 +1,17 @@
-import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-import { ToastrService } from 'ngx-toastr';
+import { ToastrService } from '@openng/ngx-toastr';
 import { UpdatePublicUserProfile } from '../../models/user-profile.model';
 import { UserProfileService } from '../../services/user-profile.service';
 
 @Component({
-  selector: 'app-profile-edit',
-  standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
-  templateUrl: './profile-edit.component.html',
-  styleUrl: './profile-edit.component.css'
+    selector: 'app-profile-edit',
+    imports: [FormsModule, RouterModule],
+    templateUrl: './profile-edit.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
+    styleUrl: './profile-edit.component.css'
 })
 export class ProfileEditComponent implements OnInit {
   form: UpdatePublicUserProfile = {

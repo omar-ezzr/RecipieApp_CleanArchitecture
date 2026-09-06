@@ -1,6 +1,6 @@
-import { CommonModule } from '@angular/common';
+
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { Category } from '../../models/category.model';
@@ -15,11 +15,11 @@ import { resolveAssetUrl } from '../../core/utils/asset-url.util';
 import { RecipeFormMapper } from '../../core/recipes/recipe-form.mapper';
 
 @Component({
-  selector: 'app-create-recipe',
-  standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
-  templateUrl: './create-recipe.component.html',
-  styleUrl: './create-recipe.component.css'
+    selector: 'app-create-recipe',
+    imports: [FormsModule, RouterModule],
+    templateUrl: './create-recipe.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
+    styleUrl: './create-recipe.component.css'
 })
 export class CreateRecipeComponent implements OnInit {
   readonly DifficultyLevel = DifficultyLevel;
@@ -115,11 +115,11 @@ export class CreateRecipeComponent implements OnInit {
     this.selectedImage = null; this.imagePreviewUrl = null;
   }
 
-  trackIngredient(index: number): number {
+  trackIngredient(index: number, _ingredient: unknown): number {
     return index;
   }
 
-  trackStep(index: number): number {
+  trackStep(index: number, _step: unknown): number {
     return index;
   }
 

@@ -13,7 +13,9 @@
   <div class="recipe-card-body">
     <p class="recipe-culture ui-label">
       {{ recipe.cuisineName }}
-      <span *ngIf="recipe.regionName"> / {{ recipe.regionName }}</span>
+      @if (recipe.regionName) {
+        <span> / {{ recipe.regionName }}</span>
+      }
     </p>
 
     <h2 class="recipe-title">
@@ -22,50 +24,60 @@
 
     <p class="recipe-summary">{{ recipe.description || 'A recipe shared by the community.' }}</p>
 
-    <p class="recipe-author" *ngIf="recipe.author">
-      By <a [routerLink]="['/users', recipe.author.id]">{{ recipe.author.displayName }}</a>
-    </p>
+    @if (recipe.author) {
+      <p class="recipe-author">
+        By <a [routerLink]="['/users', recipe.author.id]">{{ recipe.author.displayName }}</a>
+      </p>
+    }
 
     <div class="recipe-card-meta">
       <span>{{ recipe.preparationTimeMinutes }} min</span>
       <span>{{ difficultyLabel(recipe.difficulty) }}</span>
       <span>{{ recipe.category }}</span>
-      <span *ngIf="recipe.isTraditional">Traditional</span>
+      @if (recipe.isTraditional) {
+        <span>Traditional</span>
+      }
     </div>
 
     <div class="recipe-card-actions">
       <a class="btn btn-text-app" [routerLink]="['/recipes', recipe.id]">Read recipe</a>
 
-      <button
-        *ngIf="showLike"
-        type="button"
-        class="btn btn-icon-text"
-        [class.is-active]="isLiked"
-        [disabled]="isLikeBusy"
-        (click)="onLikeClick($event)">
-        <span aria-hidden="true">{{ isLiked ? '♥' : '♡' }}</span>
-        {{ recipe.likeCount || 0 }}
-      </button>
+      @if (showLike) {
+        <button
+          type="button"
+          class="btn btn-icon-text"
+          [class.is-active]="isLiked"
+          [disabled]="isLikeBusy"
+          (click)="onLikeClick($event)">
+          <span aria-hidden="true">{{ isLiked ? '♥' : '♡' }}</span>
+          {{ recipe.likeCount || 0 }}
+        </button>
+      }
 
-      <button
-        *ngIf="showFavorite"
-        type="button"
-        class="btn btn-icon-text"
-        [class.is-active]="isFavorite"
-        (click)="onFavoriteClick($event)">
-        <span aria-hidden="true">{{ isFavorite ? '♥' : '♡' }}</span>
-        {{ isFavorite ? 'Saved' : 'Save' }}
-      </button>
+      @if (showFavorite) {
+        <button
+          type="button"
+          class="btn btn-icon-text"
+          [class.is-active]="isFavorite"
+          (click)="onFavoriteClick($event)">
+          <span aria-hidden="true">{{ isFavorite ? '♥' : '♡' }}</span>
+          {{ isFavorite ? 'Saved' : 'Save' }}
+        </button>
+      }
 
-      <a class="btn btn-icon-text" [routerLink]="['/recipes', recipe.id]" *ngIf="recipe.commentCount !== undefined">
-        <span aria-hidden="true">☰</span>
-        {{ recipe.commentCount }}
-      </a>
+      @if (recipe.commentCount !== undefined) {
+        <a class="btn btn-icon-text" [routerLink]="['/recipes', recipe.id]">
+          <span aria-hidden="true">☰</span>
+          {{ recipe.commentCount }}
+        </a>
+      }
     </div>
 
-    <div class="recipe-manage-actions" *ngIf="canManage && showManageActions">
-      <button type="button" class="btn btn-secondary-app btn-sm" (click)="edit.emit(recipe)">Edit</button>
-      <button type="button" class="btn btn-danger-app btn-sm" (click)="delete.emit(recipe)">Delete</button>
-    </div>
+    @if (canManage && showManageActions) {
+      <div class="recipe-manage-actions">
+        <button type="button" class="btn btn-secondary-app btn-sm" (click)="edit.emit(recipe)">Edit</button>
+        <button type="button" class="btn btn-danger-app btn-sm" (click)="delete.emit(recipe)">Delete</button>
+      </div>
+    }
   </div>
 </article>

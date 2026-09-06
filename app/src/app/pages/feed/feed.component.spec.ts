@@ -7,7 +7,7 @@ import { FeedComponent } from './feed.component';
 import { FavoriteService } from '../../services/favorite.service';
 import { FeedService } from '../../services/feed.service';
 import { LikeService } from '../../services/like.service';
-import { ToastrService } from 'ngx-toastr';
+import { ToastrService } from '@openng/ngx-toastr';
 import { DifficultyLevel } from '../../models/recipe.model';
 
 describe('FeedComponent', () => {

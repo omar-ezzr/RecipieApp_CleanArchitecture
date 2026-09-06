@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { activatedRouteStub } from '../../testing/route.stub';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { of } from 'rxjs';
-import { ToastrService } from 'ngx-toastr';
+import { ToastrService } from '@openng/ngx-toastr';
 import { ProfileComponent } from './profile.component';
 import { AuthService } from '../../services/auth.service';
 import { FollowService } from '../../services/follow.service';

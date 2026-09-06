@@ -7,22 +7,27 @@
     <button type="button" class="btn btn-secondary-app" (click)="markAllRead()" [disabled]="!notifications.length">Mark all as read</button>
   </header>
 
-  <app-empty-state
-    *ngIf="!isLoading && notifications.length === 0"
-    title="No notifications"
-    message="Follow, like, and comment activity will appear here.">
-  </app-empty-state>
+  @if (!isLoading && notifications.length === 0) {
+    <app-empty-state
+      title="No notifications"
+      message="Follow, like, and comment activity will appear here.">
+    </app-empty-state>
+  }
 
-  <div class="notification-list" *ngIf="notifications.length">
-    <article class="notification-row" [class.unread]="!notification.isRead" *ngFor="let notification of notifications; trackBy: trackNotification">
-      <a [routerLink]="link(notification)" (click)="markRead(notification)">
-        <span class="actor-avatar">{{ notification.actor.displayName.charAt(0) }}</span>
-        <span>
-          <strong>{{ message(notification) }}</strong>
-          <small>{{ notification.createdAt | date:'medium' }}</small>
-        </span>
-      </a>
-      <button type="button" class="btn btn-text-app btn-sm" (click)="delete(notification)">Delete</button>
-    </article>
-  </div>
+  @if (notifications.length) {
+    <div class="notification-list">
+      @for (notification of notifications; track trackNotification($index, notification)) {
+        <article class="notification-row" [class.unread]="!notification.isRead">
+          <a [routerLink]="link(notification)" (click)="markRead(notification)">
+            <span class="actor-avatar">{{ notification.actor.displayName.charAt(0) }}</span>
+            <span>
+              <strong>{{ message(notification) }}</strong>
+              <small>{{ notification.createdAt | date:'medium' }}</small>
+            </span>
+          </a>
+          <button type="button" class="btn btn-text-app btn-sm" (click)="delete(notification)">Delete</button>
+        </article>
+      }
+    </div>
+  }
 </section>

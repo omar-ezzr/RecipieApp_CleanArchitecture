@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { activatedRouteStub } from '../../testing/route.stub';
 import { ActivatedRoute, provideRouter, Router } from '@angular/router';
-import { ToastrService } from 'ngx-toastr';
+import { ToastrService } from '@openng/ngx-toastr';
 import { of, throwError } from 'rxjs';
 import { RecipesComponent } from './recipes.component';
 import { RecipeService } from '../../services/recipe.service';

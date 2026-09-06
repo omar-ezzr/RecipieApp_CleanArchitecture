@@ -1,16 +1,16 @@
-import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+
+import { Component, EventEmitter, Input, Output, ChangeDetectionStrategy } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { API_BASE_URL } from '../../../app-api.config';
 import { DifficultyLevel, Recipe } from '../../../models/recipe.model';
 import { resolveAssetUrl } from '../../../core/utils/asset-url.util';
 
 @Component({
-  selector: 'app-recipe-card',
-  standalone: true,
-  imports: [CommonModule, RouterLink],
-  templateUrl: './recipe-card.component.html',
-  styleUrl: './recipe-card.component.css'
+    selector: 'app-recipe-card',
+    imports: [RouterLink],
+    templateUrl: './recipe-card.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
+    styleUrl: './recipe-card.component.css'
 })
 export class RecipeCardComponent {
   @Input({ required: true }) recipe!: Recipe;

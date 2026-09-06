@@ -26,7 +26,9 @@
             <span class="form-label">Category</span>
             <select id="category" class="form-select" name="categoryId" [(ngModel)]="recipe.categoryId" required>
               <option value="">Select category</option>
-              <option *ngFor="let category of categories" [value]="category.id">{{ category.name }}</option>
+              @for (category of categories; track category) {
+                <option [value]="category.id">{{ category.name }}</option>
+              }
             </select>
           </label>
           <label>
@@ -54,14 +56,18 @@
             <span class="form-label">Cuisine</span>
             <select id="cuisine" class="form-select" name="cuisineId" [(ngModel)]="recipe.cuisineId" (change)="onCuisineChange()" required>
               <option value="">Select cuisine</option>
-              <option *ngFor="let cuisine of cuisines" [value]="cuisine.id">{{ cuisine.name }} ({{ cuisine.countryCode }})</option>
+              @for (cuisine of cuisines; track cuisine) {
+                <option [value]="cuisine.id">{{ cuisine.name }} ({{ cuisine.countryCode }})</option>
+              }
             </select>
           </label>
           <label>
             <span class="form-label">Region</span>
             <select id="region" class="form-select" name="regionId" [(ngModel)]="recipe.regionId" [disabled]="!recipe.cuisineId">
               <option [ngValue]="null">No region</option>
-              <option *ngFor="let region of regions" [value]="region.id">{{ region.name }}</option>
+              @for (region of regions; track region) {
+                <option [value]="region.id">{{ region.name }}</option>
+              }
             </select>
           </label>
           <label>
@@ -91,11 +97,13 @@
           </div>
           <button class="btn btn-secondary-app btn-sm" type="button" (click)="addIngredient()">Add ingredient</button>
         </div>
-        <div class="dynamic-row ingredient-row" *ngFor="let ingredient of recipe.ingredients; let i = index; trackBy: trackIngredient">
-          <input class="form-control" [name]="'ingredientName' + i" [(ngModel)]="ingredient.name" placeholder="Ingredient name" required maxlength="150" [attr.aria-label]="'Ingredient ' + (i + 1) + ' name'">
-          <input class="form-control" [name]="'ingredientQuantity' + i" [(ngModel)]="ingredient.quantity" placeholder="Quantity (optional)" maxlength="100" [attr.aria-label]="'Ingredient ' + (i + 1) + ' quantity'">
-          <button class="btn btn-danger-app" type="button" [disabled]="recipe.ingredients.length === 1" (click)="removeIngredient(i)">Remove</button>
-        </div>
+        @for (ingredient of recipe.ingredients; track trackIngredient(i, ingredient); let i = $index) {
+          <div class="dynamic-row ingredient-row">
+            <input class="form-control" [name]="'ingredientName' + i" [(ngModel)]="ingredient.name" placeholder="Ingredient name" required maxlength="150" [attr.aria-label]="'Ingredient ' + (i + 1) + ' name'">
+            <input class="form-control" [name]="'ingredientQuantity' + i" [(ngModel)]="ingredient.quantity" placeholder="Quantity (optional)" maxlength="100" [attr.aria-label]="'Ingredient ' + (i + 1) + ' quantity'">
+            <button class="btn btn-danger-app" type="button" [disabled]="recipe.ingredients.length === 1" (click)="removeIngredient(i)">Remove</button>
+          </div>
+        }
       </section>
 
       <section class="form-section">
@@ -106,11 +114,13 @@
           </div>
           <button class="btn btn-secondary-app btn-sm" type="button" (click)="addStep()">Add step</button>
         </div>
-        <div class="dynamic-row step-row" *ngFor="let step of recipe.steps; let i = index; trackBy: trackStep">
-          <span class="step-number">{{ i + 1 }}</span>
-          <input class="form-control" [name]="'stepInstruction' + i" [(ngModel)]="step.instruction" placeholder="Instruction" required maxlength="1000" [attr.aria-label]="'Step ' + (i + 1) + ' instruction'">
-          <button class="btn btn-danger-app" type="button" [disabled]="recipe.steps.length === 1" (click)="removeStep(i)">Remove</button>
-        </div>
+        @for (step of recipe.steps; track trackStep(i, step); let i = $index) {
+          <div class="dynamic-row step-row">
+            <span class="step-number">{{ i + 1 }}</span>
+            <input class="form-control" [name]="'stepInstruction' + i" [(ngModel)]="step.instruction" placeholder="Instruction" required maxlength="1000" [attr.aria-label]="'Step ' + (i + 1) + ' instruction'">
+            <button class="btn btn-danger-app" type="button" [disabled]="recipe.steps.length === 1" (click)="removeStep(i)">Remove</button>
+          </div>
+        }
       </section>
 
       <section class="form-section">
@@ -126,12 +136,18 @@
             <input id="recipeImage" type="file" accept="image/jpeg,image/png,image/webp" (change)="onImageSelected($event)">
           </label>
           <small class="image-picker-help">JPG, PNG or WEBP — max 5 MB</small>
-          <button *ngIf="selectedImage" type="button" class="btn btn-secondary-app btn-sm image-picker-remove" (click)="removeSelectedImage()">Remove image</button>
-          <img *ngIf="imagePreviewUrl" class="selected-image-preview" [src]="imagePreviewUrl" [alt]="selectedImage?.name || 'Selected recipe image'">
+          @if (selectedImage) {
+            <button type="button" class="btn btn-secondary-app btn-sm image-picker-remove" (click)="removeSelectedImage()">Remove image</button>
+          }
+          @if (imagePreviewUrl) {
+            <img class="selected-image-preview" [src]="imagePreviewUrl" [alt]="selectedImage?.name || 'Selected recipe image'">
+          }
         </div>
       </section>
 
-      <div class="alert alert-danger" *ngIf="error">{{ error }}</div>
+      @if (error) {
+        <div class="alert alert-danger">{{ error }}</div>
+      }
 
       <div class="publish-actions">
         <button class="btn btn-primary-app" type="submit" [disabled]="isSubmitting">
