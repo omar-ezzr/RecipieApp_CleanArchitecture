@@ -117,6 +117,7 @@ builder.Services.AddSwaggerGen(options =>
 
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.Configure<RecipeMediaOptions>(builder.Configuration.GetSection(RecipeMediaOptions.SectionName));
+builder.Services.AddSingleton(sp => sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<RecipeMediaOptions>>().Value);
 builder.Services.AddScoped<IRecipeService, RecipeService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();

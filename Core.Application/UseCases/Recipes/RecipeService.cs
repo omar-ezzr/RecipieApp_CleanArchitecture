@@ -3,6 +3,7 @@ using Core.Application.DTO;
 using Core.Application.DTO.Recipe;
 using Core.Application.Interfaces;
 using Core.Application.Interfaces.Services;
+using Core.Application.Options;
 using Core.Application.DTO.Users;
 using Core.Domain.Entities;
 using Core.Domain.Enums;
@@ -13,11 +14,16 @@ namespace Core.Application.UseCases.Recipes
     {
         private readonly IRecipeRepository _repository;
         private readonly IRecipeMediaStorage? _mediaStorage;
+        private readonly RecipeMediaOptions _mediaOptions;
 
-        public RecipeService(IRecipeRepository repository, IRecipeMediaStorage? mediaStorage = null)
+        public RecipeService(
+            IRecipeRepository repository,
+            IRecipeMediaStorage? mediaStorage = null,
+            RecipeMediaOptions? mediaOptions = null)
         {
             _repository = repository;
             _mediaStorage = mediaStorage;
+            _mediaOptions = mediaOptions ?? new RecipeMediaOptions();
         }
 
         // 🔹 CENTRALIZED MAPPER (critical)
@@ -235,7 +241,7 @@ namespace Core.Application.UseCases.Recipes
         }
 
         public async Task<ServiceResult<RecipeMediaDto>> AddMediaAsync(Guid id, Stream content, string fileName, string contentType, long length, Guid currentUserId, bool isAdmin, CancellationToken cancellationToken = default)
-        { var recipe=await _repository.GetByIdAsync(id,cancellationToken); if(recipe is null)return ServiceResult<RecipeMediaDto>.Failure("Recipe not found",ServiceErrorType.NotFound); if(!isAdmin&&recipe.UserId!=currentUserId)return ServiceResult<RecipeMediaDto>.Failure("You can only update your own recipe.",ServiceErrorType.Forbidden); if(recipe.Media.Count>=9)return ServiceResult<RecipeMediaDto>.Failure("A recipe can have at most 9 media items.",ServiceErrorType.Validation); string? url=null; try { url=await (_mediaStorage??throw new InvalidOperationException("Recipe media storage is not configured.")).SaveAsync(new RecipeMediaUpload { Content=content,FileName=fileName,ContentType=contentType,Length=length },cancellationToken); var isImage=contentType.StartsWith("image/",StringComparison.OrdinalIgnoreCase); var media=new RecipeMedia { Id=Guid.NewGuid(),RecipeId=id,Url=url,ContentType=contentType,MediaType=isImage?RecipeMediaType.Image:RecipeMediaType.Video,IsMain=recipe.Media.Count==0,SortOrder=recipe.Media.Count,CreatedAt=DateTime.UtcNow }; recipe.Media.Add(media); ResolveCover(recipe); await _repository.UpdateAsync(recipe,cancellationToken); return ServiceResult<RecipeMediaDto>.Success(new RecipeMediaDto { Id=media.Id,Url=media.Url,ContentType=media.ContentType,MediaType=media.MediaType,IsMain=media.IsMain,SortOrder=media.SortOrder }); } catch(RecipeMediaValidationException ex){return ServiceResult<RecipeMediaDto>.Failure(ex.Code+":"+ex.Message,ServiceErrorType.Validation);} catch {if(url is not null)await _mediaStorage!.DeleteAsync(url,cancellationToken);throw;} }
+        { var recipe=await _repository.GetByIdAsync(id,cancellationToken); if(recipe is null)return ServiceResult<RecipeMediaDto>.Failure("Recipe not found",ServiceErrorType.NotFound); if(!isAdmin&&recipe.UserId!=currentUserId)return ServiceResult<RecipeMediaDto>.Failure("You can only update your own recipe.",ServiceErrorType.Forbidden); if(recipe.Media.Count >= _mediaOptions.MaxItems)return ServiceResult<RecipeMediaDto>.Failure("A recipe can have at most 9 media items.",ServiceErrorType.Validation); string? url=null; try { url=await (_mediaStorage??throw new InvalidOperationException("Recipe media storage is not configured.")).SaveAsync(new RecipeMediaUpload { Content=content,FileName=fileName,ContentType=contentType,Length=length },cancellationToken); var isImage=contentType.StartsWith("image/",StringComparison.OrdinalIgnoreCase); var media=new RecipeMedia { Id=Guid.NewGuid(),RecipeId=id,Url=url,ContentType=contentType,MediaType=isImage?RecipeMediaType.Image:RecipeMediaType.Video,IsMain=recipe.Media.Count==0,SortOrder=recipe.Media.Count,CreatedAt=DateTime.UtcNow }; recipe.Media.Add(media); ResolveCover(recipe); await _repository.UpdateAsync(recipe,cancellationToken); return ServiceResult<RecipeMediaDto>.Success(new RecipeMediaDto { Id=media.Id,Url=media.Url,ContentType=media.ContentType,MediaType=media.MediaType,IsMain=media.IsMain,SortOrder=media.SortOrder }); } catch(RecipeMediaValidationException ex){return ServiceResult<RecipeMediaDto>.Failure(ex.Code+":"+ex.Message,ServiceErrorType.Validation);} catch {if(url is not null)await _mediaStorage!.DeleteAsync(url,cancellationToken);throw;} }
         public async Task<ServiceResult> RemoveMediaAsync(Guid id,Guid mediaId,Guid currentUserId,bool isAdmin,CancellationToken ct=default) { var r=await _repository.GetByIdAsync(id,ct); if(r is null)return ServiceResult.Failure("Recipe not found",ServiceErrorType.NotFound);if(!isAdmin&&r.UserId!=currentUserId)return ServiceResult.Failure("You can only update your own recipe.",ServiceErrorType.Forbidden);var m=r.Media.SingleOrDefault(x=>x.Id==mediaId);if(m is null)return ServiceResult.Failure("Media not found",ServiceErrorType.NotFound);if(r.Media.Count==1)return ServiceResult.Failure("The final media item cannot be removed.",ServiceErrorType.Validation);r.Media.Remove(m); Normalize(r);ResolveCover(r);await _repository.UpdateAsync(r,ct);await _mediaStorage!.DeleteAsync(m.Url,ct);return ServiceResult.Success(); }
         public async Task<ServiceResult> SetMainMediaAsync(Guid id,Guid mediaId,Guid currentUserId,bool isAdmin,CancellationToken ct=default) { var r=await _repository.GetByIdAsync(id,ct);if(r is null)return ServiceResult.Failure("Recipe not found",ServiceErrorType.NotFound);if(!isAdmin&&r.UserId!=currentUserId)return ServiceResult.Failure("You can only update your own recipe.",ServiceErrorType.Forbidden);var m=r.Media.SingleOrDefault(x=>x.Id==mediaId);if(m is null)return ServiceResult.Failure("Media not found",ServiceErrorType.NotFound);foreach(var x in r.Media)x.IsMain=x.Id==mediaId;ResolveCover(r);await _repository.UpdateAsync(r,ct);return ServiceResult.Success(); }
         public async Task<ServiceResult> ReorderMediaAsync(Guid id,IReadOnlyList<Guid> ids,Guid currentUserId,bool isAdmin,CancellationToken ct=default) { var r=await _repository.GetByIdAsync(id,ct);if(r is null)return ServiceResult.Failure("Recipe not found",ServiceErrorType.NotFound);if(!isAdmin&&r.UserId!=currentUserId)return ServiceResult.Failure("You can only update your own recipe.",ServiceErrorType.Forbidden);if(ids.Count!=r.Media.Count||ids.Distinct().Count()!=ids.Count||ids.Except(r.Media.Select(x=>x.Id)).Any())return ServiceResult.Failure("Media order must contain each recipe media ID exactly once.",ServiceErrorType.Validation);foreach(var m in r.Media)m.SortOrder=Enumerable.Range(0, ids.Count).First(i => ids[i] == m.Id);Normalize(r);ResolveCover(r);await _repository.UpdateAsync(r,ct);return ServiceResult.Success(); }
