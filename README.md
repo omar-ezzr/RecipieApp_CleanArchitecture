@@ -1,6 +1,6 @@
 # Recepie
 
-RecepieV3 is a full-stack social recipe platform built with ASP.NET Core 10, EF Core 10, SQL Server, and Angular 21 standalone components.
+RecepieV3 is a full-stack social recipe platform built with ASP.NET Core 10, EF Core 10, SQL Server, and Angular 22 standalone components.
 
 The product is a public cooking network, not an Admin-only recipe catalog. Authenticated users publish their own recipes, manage the recipes they created, browse cultural cooking styles, follow cooks, react to recipes with Likes, save recipes privately, comment, and write reviews. Admins moderate the platform and can manage any recipe or user account when authorized.
 
@@ -36,7 +36,7 @@ Core.Domain        Entities, enums, constants
 Core.Application   DTOs, interfaces, services/use cases, validators
 Infrastructure     EF Core DbContext, configurations, repositories, migrations, seeders
 tests/             xUnit unit and integration tests
-app/               Angular 21 standalone frontend
+app/               Angular 22 standalone frontend
 ```
 
 Main request flow:
@@ -59,9 +59,9 @@ The Angular app lives in `app/`.
 
 The frontend uses:
 
-- Angular 21 standalone components.
+- Angular 22 standalone components.
 - Angular Router guards and HTTP interceptors.
-- ngx-toastr.
+- @openng/ngx-toastr.
 - Bootstrap as a dependency, with a custom editorial design system layered on top.
 - Centralized API base URL in `app/src/app/app-api.config.ts`.
 - Centralized API-relative image URL handling in `app/src/app/core/utils/asset-url.util.ts`.

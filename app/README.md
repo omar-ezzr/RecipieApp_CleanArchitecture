@@ -1,16 +1,16 @@
 # RecepieV3 Angular Frontend
 
-Angular 18 standalone frontend for the RecepieV3 social recipe platform.
+Angular 22 standalone frontend for the RecepieV3 social recipe platform.
 
 The UI is designed as an editorial cooking product where authenticated users discover recipes by cuisine and region, publish recipes, manage their own recipe library, favorite recipes, review dishes, and access Admin account management when authorized.
 
 ## Stack
 
-- Angular 18 standalone components.
+- Angular 22 standalone components.
 - Angular Router.
 - Angular HttpClient.
 - JWT auth interceptor and refresh interceptor.
-- ngx-toastr.
+- @openng/ngx-toastr.
 - Bootstrap installed through npm.
 - Custom global design system in `src/styles.css`.
 
