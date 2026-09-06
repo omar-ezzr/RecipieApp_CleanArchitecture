@@ -153,17 +153,19 @@ export class CreateRecipeComponent implements OnInit, OnDestroy {
     const selected = [...this.selectedMedia];
     this.recipeService.create(result.payload).pipe(concatMap(recipe => {
       this.createdRecipeId = recipe.id;
-      return from(selected).pipe(concatMap(item => this.recipeService.addMedia(recipe.id, item.file).pipe(catchError(() => of(null)))), toArray(), concatMap(uploaded => {
-        const successes = uploaded.filter((media): media is RecipeMedia => media !== null);
-        const failed = uploaded.length - successes.length;
-        if (!successes.length) { this.error = `Recipe created, but ${failed} media item${failed === 1 ? '' : 's'} failed to upload.`; this.isSubmitting = false; return of(null); }
-        const coverIndex = selected.findIndex(item => item.isMain);
-        const cover = successes[coverIndex];
-        const order = successes.map(media => media.id);
-        const finish = cover && !cover.isMain ? this.recipeService.setMainMedia(recipe.id, cover.id).pipe(concatMap(() => this.recipeService.reorderMedia(recipe.id, order))) : this.recipeService.reorderMedia(recipe.id, order);
+      return from(selected).pipe(concatMap(item => this.recipeService.addMedia(recipe.id, item.file).pipe(
+        concatMap(media => of({ selected: item, media })),
+        catchError(() => of({ selected: item, media: null }))
+      )), toArray(), concatMap(results => {
+        const successes = results.filter(result => result.media !== null) as Array<{ selected: SelectedMedia; media: RecipeMedia }>;
+        const failed = results.length - successes.length;
+        if (!successes.length) { this.error = `Recipe created, but ${failed} media item${failed === 1 ? '' : 's'} failed to upload. Continue in edit mode to retry.`; this.isSubmitting = false; this.router.navigate(['/recipes', recipe.id], { queryParams: { edit: true } }); return of(null); }
+        const cover = successes.find(result => result.selected.isMain)?.media ?? successes[0].media;
+        const order = successes.map(result => result.media.id);
+        const finish = !cover.isMain ? this.recipeService.setMainMedia(recipe.id, cover.id).pipe(concatMap(() => this.recipeService.reorderMedia(recipe.id, order))) : this.recipeService.reorderMedia(recipe.id, order);
         return finish.pipe(concatMap(() => of({ recipe, failed })));
       }));
-    })).subscribe({ next: value => { if (!value) return; if (value.failed) { this.error = `Recipe created, but ${value.failed} media item${value.failed === 1 ? '' : 's'} failed to upload.`; this.isSubmitting = false; return; } this.clearSelectedMedia(); this.router.navigate(['/recipes', value.recipe.id]); }, error: error => { this.error = this.getApiError(error); this.isSubmitting = false; } });
+    })).subscribe({ next: value => { if (!value) return; if (value.failed) { this.error = `Recipe created, but ${value.failed} media item${value.failed === 1 ? '' : 's'} failed to upload. Continue in edit mode to retry.`; this.isSubmitting = false; this.router.navigate(['/recipes', value.recipe.id], { queryParams: { edit: true } }); return; } this.clearSelectedMedia(); this.router.navigate(['/recipes', value.recipe.id]); }, error: error => { this.error = this.getApiError(error); this.isSubmitting = false; } });
   }
 
   private getApiError(error: HttpErrorResponse): string {

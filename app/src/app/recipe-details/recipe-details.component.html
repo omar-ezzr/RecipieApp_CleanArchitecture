@@ -253,7 +253,7 @@
         </div>
         <aside class="recipe-preview">
           <p class="ui-label">Preview</p>
-          <img [src]="resolveImageUrl(activeMedia?.url || recipe.imageUrl)" [alt]="editRecipeModel.title || 'Recipe preview'" width="480" height="360">
+          @if (activeMedia?.mediaType === 2) { <video [src]="resolveImageUrl(activeMedia?.url)" controls playsinline preload="metadata"></video> } @else { <img [src]="resolveImageUrl(activeMedia?.url || recipe.imageUrl)" [alt]="editRecipeModel.title || 'Recipe preview'" width="480" height="360"> }
           <h2>{{ editRecipeModel.title || 'Untitled recipe' }}</h2>
           <p>{{ editRecipeModel.description || 'Add a short story about the dish, its origin, and why it belongs on the table.' }}</p>
           <dl>
