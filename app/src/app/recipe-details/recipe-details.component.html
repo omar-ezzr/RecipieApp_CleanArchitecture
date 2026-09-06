@@ -50,13 +50,9 @@
             }
           </div>
         </div>
-        <img
-          class="hero-image"
-          [src]="resolveImageUrl(recipe.imageUrl)"
-          [alt]="recipe.title"
-          width="900"
-          height="675"
-          loading="eager">
+        @if (activeMedia?.mediaType === 2) { <video class="hero-image" [src]="resolveImageUrl(activeMedia?.url)" controls playsinline preload="metadata"></video> }
+        @else { <img class="hero-image" [src]="resolveImageUrl(activeMedia?.url || recipe.imageUrl)" [alt]="recipe.title" width="900" height="675" loading="eager"> }
+        @if (orderedMedia.length > 1) { <div class="media-selector" aria-label="Recipe media"> @for (media of orderedMedia; track media.id) { <button type="button" (click)="selectMedia(media)" [class.selected]="activeMedia?.id === media.id" [attr.aria-label]="'Select media ' + (media.sortOrder + 1)">@if (media.mediaType === 1) { <img [src]="resolveImageUrl(media.url)" [alt]="recipe.title"> } @else { <span>Video</span> } @if (media.isMain) { <b>Cover</b> }</button> } </div> }
       </header>
       <section class="meta-strip" aria-label="Recipe summary">
         <div><span>Time</span><strong>{{ recipe.preparationTimeMinutes }} min</strong></div>
@@ -244,13 +240,7 @@
               </div>
             }
           </section>
-          <section class="form-section">
-            <div>
-              <p class="ui-label">5. Image and final details</p>
-              <h2>Give it a visual anchor</h2>
-            </div>
-            <div><span class="form-label">Recipe image</span><input class="form-control" type="file" accept="image/jpeg,image/png,image/webp" (change)="onEditImageSelected($event)"><button type="button" class="btn btn-secondary-app btn-sm" [disabled]="!selectedEditImage || isImageChanging" (click)="uploadSelectedEditImage()">Replace image</button><button type="button" class="btn btn-danger-app btn-sm" [disabled]="!recipe.imageUrl || isImageChanging" (click)="removeRecipeImage()">Remove image</button></div>
-          </section>
+          <section class="form-section"><div><p class="ui-label">5. Photos and videos</p><h2>Manage your gallery</h2></div><input class="form-control" type="file" multiple accept="image/jpeg,image/png,image/webp,video/mp4,video/webm" (change)="onEditMediaSelected($event)" [disabled]="isMediaChanging || orderedMedia.length >= 9" aria-label="Add media"><div class="edit-media-grid">@for (media of orderedMedia; track media.id; let i = $index) { <article><img *ngIf="media.mediaType === 1" [src]="resolveImageUrl(media.url)" [alt]="recipe.title"><span *ngIf="media.mediaType === 2">Video</span><b *ngIf="media.isMain">Cover</b><div><button type="button" class="btn btn-secondary-app btn-sm" (click)="setMainMedia(media)" [disabled]="media.isMain || isMediaChanging" aria-label="Set as cover">Cover</button><button type="button" class="btn btn-secondary-app btn-sm" (click)="moveMedia(media,-1)" [disabled]="i===0 || isMediaChanging" aria-label="Move previous">←</button><button type="button" class="btn btn-secondary-app btn-sm" (click)="moveMedia(media,1)" [disabled]="i===orderedMedia.length-1 || isMediaChanging" aria-label="Move next">→</button><button type="button" class="btn btn-danger-app btn-sm" (click)="removeMedia(media)" [disabled]="orderedMedia.length===1 || isMediaChanging" aria-label="Remove media">Remove</button></div></article> }</div></section>
           @if (editError) {
             <div class="alert alert-danger">{{ editError }}</div>
           }
@@ -263,7 +253,7 @@
         </div>
         <aside class="recipe-preview">
           <p class="ui-label">Preview</p>
-          <img [src]="previewEditImageUrl()" [alt]="editRecipeModel.title || 'Recipe preview'" width="480" height="360">
+          <img [src]="resolveImageUrl(activeMedia?.url || recipe.imageUrl)" [alt]="editRecipeModel.title || 'Recipe preview'" width="480" height="360">
           <h2>{{ editRecipeModel.title || 'Untitled recipe' }}</h2>
           <p>{{ editRecipeModel.description || 'Add a short story about the dish, its origin, and why it belongs on the table.' }}</p>
           <dl>

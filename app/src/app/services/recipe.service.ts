@@ -1,8 +1,7 @@
 import { Injectable } from "@angular/core";
 import { HttpClient, HttpParams } from "@angular/common/http";
-import { Observable, map, switchMap, of } from "rxjs";
+import { Observable } from "rxjs";
 import { CreateRecipe, Difficulty, Recipe, RecipeMedia } from "../models/recipe.model";
-import { tap } from 'rxjs/operators';
 import { API_BASE_URL } from '../app-api.config';
 
 export interface RecipeQuery {
@@ -57,10 +56,6 @@ addMedia(id: string, file: File): Observable<RecipeMedia> { const data = new For
 removeMedia(id: string, mediaId: string): Observable<void> { return this.http.delete<void>(`${this.apiUrl}/${id}/media/${mediaId}`); }
 setMainMedia(id: string, mediaId: string): Observable<void> { return this.http.put<void>(`${this.apiUrl}/${id}/media/${mediaId}/main`, {}); }
 reorderMedia(id: string, mediaIds: string[]): Observable<void> { return this.http.put<void>(`${this.apiUrl}/${id}/media/order`, { mediaIds }); }
-
-// Legacy UI compatibility: these delegate to the canonical media endpoints.
-uploadImage(id: string, file: File): Observable<{ imageUrl: string }> { return this.addMedia(id, file).pipe(map(media => ({ imageUrl: media.url }))); }
-removeImage(id: string): Observable<void> { return this.getById(id).pipe(switchMap(recipe => { const main = recipe.media?.find(media => media.isMain) ?? recipe.media?.[0]; return main ? this.removeMedia(id, main.id) : of(void 0); })); }
 
     delete(id: string) {
 return this.http.delete(
