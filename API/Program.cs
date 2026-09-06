@@ -24,6 +24,7 @@ using Core.Application.UseCases.Regions;
 using Core.Application.UseCases.Social;
 using Core.Domain.Constants;
 using System.Security.Claims;
+using Core.Application.Options;
 using API.Options;
 using API.Responses;
 using Microsoft.AspNetCore.StaticFiles;
@@ -115,6 +116,7 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.Configure<RecipeMediaOptions>(builder.Configuration.GetSection(RecipeMediaOptions.SectionName));
 builder.Services.AddScoped<IRecipeService, RecipeService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
@@ -227,6 +229,8 @@ var app = builder.Build();
 
 var staticFileContentTypes = new FileExtensionContentTypeProvider();
 staticFileContentTypes.Mappings[".avif"] = "image/avif";
+staticFileContentTypes.Mappings[".mp4"] = "video/mp4";
+staticFileContentTypes.Mappings[".webm"] = "video/webm";
 
 
 if (app.Environment.IsDevelopment())

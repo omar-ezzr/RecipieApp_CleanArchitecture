@@ -31,6 +31,7 @@ public class RecipeRepository : IRecipeRepository
             .Include(r => r.Region)
             .Include(r => r.Ingredients)
             .Include(r => r.Steps)
+            .Include(r => r.Media)
             .AsSplitQuery()
             .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
     }

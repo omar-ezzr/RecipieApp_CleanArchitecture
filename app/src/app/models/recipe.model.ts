@@ -6,6 +6,9 @@ export enum DifficultyLevel {
 
 export type Difficulty = 'Easy' | 'Medium' | 'Hard';
 
+export enum RecipeMediaType { Image = 1, Video = 2 }
+export interface RecipeMedia { id: string; url: string; mediaType: RecipeMediaType; contentType: string; isMain: boolean; sortOrder: number; }
+
 export interface RecipeAuthor {
   id: string;
   displayName: string;
@@ -38,6 +41,7 @@ export interface Recipe {
   difficulty: DifficultyLevel;
   author: RecipeAuthor;
   imageUrl?: string;
+  media?: RecipeMedia[];
   traditionalName?: string | null;
   originDescription?: string | null;
   isTraditional: boolean;

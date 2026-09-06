@@ -1,7 +1,7 @@
 import { Injectable } from "@angular/core";
 import { HttpClient, HttpParams } from "@angular/common/http";
-import { Observable } from "rxjs";
-import { CreateRecipe, Difficulty, Recipe } from "../models/recipe.model";
+import { Observable, map, switchMap, of } from "rxjs";
+import { CreateRecipe, Difficulty, Recipe, RecipeMedia } from "../models/recipe.model";
 import { tap } from 'rxjs/operators';
 import { API_BASE_URL } from '../app-api.config';
 
@@ -53,21 +53,14 @@ return this.http.put<Recipe>(
 );    
 }
 
-uploadImage(id: string, file: File): Observable<{ imageUrl: string }> {
-  const data = new FormData();
-  data.append('file', file);
+addMedia(id: string, file: File): Observable<RecipeMedia> { const data = new FormData(); data.append('file', file); return this.http.post<RecipeMedia>(`${this.apiUrl}/${id}/media`, data); }
+removeMedia(id: string, mediaId: string): Observable<void> { return this.http.delete<void>(`${this.apiUrl}/${id}/media/${mediaId}`); }
+setMainMedia(id: string, mediaId: string): Observable<void> { return this.http.put<void>(`${this.apiUrl}/${id}/media/${mediaId}/main`, {}); }
+reorderMedia(id: string, mediaIds: string[]): Observable<void> { return this.http.put<void>(`${this.apiUrl}/${id}/media/order`, { mediaIds }); }
 
-  return this.http.post<{ imageUrl: string }>(
-    `${this.apiUrl}/${id}/image`,
-    data
-  );
-}
-
-removeImage(id: string): Observable<void> {
-  return this.http.delete<void>(
-    `${this.apiUrl}/${id}/image`
-  );
-}
+// Legacy UI compatibility: these delegate to the canonical media endpoints.
+uploadImage(id: string, file: File): Observable<{ imageUrl: string }> { return this.addMedia(id, file).pipe(map(media => ({ imageUrl: media.url }))); }
+removeImage(id: string): Observable<void> { return this.getById(id).pipe(switchMap(recipe => { const main = recipe.media?.find(media => media.isMain) ?? recipe.media?.[0]; return main ? this.removeMedia(id, main.id) : of(void 0); })); }
 
     delete(id: string) {
 return this.http.delete(

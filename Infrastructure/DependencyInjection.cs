@@ -35,7 +35,7 @@ public static class DependencyInjection
         services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddScoped<IPasswordService, PasswordService>();
         services.AddScoped<ITokenService, JwtTokenService>();
-        services.AddScoped<IRecipeImageStorage, LocalRecipeImageStorage>();
+        services.AddScoped<IRecipeMediaStorage, LocalRecipeMediaStorage>();
         services.AddScoped<IAdminModerationService, AdminModerationService>();
 
         return services;

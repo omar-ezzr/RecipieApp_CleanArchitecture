@@ -10,8 +10,10 @@ Task<RecipieDto?> GetByIdAsync(Guid id, Guid? currentUserId = null, Cancellation
 Task<ServiceResult<RecipieDto>> CreateAsync(CreateRecipeDto dto, Guid currentUserId, CancellationToken cancellationToken = default);
 Task<ServiceResult<RecipieDto>> UpdateAsync(Guid id, CreateRecipeDto dto, Guid currentUserId, bool isAdmin, CancellationToken cancellationToken = default);
 Task<ServiceResult> DeleteAsync(Guid id, Guid currentUserId, bool isAdmin, CancellationToken cancellationToken = default);
-Task<ServiceResult<string>> UploadImageAsync(Guid id, Stream content, string fileName, string contentType, long length, Guid currentUserId, bool isAdmin, CancellationToken cancellationToken = default);
-Task<ServiceResult> RemoveImageAsync(Guid id, Guid currentUserId, bool isAdmin, CancellationToken cancellationToken = default);
+Task<ServiceResult<RecipeMediaDto>> AddMediaAsync(Guid id, Stream content, string fileName, string contentType, long length, Guid currentUserId, bool isAdmin, CancellationToken cancellationToken = default);
+Task<ServiceResult> RemoveMediaAsync(Guid id, Guid mediaId, Guid currentUserId, bool isAdmin, CancellationToken cancellationToken = default);
+Task<ServiceResult> SetMainMediaAsync(Guid id, Guid mediaId, Guid currentUserId, bool isAdmin, CancellationToken cancellationToken = default);
+Task<ServiceResult> ReorderMediaAsync(Guid id, IReadOnlyList<Guid> mediaIds, Guid currentUserId, bool isAdmin, CancellationToken cancellationToken = default);
 Task<PagedResult<RecipieDto>> GetPagedAsync(RecipeQueryParams parameters, Guid? currentUserId = null, CancellationToken cancellationToken = default);
 Task<PagedResult<RecipieDto>> GetMineAsync(RecipeQueryParams parameters, Guid currentUserId, CancellationToken cancellationToken = default);
 }
