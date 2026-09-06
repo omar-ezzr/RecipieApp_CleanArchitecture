@@ -124,24 +124,19 @@
       </section>
 
       <section class="form-section">
-        <div>
-          <p class="ui-label">5. Image and final details</p>
-          <h2>Give it a visual anchor</h2>
-        </div>
+        <div><p class="ui-label">5. Photos and videos</p><h2>Show the finished dish</h2></div>
         <div class="recipe-image-field">
-          <span class="form-label">Recipe image</span>
-          <label class="image-picker" for="recipeImage">
-            <span class="image-picker-button">Choose image</span>
-            <span class="image-picker-name" [class.is-placeholder]="!selectedImage">{{ selectedImage?.name || "No image selected" }}</span>
-            <input id="recipeImage" type="file" accept="image/jpeg,image/png,image/webp" (change)="onImageSelected($event)">
-          </label>
-          <small class="image-picker-help">JPG, PNG or WEBP — max 5 MB</small>
-          @if (selectedImage) {
-            <button type="button" class="btn btn-secondary-app btn-sm image-picker-remove" (click)="removeSelectedImage()">Remove image</button>
-          }
-          @if (imagePreviewUrl) {
-            <img class="selected-image-preview" [src]="imagePreviewUrl" [alt]="selectedImage?.name || 'Selected recipe image'">
-          }
+          <label class="image-picker" for="recipeMedia"><span class="image-picker-button">Add media</span><span class="image-picker-name">{{ selectedMedia.length }} / 9 selected</span><input id="recipeMedia" type="file" multiple accept="image/jpeg,image/png,image/webp,video/mp4,video/webm" (change)="onMediaSelected($event)" aria-label="Add media"></label>
+          <small class="image-picker-help">JPEG, PNG, WEBP up to 5 MB; MP4, WebM up to 50 MB.</small>
+          <div class="media-grid">
+            @for (item of selectedMedia; track trackMedia($index, item)) {
+              <article class="media-card" [class.is-cover]="item.isMain">
+                @if (item.kind === 'image') { <img [src]="item.previewUrl" [alt]="item.file.name"> } @else { <video [src]="item.previewUrl" muted playsinline preload="metadata"></video> }
+                <span>{{ item.isMain ? 'Cover' : item.file.name }}</span>
+                <div><button type="button" class="btn btn-secondary-app btn-sm" (click)="setSelectedCover(item.localId)" [disabled]="item.isMain" aria-label="Set as cover">Set as cover</button><button type="button" class="btn btn-danger-app btn-sm" (click)="removeSelectedMedia(item.localId)" aria-label="Remove media">Remove</button></div>
+              </article>
+            }
+          </div>
         </div>
       </section>
 

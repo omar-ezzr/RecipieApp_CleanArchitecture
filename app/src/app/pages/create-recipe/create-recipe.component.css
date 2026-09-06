@@ -185,3 +185,9 @@
 .image-picker-remove { justify-self: start; }
 .selected-image-preview { width: 100%; max-height: min(48vw, 320px); border: 1px solid var(--color-border); border-radius: var(--radius-md); object-fit: cover; }
 @media (max-width: 480px) { .image-picker { grid-template-columns: 1fr; min-height: 0; gap: var(--space-2); padding: var(--space-3); } .image-picker-button, .image-picker-name { margin: 0; padding: 0; } .image-picker-button { justify-self: start; padding: .65rem .85rem; } .selected-image-preview { max-height: 260px; } }
+.media-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:var(--space-3); }
+.media-card { display:grid; gap:.5rem; border:1px solid var(--color-border); border-radius:var(--radius-md); overflow:hidden; padding:.5rem; }
+.media-card.is-cover { outline:3px solid var(--color-plum-500); }
+.media-card img,.media-card video { width:100%; aspect-ratio:1; object-fit:cover; border-radius:var(--radius-sm); }
+.media-card span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:.8rem; }
+.media-card div { display:flex; gap:.4rem; flex-wrap:wrap; }
