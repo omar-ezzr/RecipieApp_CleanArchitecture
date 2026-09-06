@@ -20,6 +20,7 @@ public class AppDbContext : DbContext
     public DbSet<RecipieStep> RecipeSteps => Set<RecipieStep>();
     public DbSet<Cuisine> Cuisines => Set<Cuisine>();
     public DbSet<Region> Regions => Set<Region>();
+    public DbSet<RecipeMedia> RecipeMedia => Set<RecipeMedia>();
     
     public DbSet<Users> Users => Set<Users>();
     public DbSet<FavoriteRecipe> FavoriteRecipes { get; set; }

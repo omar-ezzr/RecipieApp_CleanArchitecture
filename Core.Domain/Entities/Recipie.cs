@@ -30,7 +30,7 @@ namespace Core.Domain.Entities
     public string? ImageUrl { get; set; }
     public ICollection<Ingredient> Ingredients { get; set; } = [];
     public ICollection<RecipieStep> Steps { get; set; } = [];
-    public ICollection<RecipeImage> Images { get; set; } = [];
+    public ICollection<RecipeMedia> Media { get; set; } = [];
     
     }
 }

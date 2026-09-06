@@ -46,9 +46,3 @@ jobs:
         env:
           CHROME_BIN: google-chrome
         run: npm test -- --watch=false --browsers=ChromeHeadless
-
-      - name: Build API container image
-        run: docker build -f API/Dockerfile .
-
-      - name: Build frontend container image
-        run: docker build -f app/Dockerfile app

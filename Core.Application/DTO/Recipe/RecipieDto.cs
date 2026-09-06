@@ -30,6 +30,7 @@ public class RecipieDto
     public required AuthorDto Author { get; set; }
 
     public string? ImageUrl { get; set; }
+    public List<RecipeMediaDto> Media { get; set; } = new();
 
     public DifficultyLevel Difficulty { get; set; }
 

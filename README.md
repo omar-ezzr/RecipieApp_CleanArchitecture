@@ -126,16 +126,16 @@ Default local URLs:
 - Angular dev server: `http://localhost:4203`
 - Swagger is available in Development when the API is running.
 
-## Production Docker deployment
+## Production build and deployment
 
 The application can run as an Angular/Nginx web container, ASP.NET Core API container, and persistent SQL Server container. Copy `.env.example` to an untracked `.env`, set secure values, then run:
 
 ```bash
-docker compose build
-docker compose up -d
+dotnet publish API/API.csproj -c Release
+cd app && npm ci && npm run build
 ```
 
-The web container is exposed at `http://localhost:8080`; it proxies `/api/` and `/images/` to the API. Health endpoints are `/health/live` and `/health/ready`. Production configuration is environment-variable based; no secrets belong in repository configuration or Docker images. Database migrations are explicit and must be applied before deploying the API. See [the production runbook](docs/PRODUCTION_RUNBOOK.md) for migrations, backups/restores, image persistence, TLS, validation, and rollback.
+Deploy the Angular build behind your chosen static host/reverse proxy and run the API with normal ASP.NET Core configuration. Health endpoints are `/health/live` and `/health/ready`. Configuration is environment-variable based; no secrets belong in repository configuration. Database migrations are explicit and must be applied before deploying the API. See [the production runbook](docs/PRODUCTION_RUNBOOK.md) for migrations, backups/restores, image persistence, TLS, validation, and rollback.
 
 ## Validation Status
 
