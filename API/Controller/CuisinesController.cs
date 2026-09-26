@@ -1,5 +1,4 @@
-using API.Responses;
-using Core.Application.Common;
+using API.Extensions;
 using Core.Application.DTO.Cuisines;
 using Core.Application.Interfaces.Services;
 using Core.Domain.Constants;
@@ -32,7 +31,7 @@ public class CuisinesController : ControllerBase
     {
         var result = await _service.GetByIdAsync(id, cancellationToken);
 
-        return result.IsSuccess ? Ok(result.Value) : ToActionResult(result);
+        return result.IsSuccess ? Ok(result.Value) : this.ToActionResult(result);
     }
 
     [AllowAnonymous]
@@ -42,7 +41,7 @@ public class CuisinesController : ControllerBase
         var cuisine = await _service.GetByIdAsync(id, cancellationToken);
         if (!cuisine.IsSuccess)
         {
-            return ToActionResult(cuisine);
+            return this.ToActionResult(cuisine);
         }
 
         return Ok(await _service.GetRegionsAsync(id, cancellationToken));
@@ -56,7 +55,7 @@ public class CuisinesController : ControllerBase
 
         if (!result.IsSuccess)
         {
-            return ToActionResult(result);
+            return this.ToActionResult(result);
         }
 
         return CreatedAtAction(nameof(GetById), new { id = result.Value!.Id }, result.Value);
@@ -68,7 +67,7 @@ public class CuisinesController : ControllerBase
     {
         var result = await _service.UpdateAsync(id, dto, cancellationToken);
 
-        return result.IsSuccess ? Ok(result.Value) : ToActionResult(result);
+        return result.IsSuccess ? Ok(result.Value) : this.ToActionResult(result);
     }
 
     [Authorize(Roles = AppRoles.Admin)]
@@ -77,36 +76,7 @@ public class CuisinesController : ControllerBase
     {
         var result = await _service.DeleteAsync(id, cancellationToken);
 
-        return result.IsSuccess ? NoContent() : ToActionResult(result);
+        return result.IsSuccess ? NoContent() : this.ToActionResult(result);
     }
 
-    private IActionResult ToActionResult(ServiceResult result)
-    {
-        return result.ErrorType switch
-        {
-            ServiceErrorType.NotFound => NotFound(Error("not_found", result.Error ?? "Resource was not found.")),
-            ServiceErrorType.Conflict => Conflict(Error("conflict", result.Error ?? "Conflict.")),
-            ServiceErrorType.Validation => BadRequest(Error("validation_failed", result.Error ?? "The request is invalid.")),
-            _ => BadRequest(Error("bad_request", result.Error ?? "The request is invalid."))
-        };
-    }
-
-    private IActionResult ToActionResult<T>(ServiceResult<T> result)
-    {
-        return result.ErrorType switch
-        {
-            ServiceErrorType.NotFound => NotFound(Error("not_found", result.Error ?? "Resource was not found.")),
-            ServiceErrorType.Conflict => Conflict(Error("conflict", result.Error ?? "Conflict.")),
-            ServiceErrorType.Validation => BadRequest(Error("validation_failed", result.Error ?? "The request is invalid.")),
-            _ => BadRequest(Error("bad_request", result.Error ?? "The request is invalid."))
-        };
-    }
-
-    private ApiErrorResponse Error(string code, string message) =>
-        new()
-        {
-            Code = code,
-            Message = message,
-            TraceId = HttpContext.TraceIdentifier
-        };
 }

@@ -1,4 +1,4 @@
-using API.Responses;
+using API.Extensions;
 using Core.Application.DTO.Auth;
 using Core.Application.Interfaces.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -27,7 +27,7 @@ public class AuthController : ControllerBase
 
         return result.IsSuccess
             ? Ok(ToTokenResponse(result.Value!))
-            : Unauthorized(Error("invalid_credentials", "Invalid email or password."));
+            : Unauthorized(this.ApiError("invalid_credentials", "Invalid email or password."));
     }
 
     [AllowAnonymous]
@@ -39,7 +39,7 @@ public class AuthController : ControllerBase
 
         return result.IsSuccess
             ? Ok(ToTokenResponse(result.Value!))
-            : Unauthorized(Error("invalid_refresh_token", result.Error ?? "Invalid refresh token"));
+            : Unauthorized(this.ApiError("invalid_refresh_token", result.Error ?? "Invalid refresh token"));
     }
 
     [AllowAnonymous]
@@ -54,7 +54,7 @@ public class AuthController : ControllerBase
             return Accepted(new { message = "Account created and waiting for administrator approval." });
         }
 
-        return BadRequest(Error("validation_failed", result.Error ?? "The request is invalid."));
+        return BadRequest(this.ApiError("validation_failed", result.Error ?? "The request is invalid."));
     }
 
     [AllowAnonymous]
@@ -70,12 +70,5 @@ public class AuthController : ControllerBase
     {
         accessToken = token.AccessToken,
         refreshToken = token.RefreshToken
-    };
-
-    private ApiErrorResponse Error(string code, string message) => new()
-    {
-        Code = code,
-        Message = message,
-        TraceId = HttpContext.TraceIdentifier
     };
 }

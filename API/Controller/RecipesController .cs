@@ -5,9 +5,7 @@ using Core.Domain.Constants;
 using Core.Domain.Enums;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using Core.Application.Common;
 using API.Extensions;
-using API.Responses;
 namespace API.Controllers;
 
 [ApiController]
@@ -47,7 +45,7 @@ public class RecipesController : ControllerBase
             (!Enum.TryParse<DifficultyLevel>(parameters.Difficulty, true, out var difficulty) ||
              !Enum.IsDefined(typeof(DifficultyLevel), difficulty)))
         {
-            return BadRequest(Error("validation_failed", "Difficulty must be Easy, Medium, or Hard."));
+            return BadRequest(this.ApiError("validation_failed", "Difficulty must be Easy, Medium, or Hard."));
         }
 
         var currentUserId = TryGetCurrentUserId(out var parsed) ? parsed : (Guid?)null;
@@ -64,12 +62,12 @@ public class RecipesController : ControllerBase
     {
         if (!TryGetCurrentUserId(out var currentUserId))
         {
-            return UnauthorizedIdentityProblem();
+            return this.UnauthorizedIdentityProblem();
         }
 
         if (!IsValidDifficultyFilter(parameters.Difficulty))
         {
-            return BadRequest(Error("validation_failed", "Difficulty must be Easy, Medium, or Hard."));
+            return BadRequest(this.ApiError("validation_failed", "Difficulty must be Easy, Medium, or Hard."));
         }
 
         var result = await _service.GetMineAsync(parameters, currentUserId, cancellationToken);
@@ -99,13 +97,13 @@ public class RecipesController : ControllerBase
     {
         if (!TryGetCurrentUserId(out var currentUserId))
         {
-            return UnauthorizedIdentityProblem();
+            return this.UnauthorizedIdentityProblem();
         }
 
         var result = await _service.CreateAsync(dto, currentUserId, cancellationToken);
 
         if (!result.IsSuccess)
-            return ToActionResult(result);
+            return this.ToActionResult(result, "recipe_not_found", "Recipe was not found.");
 
         return CreatedAtAction(nameof(GetById), new { id = result.Value!.Id }, result.Value);
     }
@@ -116,27 +114,27 @@ public class RecipesController : ControllerBase
     {
         if (!TryGetCurrentUserId(out var currentUserId))
         {
-            return UnauthorizedIdentityProblem();
+            return this.UnauthorizedIdentityProblem();
         }
 
         var result = await _service.UpdateAsync(id, dto, currentUserId, IsAdmin(), cancellationToken);
         if (!result.IsSuccess)
-        return ToActionResult(result);
+        return this.ToActionResult(result, "recipe_not_found", "Recipe was not found.");
         return Ok(result.Value);
     }
     [HttpPost("{id}/media")]
     [RequestSizeLimit(53 * 1024 * 1024)]
     public async Task<IActionResult> AddMedia(Guid id, IFormFile? file, CancellationToken cancellationToken)
-    { if (!TryGetCurrentUserId(out var userId)) return UnauthorizedIdentityProblem(); if (file is null) return BadRequest(Error("invalid_media", "A media file is required.")); await using var stream=file.OpenReadStream(); var result=await _service.AddMediaAsync(id,stream,file.FileName,file.ContentType,file.Length,userId,IsAdmin(),cancellationToken); return result.IsSuccess?Ok(result.Value):ToActionResult(result); }
+    { if (!TryGetCurrentUserId(out var userId)) return this.UnauthorizedIdentityProblem(); if (file is null) return BadRequest(this.ApiError("invalid_media", "A media file is required.")); await using var stream=file.OpenReadStream(); var result=await _service.AddMediaAsync(id,stream,file.FileName,file.ContentType,file.Length,userId,IsAdmin(),cancellationToken); return result.IsSuccess?Ok(result.Value):this.ToActionResult(result, "recipe_not_found", "Recipe was not found."); }
     [HttpDelete("{id}/media/{mediaId}")]
     public async Task<IActionResult> RemoveMedia(Guid id, Guid mediaId, CancellationToken cancellationToken)
-    { if (!TryGetCurrentUserId(out var userId)) return UnauthorizedIdentityProblem(); var result=await _service.RemoveMediaAsync(id,mediaId,userId,IsAdmin(),cancellationToken);return result.IsSuccess?NoContent():ToActionResult(result); }
+    { if (!TryGetCurrentUserId(out var userId)) return this.UnauthorizedIdentityProblem(); var result=await _service.RemoveMediaAsync(id,mediaId,userId,IsAdmin(),cancellationToken);return result.IsSuccess?NoContent():this.ToActionResult(result, "recipe_not_found", "Recipe was not found."); }
     [HttpPut("{id}/media/{mediaId}/main")]
     public async Task<IActionResult> SetMainMedia(Guid id, Guid mediaId, CancellationToken cancellationToken)
-    { if (!TryGetCurrentUserId(out var userId)) return UnauthorizedIdentityProblem(); var result=await _service.SetMainMediaAsync(id,mediaId,userId,IsAdmin(),cancellationToken);return result.IsSuccess?NoContent():ToActionResult(result); }
+    { if (!TryGetCurrentUserId(out var userId)) return this.UnauthorizedIdentityProblem(); var result=await _service.SetMainMediaAsync(id,mediaId,userId,IsAdmin(),cancellationToken);return result.IsSuccess?NoContent():this.ToActionResult(result, "recipe_not_found", "Recipe was not found."); }
     [HttpPut("{id}/media/order")]
     public async Task<IActionResult> ReorderMedia(Guid id, [FromBody] ReorderRecipeMediaDto dto, CancellationToken cancellationToken)
-    { if (!TryGetCurrentUserId(out var userId)) return UnauthorizedIdentityProblem(); var result=await _service.ReorderMediaAsync(id,dto.MediaIds,userId,IsAdmin(),cancellationToken);return result.IsSuccess?NoContent():ToActionResult(result); }
+    { if (!TryGetCurrentUserId(out var userId)) return this.UnauthorizedIdentityProblem(); var result=await _service.ReorderMediaAsync(id,dto.MediaIds,userId,IsAdmin(),cancellationToken);return result.IsSuccess?NoContent():this.ToActionResult(result, "recipe_not_found", "Recipe was not found."); }
 
     [Authorize]
 
@@ -145,13 +143,13 @@ public class RecipesController : ControllerBase
     {
         if (!TryGetCurrentUserId(out var currentUserId))
         {
-            return UnauthorizedIdentityProblem();
+            return this.UnauthorizedIdentityProblem();
         }
 
         var result = await _service.DeleteAsync(id, currentUserId, IsAdmin(), cancellationToken);
 
         if (!result.IsSuccess)
-            return ToActionResult(result);
+            return this.ToActionResult(result, "recipe_not_found", "Recipe was not found.");
 
         return NoContent();
     }
@@ -162,41 +160,6 @@ public class RecipesController : ControllerBase
     }
 
     private bool IsAdmin() => User.IsInRole(AppRoles.Admin);
-
-    private IActionResult ToActionResult(ServiceResult result)
-    {
-        return result.ErrorType switch
-        {
-            ServiceErrorType.NotFound => NotFound(Error("recipe_not_found", "Recipe was not found.")),
-            ServiceErrorType.Forbidden => Forbid(),
-            ServiceErrorType.Validation => BadRequest(Error("validation_failed", result.Error ?? "The request is invalid.")),
-            ServiceErrorType.Conflict => Conflict(Error("conflict", result.Error ?? "Conflict.")),
-            _ => BadRequest(Error("bad_request", result.Error ?? "The request is invalid."))
-        };
-    }
-
-    private IActionResult ToActionResult<T>(ServiceResult<T> result)
-    {
-        return result.ErrorType switch
-        {
-            ServiceErrorType.NotFound => NotFound(Error("recipe_not_found", "Recipe was not found.")),
-            ServiceErrorType.Forbidden => Forbid(),
-            ServiceErrorType.Validation => BadRequest(Error("validation_failed", result.Error ?? "The request is invalid.")),
-            ServiceErrorType.Conflict => Conflict(Error("conflict", result.Error ?? "Conflict.")),
-            _ => BadRequest(Error("bad_request", result.Error ?? "The request is invalid."))
-        };
-    }
-
-    private UnauthorizedObjectResult UnauthorizedIdentityProblem() =>
-        Unauthorized(Error("invalid_identity", "Missing or malformed user identity claim"));
-
-    private ApiErrorResponse Error(string code, string message) =>
-        new()
-        {
-            Code = code,
-            Message = message,
-            TraceId = HttpContext.TraceIdentifier
-        };
 
     private static bool IsValidDifficultyFilter(string? difficulty)
     {

@@ -1,5 +1,4 @@
 using API.Extensions;
-using API.Responses;
 using Core.Application.Interfaces.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -23,7 +22,7 @@ public sealed class FeedController : ControllerBase
     {
         if (!User.TryGetCurrentUserId(out var currentUserId))
         {
-            return Unauthorized(new ApiErrorResponse { Code = "invalid_identity", Message = "Missing or malformed user identity claim", TraceId = HttpContext.TraceIdentifier });
+            return this.UnauthorizedIdentityProblem();
         }
 
         return Ok(await _feedService.GetFollowingFeedAsync(currentUserId, page, pageSize, cancellationToken));
