@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -46,23 +46,92 @@ namespace Infrastructure.Migrations
                 columns: new[] { "RecipeId", "SortOrder" });
 
             migrationBuilder.Sql("""
-                INSERT INTO [RecipeMedia] ([Id], [RecipeId], [Url], [MediaType], [ContentType], [IsMain], [SortOrder], [CreatedAt])
-                SELECT NEWID(), [Id], [ImageUrl], 1,
-                    CASE LOWER(RIGHT([ImageUrl], CHARINDEX('.', REVERSE([ImageUrl]) + '.') - 1))
-                        WHEN 'png' THEN 'image/png' WHEN 'webp' THEN 'image/webp' ELSE 'image/jpeg' END,
-                    1, 0, SYSUTCDATETIME()
-                FROM [Recipes] WHERE [ImageUrl] IS NOT NULL AND LTRIM(RTRIM([ImageUrl])) <> '';
-                """);
+                DECLARE @MediaCandidates TABLE
+                (
+                    CandidateId uniqueidentifier NOT NULL,
+                    RecipeId uniqueidentifier NOT NULL,
+                    Url nvarchar(2048) NOT NULL,
+                    HistoricalIsMain bit NOT NULL,
+                    SourcePriority int NOT NULL,
+                    CreatedAt datetime2 NOT NULL
+                );
 
-            migrationBuilder.Sql("""
+                INSERT INTO @MediaCandidates (CandidateId, RecipeId, Url, HistoricalIsMain, SourcePriority, CreatedAt)
+                SELECT NEWID(), [Id], LTRIM(RTRIM([ImageUrl])), 1, 0, SYSUTCDATETIME()
+                FROM [Recipes]
+                WHERE [ImageUrl] IS NOT NULL AND LTRIM(RTRIM([ImageUrl])) <> '';
+
                 IF OBJECT_ID(N'[RecipeImage]', N'U') IS NOT NULL
                 BEGIN
-                    INSERT INTO [RecipeMedia] ([Id], [RecipeId], [Url], [MediaType], [ContentType], [IsMain], [SortOrder], [CreatedAt])
-                    SELECT NEWID(), COALESCE([RecipieId], [RecipeId]), [Url], 1, 'image/jpeg',
-                        CASE WHEN [IsMain] = 1 THEN 1 ELSE 0 END, 0, COALESCE([CreatedAt], SYSUTCDATETIME())
-                    FROM [RecipeImage] WHERE COALESCE([RecipieId], [RecipeId]) IS NOT NULL AND [Url] IS NOT NULL;
+                    INSERT INTO @MediaCandidates (CandidateId, RecipeId, Url, HistoricalIsMain, SourcePriority, CreatedAt)
+                    SELECT NEWID(), COALESCE([RecipieId], [RecipeId]), LTRIM(RTRIM([Url])),
+                        CASE WHEN [IsMain] = 1 THEN 1 ELSE 0 END, 1, COALESCE([CreatedAt], SYSUTCDATETIME())
+                    FROM [RecipeImage]
+                    WHERE COALESCE([RecipieId], [RecipeId]) IS NOT NULL
+                        AND [Url] IS NOT NULL
+                        AND LTRIM(RTRIM([Url])) <> '';
+                END;
+
+                WITH DistinctCandidates AS
+                (
+                    SELECT
+                        CandidateId,
+                        RecipeId,
+                        Url,
+                        HistoricalIsMain,
+                        SourcePriority,
+                        CreatedAt,
+                        ROW_NUMBER() OVER
+                        (
+                            PARTITION BY RecipeId, Url
+                            ORDER BY SourcePriority, HistoricalIsMain DESC, CreatedAt, CandidateId
+                        ) AS DuplicateRank
+                    FROM @MediaCandidates
+                ),
+                OrderedCandidates AS
+                (
+                    SELECT
+                        CandidateId,
+                        RecipeId,
+                        Url,
+                        CreatedAt,
+                        ROW_NUMBER() OVER
+                        (
+                            PARTITION BY RecipeId
+                            ORDER BY
+                                CASE
+                                    WHEN SourcePriority = 0 THEN 0
+                                    WHEN HistoricalIsMain = 1 THEN 1
+                                    ELSE 2
+                                END,
+                                SourcePriority,
+                                CreatedAt,
+                                Url,
+                                CandidateId
+                        ) AS RecipeRank
+                    FROM DistinctCandidates
+                    WHERE DuplicateRank = 1
+                )
+                INSERT INTO [RecipeMedia] ([Id], [RecipeId], [Url], [MediaType], [ContentType], [IsMain], [SortOrder], [CreatedAt])
+                SELECT
+                    CandidateId,
+                    RecipeId,
+                    Url,
+                    1,
+                    CASE LOWER(RIGHT(Url, CHARINDEX('.', REVERSE(Url) + '.') - 1))
+                        WHEN 'png' THEN 'image/png'
+                        WHEN 'webp' THEN 'image/webp'
+                        ELSE 'image/jpeg'
+                    END,
+                    CASE WHEN RecipeRank = 1 THEN 1 ELSE 0 END,
+                    RecipeRank - 1,
+                    CreatedAt
+                FROM OrderedCandidates;
+
+                IF OBJECT_ID(N'[RecipeImage]', N'U') IS NOT NULL
+                BEGIN
                     DROP TABLE [RecipeImage];
-                END
+                END;
                 """);
         }
 

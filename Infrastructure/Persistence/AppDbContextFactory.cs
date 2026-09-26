@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
-using System.Text.Json;
+using Microsoft.Extensions.Configuration;
+using System.Xml.Linq;
 
 namespace Infrastructure.Persistence;
 
@@ -24,18 +25,35 @@ public class AppDbContextFactory : IDesignTimeDbContextFactory<AppDbContext>
             ?? Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT")
             ?? "Development";
 
-        var connectionString = ReadConnectionString(Path.Combine(apiPath, "appsettings.json"));
-        var environmentConnectionString = ReadConnectionString(Path.Combine(apiPath, $"appsettings.{environment}.json"));
-        var environmentVariableConnectionString = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection");
+        var configurationBuilder = new ConfigurationBuilder()
+            .SetBasePath(apiPath)
+            .AddJsonFile("appsettings.json", optional: true)
+            .AddJsonFile($"appsettings.{environment}.json", optional: true);
 
-        connectionString = FirstNonEmpty(
-            environmentVariableConnectionString,
-            environmentConnectionString,
-            connectionString);
+        if (string.Equals(environment, "Development", StringComparison.OrdinalIgnoreCase))
+        {
+            var userSecretsId = ReadUserSecretsId(Path.Combine(apiPath, "API.csproj"));
+            if (!string.IsNullOrWhiteSpace(userSecretsId))
+            {
+                configurationBuilder.AddJsonFile(GetUserSecretsPath(userSecretsId), optional: true);
+            }
+
+            var envFile = Path.Combine(apiPath, ".env");
+            if (File.Exists(envFile))
+            {
+                configurationBuilder.AddInMemoryCollection(ReadDotEnv(envFile));
+            }
+        }
+
+        configurationBuilder.AddEnvironmentVariables();
+
+        var connectionString = configurationBuilder
+            .Build()
+            .GetConnectionString("DefaultConnection");
 
         return connectionString
             ?? throw new InvalidOperationException(
-                "Connection string 'DefaultConnection' is missing. Set ConnectionStrings__DefaultConnection or use .NET user secrets.");
+                "Connection string DefaultConnection is missing. Set ConnectionStrings__DefaultConnection or use .NET user secrets.");
     }
 
     private static string FindApiPath()
@@ -61,26 +79,62 @@ public class AppDbContextFactory : IDesignTimeDbContextFactory<AppDbContext>
         return Path.Combine(Directory.GetCurrentDirectory(), "..", "API");
     }
 
-    private static string? ReadConnectionString(string path)
+    private static string? ReadUserSecretsId(string path)
     {
         if (!File.Exists(path))
         {
             return null;
         }
 
-        using var document = JsonDocument.Parse(File.ReadAllText(path));
-
-        if (!document.RootElement.TryGetProperty("ConnectionStrings", out var connectionStrings)
-            || !connectionStrings.TryGetProperty("DefaultConnection", out var defaultConnection))
-        {
-            return null;
-        }
-
-        return defaultConnection.GetString();
+        var project = XDocument.Load(path);
+        return project
+            .Descendants("UserSecretsId")
+            .Select(element => element.Value)
+            .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
     }
 
-    private static string? FirstNonEmpty(params string?[] values)
+    private static string GetUserSecretsPath(string userSecretsId)
     {
-        return values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
+        if (OperatingSystem.IsWindows())
+        {
+            var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            return Path.Combine(appData, "Microsoft", "UserSecrets", userSecretsId, "secrets.json");
+        }
+
+        var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        return Path.Combine(userProfile, ".microsoft", "usersecrets", userSecretsId, "secrets.json");
+    }
+
+    private static IEnumerable<KeyValuePair<string, string?>> ReadDotEnv(string path)
+    {
+        foreach (var rawLine in File.ReadLines(path))
+        {
+            var line = rawLine.Trim();
+            if (line.Length == 0 || line.StartsWith("#", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            var separator = line.IndexOf("=", StringComparison.Ordinal);
+            if (separator <= 0)
+            {
+                continue;
+            }
+
+            var key = line[..separator].Trim();
+            var value = line[(separator + 1)..].Trim();
+            if (value.Length >= 2
+                && value.StartsWith("\"", StringComparison.Ordinal)
+                && value.EndsWith("\"", StringComparison.Ordinal))
+            {
+                value = value[1..^1];
+            }
+
+            if (!string.IsNullOrWhiteSpace(key)
+                && string.IsNullOrEmpty(Environment.GetEnvironmentVariable(key)))
+            {
+                yield return new KeyValuePair<string, string?>(key, value);
+            }
+        }
     }
 }
