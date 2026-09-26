@@ -66,6 +66,12 @@ public class RecipeRepository : IRecipeRepository
         await _context.SaveChangesAsync(cancellationToken);
     }
 
+    public Task AddMediaAsync(RecipeMedia media, CancellationToken cancellationToken = default)
+    {
+        _context.RecipeMedia.Add(media);
+        return Task.CompletedTask;
+    }
+
     // ========================
     // UPDATE
     // ========================

@@ -212,6 +212,11 @@ public class RecipeServiceTests
             return Task.CompletedTask;
         }
 
+        public Task AddMediaAsync(RecipeMedia media, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+
         public Task UpdateAsync(Recipie recipie, CancellationToken cancellationToken = default)
         {
             ExistingRecipe = recipie;

@@ -15,6 +15,7 @@ namespace Core.Application.Interfaces
         Task<bool> CuisineExistsAsync(Guid cuisineId, CancellationToken cancellationToken = default);
         Task<Region?> GetActiveRegionAsync(Guid regionId, CancellationToken cancellationToken = default);
         Task AddAsync(Recipie recipie, CancellationToken cancellationToken = default);
+        Task AddMediaAsync(RecipeMedia media, CancellationToken cancellationToken = default);
         Task UpdateAsync(Recipie recipie, CancellationToken cancellationToken = default);
         Task DeleteAsync(Recipie recipie, CancellationToken cancellationToken = default);
         Task<(List<Recipie> Items, int Total, int Page, int PageSize, int TotalPages)> GetPagedAsync(
