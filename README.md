@@ -23,7 +23,7 @@ The product is a public cooking network, not an Admin-only recipe catalog. Authe
 - `GET /api/Recipes/me` and Angular `/my-recipes` for the current user's recipes.
 - Angular `/create-recipe` publishing form with ingredients, steps, cuisine, region, difficulty, and cultural fields.
 - Safe recipe/review/comment author display data through public author DTOs.
-- Local recipe image support through API static files and frontend asset URL resolution.
+- Recipe image/video gallery support through API-managed static media and frontend asset URL resolution.
 - Backend unit and integration test projects.
 
 ## Architecture
@@ -128,31 +128,32 @@ Default local URLs:
 
 ## Production build and deployment
 
-The application can run as an Angular/Nginx web container, ASP.NET Core API container, and persistent SQL Server container. Copy `.env.example` to an untracked `.env`, set secure values, then run:
+Build the API and Angular artifacts separately:
 
 ```bash
 dotnet publish API/API.csproj -c Release
 cd app && npm ci && npm run build
 ```
 
-Deploy the Angular build behind your chosen static host/reverse proxy and run the API with normal ASP.NET Core configuration. Health endpoints are `/health/live` and `/health/ready`. Configuration is environment-variable based; no secrets belong in repository configuration. Database migrations are explicit and must be applied before deploying the API. See [the production runbook](docs/PRODUCTION_RUNBOOK.md) for migrations, backups/restores, image persistence, TLS, validation, and rollback.
+Deploy the Angular build to a static host or web server. Run the ASP.NET Core API as a normal process/service with production configuration supplied through environment variables or the hosting secret manager. The production routing contract is same-origin: `/` serves Angular, `/api/*` routes to the API, `/images/*` routes to API-managed media, and `/health/live` plus `/health/ready` route to the API. Database migrations are explicit and must be applied before promoting the API. See [the production runbook](docs/PRODUCTION_RUNBOOK.md) for migrations, backups/restores, persistent media storage, TLS, validation, and rollback.
 
 ## Validation Status
 
-Last verified in this working tree on 2026-08-09:
+Use the release gate before deployment:
 
-- `dotnet restore`: passed.
-- `dotnet build Recep.sln`: passed.
-- `dotnet test Recep.sln`: passed, 60 backend tests.
-- `cd app && npm run build`: passed with budget warnings.
-- `cd app && npm test -- --watch=false`: Karma bundle compilation succeeded, but browser execution could not start because Chrome/`CHROME_BIN` is unavailable.
+- `dotnet restore`
+- `dotnet build Recep.sln -c Release`
+- `dotnet test Recep.sln -c Release`
+- `dotnet list Recep.sln package --vulnerable --include-transitive`
+- `dotnet publish API/API.csproj -c Release --no-restore`
+- `cd app && npm ci && npm run build && npm test -- --watch=false --browsers=ChromeHeadless && npm audit --omit=dev`
 
 ## Known Limitations
 
-- Angular browser tests require a Chrome or Chromium binary.
+- Angular browser tests require a Chrome, Chromium, or compatible browser binary. Set `CHROME_BIN` when the launcher cannot find one automatically.
 - Frontend build currently reports bundle/component CSS budget warnings.
 - Cuisine/region Admin APIs exist, but no dedicated Angular Admin culture-management page is currently implemented.
-- Startup migration behavior in `API/Program.cs` can mutate the configured database outside Testing.
+- The current frontend stores tokens in localStorage; backend refresh tokens are hashed at rest, but HttpOnly cookie auth remains future security hardening.
 
 
 

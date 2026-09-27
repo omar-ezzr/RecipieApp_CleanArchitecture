@@ -44,5 +44,8 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<Users>
         builder.Property(user => user.IsActive)
             .IsRequired()
             .HasDefaultValue(true);
+
+        builder.Property(user => user.RefreshTokenHash)
+            .HasMaxLength(64);
     }
 }

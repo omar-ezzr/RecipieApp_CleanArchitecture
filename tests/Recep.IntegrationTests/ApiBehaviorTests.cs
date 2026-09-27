@@ -11,6 +11,7 @@ using Core.Application.DTO.Favorites;
 using Core.Application.DTO.Recipe;
 using Core.Application.DTO.Regions;
 using Core.Application.DTO.Reviews;
+using Core.Application.Security;
 using Core.Domain.Constants;
 using Core.Domain.Entities;
 using Core.Domain.Enums;
@@ -76,16 +77,24 @@ public sealed class AuthBehaviorTests : IClassFixture<RecepApiFactory>
         var invalidLogin = await client.PostAsJsonAsync("/api/Auth/login", new LoginDto { Email = email, Password = "wrong" });
         var login = await client.PostAsJsonAsync("/api/Auth/login", new LoginDto { Email = email, Password = RecepApiFactory.KnownPassword });
         var tokens = await login.Content.ReadFromJsonAsync<TokenResponse>();
+        var storedAfterLogin = await _factory.FindUserByEmailAsync(email);
         var invalidRefresh = await client.PostAsJsonAsync("/api/Auth/refresh", new TokenRequestDto { RefreshToken = "invalid" });
         var refresh = await client.PostAsJsonAsync("/api/Auth/refresh", new TokenRequestDto { RefreshToken = tokens!.RefreshToken });
         var rotated = await refresh.Content.ReadFromJsonAsync<TokenResponse>();
+        var oldTokenAfterRotation = await client.PostAsJsonAsync("/api/Auth/refresh", new TokenRequestDto { RefreshToken = tokens.RefreshToken });
+        var storedAfterRefresh = await _factory.FindUserByEmailAsync(email);
 
         invalidLogin.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         login.EnsureSuccessStatusCode();
+        storedAfterLogin!.RefreshTokenHash.Should().Be(RefreshTokenHasher.Hash(tokens.RefreshToken));
+        storedAfterLogin.RefreshTokenHash.Should().NotBe(tokens.RefreshToken);
         invalidRefresh.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         refresh.EnsureSuccessStatusCode();
+        oldTokenAfterRotation.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         rotated!.AccessToken.Should().NotBeNullOrWhiteSpace();
         rotated.RefreshToken.Should().NotBe(tokens.RefreshToken);
+        storedAfterRefresh!.RefreshTokenHash.Should().Be(RefreshTokenHasher.Hash(rotated.RefreshToken));
+        storedAfterRefresh.RefreshTokenHash.Should().NotBe(rotated.RefreshToken);
 
         var principal = new JwtSecurityTokenHandler().ReadJwtToken(tokens.AccessToken);
         principal.Claims.Should().Contain(claim => claim.Type == ClaimTypes.NameIdentifier);
@@ -109,7 +118,7 @@ public sealed class AuthBehaviorTests : IClassFixture<RecepApiFactory>
         var user = await _factory.FindUserByEmailAsync(email);
 
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-        user!.RefreshToken.Should().BeNull();
+        user!.RefreshTokenHash.Should().BeNull();
         user.RefreshTokenExpiryTime.Should().BeNull();
     }
 }
@@ -679,7 +688,7 @@ public sealed class RecepApiFactory : WebApplicationFactory<Program>, IAsyncLife
         var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var id = Guid.NewGuid();
         var user = NewUser(id, email, role);
-        user.RefreshToken = refreshToken;
+        user.RefreshTokenHash = refreshToken is null ? null : RefreshTokenHasher.Hash(refreshToken);
         user.RefreshTokenExpiryTime = refreshToken is null ? null : refreshTokenExpiryTime ?? DateTime.UtcNow.AddDays(7);
         context.Users.Add(user);
         await context.SaveChangesAsync();

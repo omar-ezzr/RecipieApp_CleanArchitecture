@@ -67,11 +67,11 @@ public sealed class UserRepository : IUserRepository
     }
 
 
-    public async Task<Users?> GetByRefreshTokenAsync(string refreshToken, bool track = false, CancellationToken cancellationToken = default)
+    public async Task<Users?> GetByRefreshTokenHashAsync(string refreshTokenHash, bool track = false, CancellationToken cancellationToken = default)
     {
         var query = track ? _context.Users.AsQueryable() : _context.Users.AsNoTracking();
 
-        return await query.FirstOrDefaultAsync(user => user.RefreshToken == refreshToken, cancellationToken);
+        return await query.FirstOrDefaultAsync(user => user.RefreshTokenHash == refreshTokenHash, cancellationToken);
     }
 
     public async Task<bool> EmailExistsAsync(string normalizedEmail, CancellationToken cancellationToken = default)

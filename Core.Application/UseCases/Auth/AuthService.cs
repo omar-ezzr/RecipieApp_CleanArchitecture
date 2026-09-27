@@ -2,6 +2,7 @@ using Core.Application.Common;
 using Core.Application.DTO.Auth;
 using Core.Application.Interfaces.Repositories;
 using Core.Application.Interfaces.Services;
+using Core.Application.Security;
 using Core.Domain.Constants;
 using DomainUser = Core.Domain.Entities.Users;
 
@@ -43,7 +44,8 @@ public sealed class AuthService : IAuthService
             return InvalidRefreshToken();
         }
 
-        var user = await _users.GetByRefreshTokenAsync(request.RefreshToken, track: true, cancellationToken);
+        var refreshTokenHash = RefreshTokenHasher.Hash(request.RefreshToken);
+        var user = await _users.GetByRefreshTokenHashAsync(refreshTokenHash, track: true, cancellationToken);
 
         if (user is null)
         {
@@ -52,7 +54,7 @@ public sealed class AuthService : IAuthService
 
         if (!user.IsActive || user.RefreshTokenExpiryTime < DateTime.UtcNow)
         {
-            user.RefreshToken = null;
+            user.RefreshTokenHash = null;
             user.RefreshTokenExpiryTime = null;
             await _users.SaveChangesAsync(cancellationToken);
 
@@ -106,10 +108,11 @@ public sealed class AuthService : IAuthService
     {
         if (string.IsNullOrWhiteSpace(refreshToken)) return;
 
-        var user = await _users.GetByRefreshTokenAsync(refreshToken, track: true, cancellationToken);
+        var refreshTokenHash = RefreshTokenHasher.Hash(refreshToken);
+        var user = await _users.GetByRefreshTokenHashAsync(refreshTokenHash, track: true, cancellationToken);
         if (user is null) return;
 
-        user.RefreshToken = null;
+        user.RefreshTokenHash = null;
         user.RefreshTokenExpiryTime = null;
         await _users.SaveChangesAsync(cancellationToken);
     }
@@ -119,7 +122,7 @@ public sealed class AuthService : IAuthService
         var accessToken = _tokenService.CreateAccessToken(user);
         var refreshToken = _tokenService.CreateRefreshToken();
 
-        user.RefreshToken = refreshToken;
+        user.RefreshTokenHash = RefreshTokenHasher.Hash(refreshToken);
         user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(_tokenService.GetRefreshTokenDays());
 
         return new TokenResponseDto

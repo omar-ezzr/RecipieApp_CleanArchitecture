@@ -2,97 +2,200 @@
 
 ## Architecture
 
-`recepie-web` serves the Angular build through Nginx. Nginx proxies `/api/`, `/images/`, and the minimal health endpoints to `recepie-api`. The API uses SQL Server and writes recipe images to `/app/wwwroot/images/recipes`.
+Recepie deploys as three persistent pieces:
 
-Compose exposes only the web service on host port `8080`. SQL Server and the API remain on the internal `recepie-network`. Production TLS must terminate at Nginx, a hosting reverse proxy, or a load balancer; do not commit certificates. Internal Compose traffic is HTTP.
+- Angular production files served by a normal static host, web server, reverse proxy, or platform static-file feature.
+- ASP.NET Core API published from `API/API.csproj` and run as a normal process or service.
+- External, persistent SQL Server managed outside the application process.
+
+Production traffic uses this same-origin routing contract:
+
+```text
+https://domain/              -> Angular static frontend
+https://domain/api/*         -> ASP.NET Core API
+https://domain/images/*      -> ASP.NET Core static media files
+https://domain/health/live   -> ASP.NET Core liveness endpoint
+https://domain/health/ready  -> ASP.NET Core readiness endpoint including database health
+```
+
+TLS should terminate at the chosen host, reverse proxy, load balancer, or platform router. The API should receive trusted forwarded headers only from explicitly configured trusted proxies.
 
 ## Required software
 
-- Docker Engine 29+ with the Compose plugin.
-- Node.js 24 for frontend builds.
-- A secure secret-injection mechanism for production values.
-- The .NET 10 SDK and matching `dotnet-ef` only on the controlled host/CI environment that applies migrations.
+- .NET 10 SDK on build and migration hosts.
+- Matching `dotnet-ef` tooling on the controlled host or CI environment that applies migrations.
+- Node.js 24 for Angular builds.
+- A persistent SQL Server instance.
+- A persistent filesystem location for uploaded recipe media.
+- A secret/configuration mechanism such as operating-system environment variables, systemd environment files, or a hosting secret manager.
 
-## Required environment variables
+## Required production configuration
 
-Copy `.env.example` to an untracked `.env` and replace placeholders. Required names are `MSSQL_SA_PASSWORD`, `JWT_KEY`, `JWT_ISSUER`, `JWT_AUDIENCE`, and `CORS_ALLOWED_ORIGIN`; `DB_NAME` defaults to `Recepie` when omitted. Never commit `.env`.
+Production does not auto-load `.env`. Set configuration through the operating system or hosting provider. Use ASP.NET Core double-underscore environment variable names:
 
-`ConnectionStrings__DefaultConnection`, `Database__AutoMigrate`, and the CORS/JWT settings are supplied to the API by Compose. `Database__AutoMigrate` is explicitly `false`: the API never performs production schema migration at startup.
+```env
+ConnectionStrings__DefaultConnection=CHANGE_ME
 
-## Initial deployment
+Jwt__Key=CHANGE_ME_TO_A_SECURE_RANDOM_VALUE_AT_LEAST_32_BYTES
+Jwt__Issuer=Recepie.Api
+Jwt__Audience=Recepie.Web
+Jwt__AccessTokenMinutes=5
+Jwt__RefreshTokenDays=7
 
-1. Choose and configure external TLS termination, with the public host allowed by `CORS_ALLOWED_ORIGIN` if external browser origins require CORS.
-2. Create the production `.env` securely.
-3. Build the immutable application images: `docker compose build`.
-4. Apply migrations using the procedure below.
-5. Start services: `docker compose up -d`.
-6. Run `sh scripts/production-smoke.sh https://your-host` and inspect `docker compose ps`.
+Cors__AllowedOrigins__0=https://recepie.example.com
+AllowedHosts=recepie.example.com
 
-## Database migration
-
-Back up the database first. From a checkout of the exact release source, with the production `ConnectionStrings__DefaultConnection` supplied in the environment and .NET EF tooling installed, inspect then apply migrations:
-
-```sh
-dotnet ef migrations list --project Infrastructure/Infrastructure.csproj --startup-project API/API.csproj
-dotnet ef database update --project Infrastructure/Infrastructure.csproj --startup-project API/API.csproj
+Database__AutoMigrate=false
+RecipeMedia__StoragePath=/var/lib/recepie/media/recipes
+RecipeMedia__PublicPath=/images/recipes
 ```
 
-Do not apply migrations automatically during API startup. Deploy/start the API after a successful explicit migration, verify readiness, then start/verify the frontend.
+Optional trusted reverse proxy example:
 
-## Database backup
-
-Use a SQL Server backup location that is persistent and copied off the Docker host. For example, mount a host-controlled backup directory into a one-off SQL Server administration session, then execute (substitute the configured database name):
-
-```sql
-BACKUP DATABASE [Recepie]
-TO DISK = N'/var/opt/mssql/backup/recepie.bak'
-WITH FORMAT, INIT, COMPRESSION;
+```env
+ReverseProxy__KnownProxies__0=127.0.0.1
 ```
 
-Verify the resulting backup, encrypt it at rest, and copy it to independent durable storage. A SQL backup alone is not a complete Recepie backup.
+Do not configure broad forwarded-header trust. Only add proxy IP addresses that are controlled by the deployment environment.
 
-## Database restore
+The API fails fast when production-critical configuration is missing: connection string, JWT key/issuer/audience, or CORS allowed origins outside Testing.
 
-1. Stop application writes (`docker compose stop recepie-web recepie-api`).
-2. Identify and verify the intended backup before replacing data.
-3. Restore with the normal SQL Server sequence: `RESTORE FILELISTONLY`, then `RESTORE DATABASE ... WITH MOVE ... , REPLACE` only after confirming logical file names and target paths.
-4. Validate the restored database with SQL Server checks.
-5. Start the API, verify `/health/ready`, then start the frontend and smoke test.
+## Build artifacts
 
-Test the exact restore command and paths in a non-production environment first; logical file names vary by backup.
+Backend:
 
-## Recipe image backup
-
-Recipe images are stored in named volume `recepie-images` at `/app/wwwroot/images/recipes` in `recepie-api`. Back up that volume separately (for example with a temporary container that archives `/data` to an externally mounted, encrypted backup location). Restore the image archive alongside the matching SQL backup.
-
-Complete Recepie backup = SQL Server backup + `recepie-images` volume backup.
-
-## Docker startup and shutdown
-
-```sh
-docker compose build
-docker compose up -d
-docker compose ps
-docker compose down
+```bash
+dotnet restore
+dotnet publish API/API.csproj -c Release
 ```
 
-Do not use `docker compose down -v` in normal operation: it deletes the SQL and recipe-image named volumes.
+Frontend:
+
+```bash
+cd app
+npm ci
+npm run build
+```
+
+Deploy the Angular files from `app/dist/app` to the selected static host. Deploy the API publish output from `API/bin/Release/net10.0/publish` to the selected service host.
+
+## Generic Linux service model
+
+A provider-specific service manager may differ. A generic systemd-style service should run the published API as a dedicated service account, load environment variables from a protected location, restart on failure, and bind only to the intended internal interface/port.
+
+Example shape, with placeholders only:
+
+```ini
+[Unit]
+Description=Recepie API
+After=network.target
+
+[Service]
+WorkingDirectory=/opt/recepie/api
+ExecStart=/usr/bin/dotnet /opt/recepie/api/API.dll
+Restart=always
+RestartSec=5
+User=recepie
+Environment=ASPNETCORE_ENVIRONMENT=Production
+Environment=ASPNETCORE_URLS=http://127.0.0.1:5130
+EnvironmentFile=/etc/recepie/api.env
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Do not put real secrets in unit files committed to source control.
+
+## Recipe media storage
+
+Development defaults to `API/wwwroot/images/recipes`. Production should set `RecipeMedia__StoragePath` to an absolute directory on persistent storage, for example `/var/lib/recepie/media/recipes`, while keeping `RecipeMedia__PublicPath=/images/recipes`.
+
+Before starting the API, create the directory and grant write permission only to the API service account:
+
+```bash
+sudo install -d -m 0750 -o recepie -g recepie /var/lib/recepie/media/recipes
+```
+
+Back up this directory with the SQL Server backup from the same release point. Restore media together with the matching SQL backup so recipe media URLs and database rows remain consistent.
+
+The current local-storage implementation is intended for a single API instance unless the configured media directory is backed by shared storage mounted at the same path for every instance.
+
+## Release sequence
+
+1. Back up SQL Server.
+2. Back up the recipe media directory.
+3. Check out or deploy the exact release source/artifact.
+4. Set production environment variables and secrets.
+5. Inspect pending migrations:
+
+   ```bash
+   dotnet ef migrations list \
+     --project Infrastructure \
+     --startup-project API
+   ```
+
+6. Apply migrations explicitly:
+
+   ```bash
+   dotnet ef database update \
+     --project Infrastructure \
+     --startup-project API
+   ```
+
+7. Publish/start the API.
+8. Verify `/health/live` and `/health/ready`.
+9. Deploy/start the Angular static frontend.
+10. Run the production smoke test:
+
+    ```bash
+    sh scripts/production-smoke.sh https://recepie.example.com
+    ```
+
+`Database__AutoMigrate=false` is the production default. API startup must not be used as the production migration mechanism.
 
 ## Health checks and logs
 
 - `/health/live` confirms the API process is running and does not query SQL Server.
-- `/health/ready` checks API readiness including database connectivity.
+- `/health/ready` checks readiness, including database connectivity.
 
-Both responses are deliberately minimal. Inspect service state with `docker compose ps` and logs with `docker compose logs --tail=200 recepie-api`. API logs include method, path, response status, elapsed time, and `X-Correlation-ID`. Supply a valid, short correlation ID to follow a request; malformed values are replaced server-side.
+Responses are intentionally minimal. Logs include method, path, response status, elapsed time, and correlation ID. Do not log authorization headers, JWTs, refresh tokens, passwords, request bodies, or connection strings.
 
-## Deployment verification
+## Smoke test scope
 
-After startup, check the web response, both health endpoints, and an existing safe anonymous API endpoint such as `/api/categories`. Then use test accounts/data to verify the existing authenticated workflows appropriate to the release: login, registration/approval, recipe lifecycle and image upload, social actions, profiles/feed/notifications, and admin moderation. Recreate only the API container to confirm a test image remains; recreate only SQL Server to confirm test data remains. Never remove volumes during these checks.
+The repository smoke script checks:
+
+- `/`
+- `/health/live`
+- `/health/ready`
+- `/api/categories`
+
+Use authenticated manual checks for login, refresh-token rotation, recipe creation, first and second media upload, media URL reachability, API restart with persistent media, and cleanup of test records/files.
+
+## Backup and restore
+
+A complete Recepie backup contains:
+
+- SQL Server backup.
+- Matching recipe media directory backup.
+- Release source/artifact identifier.
+
+Restore steps:
+
+1. Stop application writes.
+2. Verify the intended SQL and media backups.
+3. Restore SQL Server using the normal SQL Server restore process for the hosting environment.
+4. Restore the matching media directory backup.
+5. Start the API and verify `/health/ready`.
+6. Start the frontend and run the smoke test.
+
+Test restore procedures in a non-production environment before relying on them.
 
 ## Rollback
 
-Keep a tagged, known-good image/version and deploy it if the new application is unhealthy. Database migrations must be assessed for backward compatibility before application rollback. Do not blindly migrate down after destructive schema/data changes; restore the validated pre-deployment SQL backup and matching image-volume backup when database rollback is required.
+Application rollback may be possible by redeploying the previous API and frontend artifacts. Database rollback requires migration compatibility analysis. Do not blindly run migration `Down()` methods after destructive schema or data changes. If the database must roll back, restore the validated pre-deployment SQL backup and the matching media backup.
 
-## Known limitations
+## Known deployment risks
 
-Deployment target is not yet selected. Compose provides a reproducible Docker-host deployment topology, but TLS certificate management, external secret storage, backup retention, off-host backup copying, monitoring/alerting, and release image tagging must be chosen for the eventual hosting environment.
+- The current frontend still stores access and refresh tokens in `localStorage`. Backend refresh tokens are hashed at rest, but localStorage remains XSS-sensitive and should be revisited in a future cookie-based auth hardening pass.
+- The local media storage implementation needs shared mounted storage before running multiple API instances.
+- Provider-specific monitoring, alerting, backup retention, and log aggregation must be configured in the selected hosting environment.

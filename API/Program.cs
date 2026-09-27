@@ -36,6 +36,8 @@ using API.Middleware;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.Extensions.FileProviders;
+using Infrastructure.Services;
 using System.Net;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -93,6 +95,12 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
     };
 });
 builder.Services.AddEndpointsApiExplorer();
+
+var defaultConnection = builder.Configuration.GetConnectionString("DefaultConnection");
+if (!builder.Environment.IsEnvironment("Testing") && string.IsNullOrWhiteSpace(defaultConnection))
+{
+    throw new InvalidOperationException("ConnectionStrings:DefaultConnection must be configured.");
+}
 
 builder.Services.AddSwaggerGen(options =>
 {
@@ -279,6 +287,24 @@ app.UseStaticFiles(new StaticFileOptions
 {
     ContentTypeProvider = staticFileContentTypes
 });
+
+var recipeMediaOptions = app.Services.GetRequiredService<RecipeMediaOptions>();
+var recipeMediaStoragePath = LocalRecipeMediaStorage.ResolveStoragePath(app.Environment, recipeMediaOptions.StoragePath);
+var defaultRecipeMediaStoragePath = LocalRecipeMediaStorage.ResolveStoragePath(app.Environment, null);
+var recipeMediaPublicPath = LocalRecipeMediaStorage.NormalizePublicPath(recipeMediaOptions.PublicPath);
+
+if (!string.Equals(recipeMediaStoragePath, defaultRecipeMediaStoragePath, StringComparison.Ordinal) ||
+    !string.Equals(recipeMediaPublicPath, "/images/recipes", StringComparison.Ordinal))
+{
+    Directory.CreateDirectory(recipeMediaStoragePath);
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = new PhysicalFileProvider(recipeMediaStoragePath),
+        RequestPath = recipeMediaPublicPath,
+        ContentTypeProvider = staticFileContentTypes
+    });
+}
+
 app.UseRouting();
 app.UseCors("AllowAngular");
 app.UseRateLimiter();

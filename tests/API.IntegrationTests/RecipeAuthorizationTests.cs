@@ -7,6 +7,7 @@ using System.Text;
 using Core.Application.DTO.Auth;
 using Core.Application.DTO.Recipe;
 using Core.Application.DTO.Users;
+using Core.Application.Security;
 using Core.Domain.Constants;
 using Core.Domain.Entities;
 using Core.Domain.Enums;
@@ -179,6 +180,9 @@ public sealed class AccountManagementTests : IClassFixture<RecipeApiFactory>
         var response = await client.GetAsync("/api/admin/users");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.DoesNotContain("refreshToken", body, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("refreshTokenHash", body, StringComparison.OrdinalIgnoreCase);
     }
 
     [Theory]
@@ -426,7 +430,7 @@ public sealed class RecipeApiFactory : WebApplicationFactory<Program>, IAsyncLif
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(KnownPassword),
             Role = role,
             IsActive = isActive,
-            RefreshToken = refreshToken,
+            RefreshTokenHash = refreshToken is null ? null : RefreshTokenHasher.Hash(refreshToken),
             RefreshTokenExpiryTime = refreshToken is null ? null : DateTime.UtcNow.AddDays(7)
         });
 

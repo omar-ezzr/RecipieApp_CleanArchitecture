@@ -210,7 +210,7 @@ public sealed class UserManagementService : IUserManagementService
 
     private static void ClearRefreshToken(UserEntity user)
     {
-        user.RefreshToken = null;
+        user.RefreshTokenHash = null;
         user.RefreshTokenExpiryTime = null;
     }
 

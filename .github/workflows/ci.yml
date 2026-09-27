@@ -26,6 +26,41 @@ jobs:
       - name: Test backend
         run: dotnet test Recep.sln --no-build
 
+      - name: Check backend package vulnerabilities
+        shell: bash
+        run: |
+          dotnet list Recep.sln package --vulnerable --include-transitive --format json > nuget-vulnerabilities.json
+          python - <<'PY'
+          import json
+          import sys
+
+          with open('nuget-vulnerabilities.json', encoding='utf-8') as handle:
+              report = json.load(handle)
+
+          vulnerable = []
+          for project in report.get('projects', []):
+              project_name = project.get('path') or project.get('name') or 'unknown project'
+              for framework in project.get('frameworks', []):
+                  for section in ('topLevelPackages', 'transitivePackages'):
+                      for package in framework.get(section, []):
+                          vulns = package.get('vulnerabilities') or []
+                          if vulns:
+                              vulnerable.append((project_name, package.get('id'), package.get('resolvedVersion'), vulns))
+
+          if vulnerable:
+              print('Vulnerable NuGet packages found:')
+              for project_name, package_id, version, vulns in vulnerable:
+                  print(f'- {project_name}: {package_id} {version}')
+                  for vuln in vulns:
+                      print(f"  {vuln.get('severity', 'unknown')}: {vuln.get('advisoryurl', vuln)}")
+              sys.exit(1)
+
+          print('No vulnerable NuGet packages reported.')
+          PY
+
+      - name: Publish API
+        run: dotnet publish API/API.csproj -c Release --no-restore
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -46,3 +81,7 @@ jobs:
         env:
           CHROME_BIN: google-chrome
         run: npm test -- --watch=false --browsers=ChromeHeadless
+
+      - name: Check frontend production dependency vulnerabilities
+        working-directory: app
+        run: npm audit --omit=dev
