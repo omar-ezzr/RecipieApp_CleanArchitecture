@@ -69,7 +69,7 @@ namespace Core.Application.UseCases.Recipes
             : [],
 
         Steps = r.Steps != null ? r.Steps.OrderBy(s => s.StepNumber).Select(s => new CreateRecipeStepDto { StepNumber = s.StepNumber, Instruction = s.Instruction }).ToList() : [],
-        Media = r.Media.OrderBy(m => m.SortOrder).Select(m => new RecipeMediaDto { Id=m.Id, Url=m.Url, MediaType=m.MediaType, ContentType=m.ContentType, IsMain=m.IsMain, SortOrder=m.SortOrder }).ToList()
+        Media = OrderedImages(r).Select(m => new RecipeMediaDto { Id=m.Id, Url=m.Url, MediaType=m.MediaType, ContentType=m.ContentType, IsMain=m.IsMain, SortOrder=m.SortOrder }).ToList()
     };
 }
 
@@ -241,12 +241,118 @@ namespace Core.Application.UseCases.Recipes
         }
 
         public async Task<ServiceResult<RecipeMediaDto>> AddMediaAsync(Guid id, Stream content, string fileName, string contentType, long length, Guid currentUserId, bool isAdmin, CancellationToken cancellationToken = default)
-        { var recipe=await _repository.GetByIdAsync(id,cancellationToken); if(recipe is null)return ServiceResult<RecipeMediaDto>.Failure("Recipe not found",ServiceErrorType.NotFound); if(!isAdmin&&recipe.UserId!=currentUserId)return ServiceResult<RecipeMediaDto>.Failure("You can only update your own recipe.",ServiceErrorType.Forbidden); if(recipe.Media.Count >= _mediaOptions.MaxItems)return ServiceResult<RecipeMediaDto>.Failure("A recipe can have at most 9 media items.",ServiceErrorType.Validation); string? url=null; try { url=await (_mediaStorage??throw new InvalidOperationException("Recipe media storage is not configured.")).SaveAsync(new RecipeMediaUpload { Content=content,FileName=fileName,ContentType=contentType,Length=length },cancellationToken); var isImage=contentType.StartsWith("image/",StringComparison.OrdinalIgnoreCase); var media=new RecipeMedia { Id=Guid.NewGuid(),RecipeId=id,Url=url,ContentType=contentType,MediaType=isImage?RecipeMediaType.Image:RecipeMediaType.Video,IsMain=recipe.Media.Count==0,SortOrder=recipe.Media.Count,CreatedAt=DateTime.UtcNow }; recipe.Media.Add(media); await _repository.AddMediaAsync(media,cancellationToken); ResolveCover(recipe); await _repository.UpdateAsync(recipe,cancellationToken); return ServiceResult<RecipeMediaDto>.Success(new RecipeMediaDto { Id=media.Id,Url=media.Url,ContentType=media.ContentType,MediaType=media.MediaType,IsMain=media.IsMain,SortOrder=media.SortOrder }); } catch(RecipeMediaValidationException ex){return ServiceResult<RecipeMediaDto>.Failure(ex.Code+":"+ex.Message,ServiceErrorType.Validation);} catch {if(url is not null)await _mediaStorage!.DeleteAsync(url,cancellationToken);throw;} }
-        public async Task<ServiceResult> RemoveMediaAsync(Guid id,Guid mediaId,Guid currentUserId,bool isAdmin,CancellationToken ct=default) { var r=await _repository.GetByIdAsync(id,ct); if(r is null)return ServiceResult.Failure("Recipe not found",ServiceErrorType.NotFound);if(!isAdmin&&r.UserId!=currentUserId)return ServiceResult.Failure("You can only update your own recipe.",ServiceErrorType.Forbidden);var m=r.Media.SingleOrDefault(x=>x.Id==mediaId);if(m is null)return ServiceResult.Failure("Media not found",ServiceErrorType.NotFound);if(r.Media.Count==1)return ServiceResult.Failure("The final media item cannot be removed.",ServiceErrorType.Validation);r.Media.Remove(m); Normalize(r);ResolveCover(r);await _repository.UpdateAsync(r,ct);await _mediaStorage!.DeleteAsync(m.Url,ct);return ServiceResult.Success(); }
-        public async Task<ServiceResult> SetMainMediaAsync(Guid id,Guid mediaId,Guid currentUserId,bool isAdmin,CancellationToken ct=default) { var r=await _repository.GetByIdAsync(id,ct);if(r is null)return ServiceResult.Failure("Recipe not found",ServiceErrorType.NotFound);if(!isAdmin&&r.UserId!=currentUserId)return ServiceResult.Failure("You can only update your own recipe.",ServiceErrorType.Forbidden);var m=r.Media.SingleOrDefault(x=>x.Id==mediaId);if(m is null)return ServiceResult.Failure("Media not found",ServiceErrorType.NotFound);foreach(var x in r.Media)x.IsMain=x.Id==mediaId;ResolveCover(r);await _repository.UpdateAsync(r,ct);return ServiceResult.Success(); }
-        public async Task<ServiceResult> ReorderMediaAsync(Guid id,IReadOnlyList<Guid> ids,Guid currentUserId,bool isAdmin,CancellationToken ct=default) { var r=await _repository.GetByIdAsync(id,ct);if(r is null)return ServiceResult.Failure("Recipe not found",ServiceErrorType.NotFound);if(!isAdmin&&r.UserId!=currentUserId)return ServiceResult.Failure("You can only update your own recipe.",ServiceErrorType.Forbidden);if(ids.Count!=r.Media.Count||ids.Distinct().Count()!=ids.Count||ids.Except(r.Media.Select(x=>x.Id)).Any())return ServiceResult.Failure("Media order must contain each recipe media ID exactly once.",ServiceErrorType.Validation);foreach(var m in r.Media)m.SortOrder=Enumerable.Range(0, ids.Count).First(i => ids[i] == m.Id);Normalize(r);ResolveCover(r);await _repository.UpdateAsync(r,ct);return ServiceResult.Success(); }
-        private static void Normalize(Recipie recipe) { var ordered=recipe.Media.OrderBy(x=>x.SortOrder).ThenBy(x=>x.CreatedAt).ToList();for(var i=0;i<ordered.Count;i++)ordered[i].SortOrder=i;if(ordered.Count>0&&!ordered.Any(x=>x.IsMain))ordered[0].IsMain=true;if(ordered.Count>0){var main=ordered.First(x=>x.IsMain);foreach(var x in ordered)x.IsMain=x==main;} }
-        private static void ResolveCover(Recipie recipe) { var ordered=recipe.Media.OrderBy(x=>x.SortOrder).ToList();var cover=ordered.FirstOrDefault(x=>x.IsMain&&x.MediaType==RecipeMediaType.Image)??ordered.FirstOrDefault(x=>x.MediaType==RecipeMediaType.Image);recipe.ImageUrl=cover?.Url; }
+        {
+            var recipe = await _repository.GetByIdAsync(id, cancellationToken);
+            if (recipe is null) return ServiceResult<RecipeMediaDto>.Failure("Recipe not found", ServiceErrorType.NotFound);
+            if (!isAdmin && recipe.UserId != currentUserId) return ServiceResult<RecipeMediaDto>.Failure("You can only update your own recipe.", ServiceErrorType.Forbidden);
+
+            var photos = OrderedImages(recipe);
+            if (photos.Count >= _mediaOptions.MaxItems) return ServiceResult<RecipeMediaDto>.Failure("A recipe can have at most 9 photos.", ServiceErrorType.Validation);
+
+            string? url = null;
+            try
+            {
+                url = await (_mediaStorage ?? throw new InvalidOperationException("Recipe media storage is not configured."))
+                    .SaveAsync(new RecipeMediaUpload { Content = content, FileName = fileName, ContentType = contentType, Length = length }, cancellationToken);
+
+                var media = new RecipeMedia
+                {
+                    Id = Guid.NewGuid(), RecipeId = id, Url = url, ContentType = contentType,
+                    MediaType = RecipeMediaType.Image, IsMain = photos.Count == 0,
+                    SortOrder = photos.Count, CreatedAt = DateTime.UtcNow
+                };
+                recipe.Media.Add(media);
+                await _repository.AddMediaAsync(media, cancellationToken);
+                ResolveCover(recipe);
+                await _repository.UpdateAsync(recipe, cancellationToken);
+                return ServiceResult<RecipeMediaDto>.Success(ToMediaDto(media));
+            }
+            catch (RecipeMediaValidationException ex)
+            {
+                return ServiceResult<RecipeMediaDto>.Failure(ex.Code + ":" + ex.Message, ServiceErrorType.Validation);
+            }
+            catch
+            {
+                if (url is not null) await _mediaStorage!.DeleteAsync(url, cancellationToken);
+                throw;
+            }
+        }
+
+        public async Task<ServiceResult> RemoveMediaAsync(Guid id, Guid mediaId, Guid currentUserId, bool isAdmin, CancellationToken ct = default)
+        {
+            var recipe = await _repository.GetByIdAsync(id, ct);
+            if (recipe is null) return ServiceResult.Failure("Recipe not found", ServiceErrorType.NotFound);
+            if (!isAdmin && recipe.UserId != currentUserId) return ServiceResult.Failure("You can only update your own recipe.", ServiceErrorType.Forbidden);
+            var photos = OrderedImages(recipe);
+            var media = photos.SingleOrDefault(photo => photo.Id == mediaId);
+            if (media is null) return ServiceResult.Failure("Photo not found", ServiceErrorType.NotFound);
+            if (photos.Count == 1) return ServiceResult.Failure("The final photo cannot be removed.", ServiceErrorType.Validation);
+            recipe.Media.Remove(media);
+            Normalize(recipe);
+            ResolveCover(recipe);
+            await _repository.UpdateAsync(recipe, ct);
+            await (_mediaStorage ?? throw new InvalidOperationException("Recipe media storage is not configured.")).DeleteAsync(media.Url, ct);
+            return ServiceResult.Success();
+        }
+
+        public async Task<ServiceResult> SetMainMediaAsync(Guid id, Guid mediaId, Guid currentUserId, bool isAdmin, CancellationToken ct = default)
+        {
+            var recipe = await _repository.GetByIdAsync(id, ct);
+            if (recipe is null) return ServiceResult.Failure("Recipe not found", ServiceErrorType.NotFound);
+            if (!isAdmin && recipe.UserId != currentUserId) return ServiceResult.Failure("You can only update your own recipe.", ServiceErrorType.Forbidden);
+            var media = OrderedImages(recipe).SingleOrDefault(photo => photo.Id == mediaId);
+            if (media is null) return ServiceResult.Failure("Photo not found", ServiceErrorType.NotFound);
+            foreach (var photo in OrderedImages(recipe)) photo.IsMain = photo.Id == mediaId;
+            ResolveCover(recipe);
+            await _repository.UpdateAsync(recipe, ct);
+            return ServiceResult.Success();
+        }
+
+        public async Task<ServiceResult> ReorderMediaAsync(Guid id, IReadOnlyList<Guid> ids, Guid currentUserId, bool isAdmin, CancellationToken ct = default)
+        {
+            var recipe = await _repository.GetByIdAsync(id, ct);
+            if (recipe is null) return ServiceResult.Failure("Recipe not found", ServiceErrorType.NotFound);
+            if (!isAdmin && recipe.UserId != currentUserId) return ServiceResult.Failure("You can only update your own recipe.", ServiceErrorType.Forbidden);
+            var photos = OrderedImages(recipe);
+            if (ids.Count != photos.Count || ids.Distinct().Count() != ids.Count || ids.Except(photos.Select(photo => photo.Id)).Any())
+                return ServiceResult.Failure("Photo order must contain each recipe photo ID exactly once.", ServiceErrorType.Validation);
+            for (var index = 0; index < ids.Count; index++)
+            {
+                photos.Single(photo => photo.Id == ids[index]).SortOrder = index;
+            }
+            Normalize(recipe);
+            ResolveCover(recipe);
+            await _repository.UpdateAsync(recipe, ct);
+            return ServiceResult.Success();
+        }
+
+        private static List<RecipeMedia> OrderedImages(Recipie recipe) => recipe.Media
+            .Where(media => media.MediaType == RecipeMediaType.Image)
+            .OrderBy(media => media.SortOrder)
+            .ThenBy(media => media.CreatedAt)
+            .ToList();
+
+        private static RecipeMediaDto ToMediaDto(RecipeMedia media) => new()
+        {
+            Id = media.Id, Url = media.Url, ContentType = media.ContentType,
+            MediaType = media.MediaType, IsMain = media.IsMain, SortOrder = media.SortOrder
+        };
+
+        private static void Normalize(Recipie recipe)
+        {
+            var photos = OrderedImages(recipe);
+            for (var index = 0; index < photos.Count; index++) photos[index].SortOrder = index;
+            if (photos.Count == 0) return;
+            var main = photos.FirstOrDefault(photo => photo.IsMain) ?? photos[0];
+            foreach (var photo in photos) photo.IsMain = photo == main;
+        }
+
+        private static void ResolveCover(Recipie recipe)
+        {
+            var photos = OrderedImages(recipe);
+            var cover = photos.FirstOrDefault(photo => photo.IsMain) ?? photos.FirstOrDefault();
+            recipe.ImageUrl = cover?.Url;
+        }
 
         // 🔹 PAGINATION + FILTERING
         public async Task<PagedResult<RecipieDto>> GetPagedAsync(

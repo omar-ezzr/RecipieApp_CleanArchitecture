@@ -15,7 +15,7 @@ import { resolveAssetUrl } from '../../core/utils/asset-url.util';
 import { RecipeFormMapper } from '../../core/recipes/recipe-form.mapper';
 import { catchError, concatMap, from, of, toArray } from 'rxjs';
 
-interface SelectedMedia { localId: string; file: File; previewUrl: string; kind: 'image' | 'video'; isMain: boolean; }
+interface SelectedMedia { localId: string; file: File; previewUrl: string; isMain: boolean; }
 
 @Component({
     selector: 'app-create-recipe',
@@ -99,7 +99,7 @@ export class CreateRecipeComponent implements OnInit, OnDestroy {
 
   previewImageUrl(): string {
     const cover = this.selectedMedia.find(item => item.isMain);
-    return cover?.kind === 'image' ? cover.previewUrl : resolveAssetUrl(this.recipe.imageUrl, API_BASE_URL);
+    return cover?.previewUrl ?? resolveAssetUrl(this.recipe.imageUrl, API_BASE_URL);
   }
 
   onMediaSelected(event: Event): void {
@@ -108,11 +108,10 @@ export class CreateRecipeComponent implements OnInit, OnDestroy {
     input.value = '';
     if (!files.length) return;
     const capacity = 9 - this.selectedMedia.length;
-    if (files.length > capacity) this.error = `You can add only ${capacity} more media item${capacity === 1 ? '' : 's'} (maximum 9).`;
+    if (files.length > capacity) this.error = `You can add only ${capacity} more photo${capacity === 1 ? '' : 's'} (maximum 9).`;
     for (const file of files.slice(0, Math.max(0, capacity))) {
-      const kind = this.validateMedia(file);
-      if (!kind) continue;
-      this.selectedMedia.push({ localId: crypto.randomUUID(), file, previewUrl: URL.createObjectURL(file), kind, isMain: this.selectedMedia.length === 0 });
+      if (!this.validateMedia(file)) continue;
+      this.selectedMedia.push({ localId: crypto.randomUUID(), file, previewUrl: URL.createObjectURL(file), isMain: this.selectedMedia.length === 0 });
     }
   }
 
@@ -128,12 +127,10 @@ export class CreateRecipeComponent implements OnInit, OnDestroy {
   trackMedia(_index: number, item: SelectedMedia): string { return item.localId; }
   ngOnDestroy(): void { this.clearSelectedMedia(); }
   private clearSelectedMedia(): void { this.selectedMedia.forEach(item => URL.revokeObjectURL(item.previewUrl)); this.selectedMedia = []; }
-  private validateMedia(file: File): 'image' | 'video' | null {
-    const images = ['image/jpeg', 'image/png', 'image/webp']; const videos = ['video/mp4', 'video/webm'];
-    if (images.includes(file.type)) { if (file.size > 5 * 1024 * 1024) this.error = 'Images must be 5 MB or smaller.'; else return 'image'; }
-    else if (videos.includes(file.type)) { if (file.size > 50 * 1024 * 1024) this.error = 'Videos must be 50 MB or smaller.'; else return 'video'; }
-    else this.error = 'Choose JPEG, PNG, WEBP, MP4, or WebM media.';
-    return null;
+  private validateMedia(file: File): boolean {
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) { this.error = 'Choose a JPEG, PNG, or WebP image.'; return false; }
+    if (file.size > 5 * 1024 * 1024) { this.error = 'Images must be 5 MB or smaller.'; return false; }
+    return true;
   }
 
   trackIngredient(index: number, _ingredient: unknown): number {
@@ -148,7 +145,7 @@ export class CreateRecipeComponent implements OnInit, OnDestroy {
     this.error = '';
     const result = RecipeFormMapper.toPayload(this.recipe);
     if (!result.payload) { this.error = result.error || 'Please check the recipe information.'; return; }
-    if (!this.selectedMedia.length) { this.error = 'Add at least one photo or video.'; return; }
+    if (!this.selectedMedia.length) { this.error = 'Add at least one photo.'; return; }
     this.isSubmitting = true;
     const selected = [...this.selectedMedia];
     this.recipeService.create(result.payload).pipe(concatMap(recipe => {
@@ -159,13 +156,13 @@ export class CreateRecipeComponent implements OnInit, OnDestroy {
       )), toArray(), concatMap(results => {
         const successes = results.filter(result => result.media !== null) as Array<{ selected: SelectedMedia; media: RecipeMedia }>;
         const failed = results.length - successes.length;
-        if (!successes.length) { this.error = `Recipe created, but ${failed} media item${failed === 1 ? '' : 's'} failed to upload. Continue in edit mode to retry.`; this.isSubmitting = false; this.router.navigate(['/recipes', recipe.id], { queryParams: { edit: true } }); return of(null); }
+        if (!successes.length) { this.error = `Recipe created, but ${failed} photo${failed === 1 ? '' : 's'} failed to upload. Continue in edit mode to retry.`; this.isSubmitting = false; this.router.navigate(['/recipes', recipe.id], { queryParams: { edit: true } }); return of(null); }
         const cover = successes.find(result => result.selected.isMain)?.media ?? successes[0].media;
         const order = successes.map(result => result.media.id);
         const finish = !cover.isMain ? this.recipeService.setMainMedia(recipe.id, cover.id).pipe(concatMap(() => this.recipeService.reorderMedia(recipe.id, order))) : this.recipeService.reorderMedia(recipe.id, order);
         return finish.pipe(concatMap(() => of({ recipe, failed })));
       }));
-    })).subscribe({ next: value => { if (!value) return; if (value.failed) { this.error = `Recipe created, but ${value.failed} media item${value.failed === 1 ? '' : 's'} failed to upload. Continue in edit mode to retry.`; this.isSubmitting = false; this.router.navigate(['/recipes', value.recipe.id], { queryParams: { edit: true } }); return; } this.clearSelectedMedia(); this.router.navigate(['/recipes', value.recipe.id]); }, error: error => { this.error = this.getApiError(error); this.isSubmitting = false; } });
+    })).subscribe({ next: value => { if (!value) return; if (value.failed) { this.error = `Recipe created, but ${value.failed} photo${value.failed === 1 ? '' : 's'} failed to upload. Continue in edit mode to retry.`; this.isSubmitting = false; this.router.navigate(['/recipes', value.recipe.id], { queryParams: { edit: true } }); return; } this.clearSelectedMedia(); this.router.navigate(['/recipes', value.recipe.id]); }, error: error => { this.error = this.getApiError(error); this.isSubmitting = false; } });
   }
 
   private getApiError(error: HttpErrorResponse): string {

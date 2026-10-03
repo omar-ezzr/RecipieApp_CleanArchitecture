@@ -110,6 +110,8 @@ Do not put real secrets in unit files committed to source control.
 
 Development defaults to `API/wwwroot/images/recipes`. Production should set `RecipeMedia__StoragePath` to an absolute directory on persistent storage, for example `/var/lib/recepie/media/recipes`, while keeping `RecipeMedia__PublicPath=/images/recipes`.
 
+Recipe galleries accept 1-9 photos per recipe. Each photo must be JPEG, PNG, or WebP and no larger than 5 MB. The theoretical maximum media volume for one recipe is `9 x 5 MB = 45 MB`; actual JPEG and WebP uploads are commonly smaller.
+
 Before starting the API, create the directory and grant write permission only to the API service account:
 
 ```bash
@@ -169,7 +171,7 @@ The repository smoke script checks:
 - `/health/ready`
 - `/api/categories`
 
-Use authenticated manual checks for login, refresh-token rotation, recipe creation, first and second media upload, media URL reachability, API restart with persistent media, and cleanup of test records/files.
+Use authenticated manual checks for login, refresh-token rotation, recipe creation, first and second photo upload, photo URL reachability, API restart with persistent media, and cleanup of test records/files.
 
 ## Backup and restore
 

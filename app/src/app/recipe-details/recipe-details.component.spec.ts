@@ -5,7 +5,7 @@ import { of } from 'rxjs';
 import { RecipeDetailsComponent } from './recipe-details.component';
 import { RecipeService } from '../services/recipe.service';
 import { ReviewService } from '../services/review.service';
-import { DifficultyLevel, Recipe } from '../models/recipe.model';
+import { DifficultyLevel, Recipe, RecipeMediaType } from '../models/recipe.model';
 import { FavoriteService } from '../services/favorite.service';
 import { LikeService } from '../services/like.service';
 import { CommentService } from '../services/comment.service';
@@ -55,13 +55,17 @@ describe('RecipeDetailsComponent', () => {
   };
 
   beforeEach(async () => {
-    recipeService = jasmine.createSpyObj<RecipeService>('RecipeService', ['getById', 'update', 'delete']);
+    recipeService = jasmine.createSpyObj<RecipeService>('RecipeService', ['getById', 'update', 'delete', 'addMedia', 'removeMedia', 'setMainMedia', 'reorderMedia']);
     reviewService = jasmine.createSpyObj<ReviewService>('ReviewService', ['getByRecipe', 'create']);
     auth = jasmine.createSpyObj<AuthService>('AuthService', ['isLoggedIn', 'isAdmin', 'getCurrentUserId']);
 
     reviewService.getByRecipe.and.returnValue(of([]));
     recipeService.getById.and.returnValue(of({ ...recipe, ingredients: [...recipe.ingredients], steps: [...recipe.steps] }));
     recipeService.update.and.returnValue(of({ ...recipe, title: 'Updated soup' }));
+    recipeService.addMedia.and.returnValue(of(photo('three', false, 2)));
+    recipeService.removeMedia.and.returnValue(of(void 0));
+    recipeService.setMainMedia.and.returnValue(of(void 0));
+    recipeService.reorderMedia.and.returnValue(of(void 0));
     auth.isLoggedIn.and.returnValue(true);
     auth.isAdmin.and.returnValue(false);
     auth.getCurrentUserId.and.returnValue('user-1');
@@ -108,6 +112,50 @@ describe('RecipeDetailsComponent', () => {
 
     expect(component.recipe?.id).toBe('recipe-1');
     expect(reviewService.getByRecipe).toHaveBeenCalledWith('recipe-1');
+  });
+
+  it('selects the main photo first and renders image-only gallery markup', () => {
+    recipeService.getById.and.returnValue(of({ ...recipe, media: [photo('two', true, 1), photo('one', false, 0)] }));
+    createComponent();
+
+    expect(component.activeMedia?.id).toBe('two');
+    expect(fixture.nativeElement.querySelector('video')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.hero-image')?.tagName).toBe('IMG');
+  });
+
+  it('falls back to the first ordered photo when no cover is set', () => {
+    recipeService.getById.and.returnValue(of({ ...recipe, media: [photo('two', false, 1), photo('one', false, 0)] }));
+    createComponent();
+
+    expect(component.activeMedia?.id).toBe('one');
+  });
+
+  it('rejects MP4 and WebM photos in edit mode', () => {
+    createComponent(true);
+    component.onEditMediaSelected({ target: { files: [new File([new Uint8Array([1])], 'clip.mp4', { type: 'video/mp4' })], value: 'selected' } } as unknown as Event);
+    expect(component.editError).toBe('Choose a JPEG, PNG, or WebP image.');
+
+    component.onEditMediaSelected({ target: { files: [new File([new Uint8Array([1])], 'clip.webm', { type: 'video/webm' })], value: 'selected' } } as unknown as Event);
+    expect(component.editError).toBe('Choose a JPEG, PNG, or WebP image.');
+    expect(recipeService.addMedia).not.toHaveBeenCalled();
+  });
+
+  it('sets cover, reorders, and prevents deleting the final photo', () => {
+    const photos = [photo('one', true, 0), photo('two', false, 1)];
+    recipeService.getById.and.returnValue(of({ ...recipe, media: photos }));
+    createComponent(true);
+
+    component.setMainMedia(component.orderedMedia[1]);
+    component.moveMedia(component.orderedMedia[1], -1);
+    component.removeMedia(component.orderedMedia[0]);
+
+    expect(recipeService.setMainMedia).toHaveBeenCalledWith('recipe-1', 'two');
+    expect(recipeService.reorderMedia).toHaveBeenCalledWith('recipe-1', ['two', 'one']);
+    expect(recipeService.removeMedia).toHaveBeenCalledWith('recipe-1', 'one');
+
+    component.recipe = { ...recipe, media: [photo('one', true, 0)] };
+    component.removeMedia(component.orderedMedia[0]);
+    expect(recipeService.removeMedia).toHaveBeenCalledTimes(1);
   });
 
   it('validates review rating', () => {
@@ -317,4 +365,15 @@ describe('RecipeDetailsComponent', () => {
     expect(component.isEditMode).toBeFalse();
     expect(component.editRecipeModel).toBeNull();
   });
+
+  function photo(id: string, isMain: boolean, sortOrder: number) {
+    return {
+      id,
+      url: `/images/recipes/${id}.jpg`,
+      mediaType: RecipeMediaType.Image,
+      contentType: 'image/jpeg',
+      isMain,
+      sortOrder
+    };
+  }
 });

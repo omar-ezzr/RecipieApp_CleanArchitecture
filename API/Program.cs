@@ -238,8 +238,6 @@ var app = builder.Build();
 
 var staticFileContentTypes = new FileExtensionContentTypeProvider();
 staticFileContentTypes.Mappings[".avif"] = "image/avif";
-staticFileContentTypes.Mappings[".mp4"] = "video/mp4";
-staticFileContentTypes.Mappings[".webm"] = "video/webm";
 
 
 if (app.Environment.IsDevelopment())

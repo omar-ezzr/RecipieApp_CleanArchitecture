@@ -5,7 +5,7 @@ import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 
 import { RecipeService } from '../services/recipe.service';
-import { CreateRecipe, DifficultyLevel, Recipe, RecipeMedia } from '../models/recipe.model';
+import { CreateRecipe, DifficultyLevel, Recipe, RecipeMedia, RecipeMediaType } from '../models/recipe.model';
 import { Review, ReviewService } from '../services/review.service';
 import { API_BASE_URL } from '../app-api.config';
 import { resolveAssetUrl } from '../core/utils/asset-url.util';
@@ -418,23 +418,23 @@ export class RecipeDetailsComponent implements OnInit {
   }
 
 
-  get orderedMedia(): RecipeMedia[] { return [...(this.recipe?.media ?? [])].sort((a, b) => a.sortOrder - b.sortOrder); }
+  get orderedMedia(): RecipeMedia[] { return [...(this.recipe?.media ?? [])].filter(media => media.mediaType === RecipeMediaType.Image).sort((a, b) => a.sortOrder - b.sortOrder); }
   get activeMedia(): RecipeMedia | undefined { return this.orderedMedia.find(media => media.id === this.activeMediaId) ?? this.orderedMedia.find(media => media.isMain) ?? this.orderedMedia[0]; }
   selectMedia(media: RecipeMedia): void { this.activeMediaId = media.id; }
   onEditMediaSelected(event: Event): void {
     if (!this.recipe || this.isMediaChanging) return;
     const files = Array.from((event.target as HTMLInputElement).files ?? []); (event.target as HTMLInputElement).value = '';
-    if (this.orderedMedia.length + files.length > 9) { this.editError = 'A recipe can have at most 9 media items.'; return; }
+    if (this.orderedMedia.length + files.length > 9) { this.editError = 'A recipe can have at most 9 photos.'; return; }
     for (const file of files) { if (!this.validEditMedia(file)) return; }
     this.isMediaChanging = true;
-    const uploadNext = (index: number) => { if (index === files.length) { this.isMediaChanging = false; return; } this.recipeService.addMedia(this.recipe!.id, files[index]).subscribe({ next: media => { this.recipe = { ...this.recipe!, media: [...(this.recipe!.media ?? []), media] }; this.activeMediaId ??= media.id; uploadNext(index + 1); }, error: () => { this.editError = 'Failed to upload media.'; this.isMediaChanging = false; } }); };
+    const uploadNext = (index: number) => { if (index === files.length) { this.isMediaChanging = false; return; } this.recipeService.addMedia(this.recipe!.id, files[index]).subscribe({ next: media => { this.recipe = { ...this.recipe!, media: [...(this.recipe!.media ?? []), media] }; this.activeMediaId ??= media.id; uploadNext(index + 1); }, error: () => { this.editError = 'Failed to upload photo.'; this.isMediaChanging = false; } }); };
     uploadNext(0);
   }
-  removeMedia(media: RecipeMedia): void { if (!this.recipe || this.isMediaChanging || this.orderedMedia.length <= 1) return; this.isMediaChanging = true; this.recipeService.removeMedia(this.recipe.id, media.id).subscribe({ next: () => this.reloadMedia(), error: () => { this.editError='Failed to remove media.'; this.isMediaChanging=false; } }); }
+  removeMedia(media: RecipeMedia): void { if (!this.recipe || this.isMediaChanging || this.orderedMedia.length <= 1) return; this.isMediaChanging = true; this.recipeService.removeMedia(this.recipe.id, media.id).subscribe({ next: () => this.reloadMedia(), error: () => { this.editError='Failed to remove photo.'; this.isMediaChanging=false; } }); }
   setMainMedia(media: RecipeMedia): void { if (!this.recipe || this.isMediaChanging || media.isMain) return; this.isMediaChanging=true; this.recipeService.setMainMedia(this.recipe.id,media.id).subscribe({ next:()=>this.reloadMedia(),error:()=>{this.editError='Failed to set cover.';this.isMediaChanging=false;} }); }
-  moveMedia(media: RecipeMedia, direction: -1 | 1): void { if (!this.recipe || this.isMediaChanging) return; const items=this.orderedMedia; const index=items.findIndex(item=>item.id===media.id); const target=index+direction; if(target<0||target>=items.length)return; [items[index],items[target]]=[items[target],items[index]]; this.isMediaChanging=true; this.recipeService.reorderMedia(this.recipe.id,items.map(item=>item.id)).subscribe({next:()=>this.reloadMedia(),error:()=>{this.editError='Failed to reorder media.';this.isMediaChanging=false;}}); }
-  private reloadMedia(): void { if (!this.recipe) return; this.recipeService.getById(this.recipe.id).subscribe({ next: recipe => { this.recipe=recipe; const media=this.orderedMedia; this.activeMediaId=media.find(item=>item.isMain)?.id ?? media[0]?.id ?? null; this.isMediaChanging=false; }, error:()=>{this.editError='Media changed, but could not refresh the gallery.';this.isMediaChanging=false;} }); }
-  private validEditMedia(file: File): boolean { const image=['image/jpeg','image/png','image/webp'].includes(file.type); const video=['video/mp4','video/webm'].includes(file.type); if (!image&&!video) {this.editError='Choose JPEG, PNG, WEBP, MP4, or WebM media.';return false;} if(file.size>(image?5:50)*1024*1024){this.editError=image?'Images must be 5 MB or smaller.':'Videos must be 50 MB or smaller.';return false;}return true; }
+  moveMedia(media: RecipeMedia, direction: -1 | 1): void { if (!this.recipe || this.isMediaChanging) return; const items=this.orderedMedia; const index=items.findIndex(item=>item.id===media.id); const target=index+direction; if(target<0||target>=items.length)return; [items[index],items[target]]=[items[target],items[index]]; this.isMediaChanging=true; this.recipeService.reorderMedia(this.recipe.id,items.map(item=>item.id)).subscribe({next:()=>this.reloadMedia(),error:()=>{this.editError='Failed to reorder photos.';this.isMediaChanging=false;}}); }
+  private reloadMedia(): void { if (!this.recipe) return; this.recipeService.getById(this.recipe.id).subscribe({ next: recipe => { this.recipe=recipe; const media=this.orderedMedia; this.activeMediaId=media.find(item=>item.isMain)?.id ?? media[0]?.id ?? null; this.isMediaChanging=false; }, error:()=>{this.editError='Photos changed, but could not refresh the gallery.';this.isMediaChanging=false;} }); }
+  private validEditMedia(file: File): boolean { if (!['image/jpeg','image/png','image/webp'].includes(file.type)) {this.editError='Choose a JPEG, PNG, or WebP image.';return false;} if(file.size>5*1024*1024){this.editError='Images must be 5 MB or smaller.';return false;}return true; }
 
   private loadEditLookups(): void {
     this.categoryService.getAll().subscribe({

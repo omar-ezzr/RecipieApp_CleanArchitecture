@@ -1,6 +1,8 @@
 using Core.Application.DTO;
 using Core.Application.DTO.Recipe;
 using Core.Application.Interfaces;
+using Core.Application.Interfaces.Services;
+using Core.Application.Options;
 using Core.Application.Common;
 using Core.Application.UseCases.Recipes;
 using Core.Domain.Entities;
@@ -139,6 +141,85 @@ public class RecipeServiceTests
         Assert.Equal(3, result.TotalPages);
     }
 
+    [Fact]
+    public async Task AddMediaAsync_makes_only_the_first_photo_main_and_updates_cover()
+    {
+        var recipe = ExistingRecipe(DifficultyLevel.Easy);
+        var storage = new FakeRecipeMediaStorage("/images/recipes/one.jpg", "/images/recipes/two.png");
+        var service = new RecipeService(new FakeRecipeRepository { ExistingRecipe = recipe }, storage, new RecipeMediaOptions());
+
+        var first = await service.AddMediaAsync(recipe.Id, new MemoryStream([1]), "one.jpg", "image/jpeg", 1, UserId, false);
+        var second = await service.AddMediaAsync(recipe.Id, new MemoryStream([2]), "two.png", "image/png", 1, UserId, false);
+
+        Assert.True(first.IsSuccess);
+        Assert.True(second.IsSuccess);
+        Assert.Equal(2, recipe.Media.Count);
+        Assert.True(recipe.Media.Single(media => media.Id == first.Value!.Id).IsMain);
+        Assert.False(recipe.Media.Single(media => media.Id == second.Value!.Id).IsMain);
+        Assert.Equal("/images/recipes/one.jpg", recipe.ImageUrl);
+        Assert.All(recipe.Media, media => Assert.Equal(RecipeMediaType.Image, media.MediaType));
+    }
+
+    [Fact]
+    public async Task Photo_mutations_enforce_owner_admin_and_final_photo_rules()
+    {
+        var recipe = ExistingRecipe(DifficultyLevel.Easy);
+        var firstPhoto = Photo("one.jpg", true, 0);
+        var secondPhoto = Photo("two.jpg", false, 1);
+        recipe.Media = [firstPhoto, secondPhoto];
+        recipe.ImageUrl = firstPhoto.Url;
+        var storage = new FakeRecipeMediaStorage();
+        var service = new RecipeService(new FakeRecipeRepository { ExistingRecipe = recipe }, storage, new RecipeMediaOptions());
+
+        var forbidden = await service.SetMainMediaAsync(recipe.Id, secondPhoto.Id, OtherUserId, false);
+        var admin = await service.SetMainMediaAsync(recipe.Id, secondPhoto.Id, OtherUserId, true);
+        var removeMain = await service.RemoveMediaAsync(recipe.Id, secondPhoto.Id, UserId, false);
+        var finalPhoto = await service.RemoveMediaAsync(recipe.Id, firstPhoto.Id, UserId, false);
+
+        Assert.Equal(ServiceErrorType.Forbidden, forbidden.ErrorType);
+        Assert.True(admin.IsSuccess);
+        Assert.True(removeMain.IsSuccess);
+        Assert.Equal("/images/recipes/one.jpg", recipe.ImageUrl);
+        Assert.Equal(ServiceErrorType.Validation, finalPhoto.ErrorType);
+        Assert.Contains("final photo", finalPhoto.Error!);
+        Assert.Contains("/images/recipes/two.jpg", storage.DeletedUrls);
+    }
+
+    [Fact]
+    public async Task ReorderMediaAsync_rejects_duplicate_and_missing_ids_then_normalizes_sort_order()
+    {
+        var recipe = ExistingRecipe(DifficultyLevel.Easy);
+        var firstPhoto = Photo("one.jpg", true, 7);
+        var secondPhoto = Photo("two.jpg", false, 4);
+        var thirdPhoto = Photo("three.jpg", false, 9);
+        recipe.Media = [firstPhoto, secondPhoto, thirdPhoto];
+        var service = new RecipeService(new FakeRecipeRepository { ExistingRecipe = recipe }, new FakeRecipeMediaStorage());
+
+        var duplicate = await service.ReorderMediaAsync(recipe.Id, [firstPhoto.Id, firstPhoto.Id, thirdPhoto.Id], UserId, false);
+        var missing = await service.ReorderMediaAsync(recipe.Id, [firstPhoto.Id, secondPhoto.Id, Guid.NewGuid()], UserId, false);
+        var reordered = await service.ReorderMediaAsync(recipe.Id, [thirdPhoto.Id, secondPhoto.Id, firstPhoto.Id], UserId, false);
+
+        Assert.Equal(ServiceErrorType.Validation, duplicate.ErrorType);
+        Assert.Equal(ServiceErrorType.Validation, missing.ErrorType);
+        Assert.True(reordered.IsSuccess);
+        Assert.Equal([0, 1, 2], recipe.Media.OrderBy(media => media.SortOrder).Select(media => media.SortOrder));
+        Assert.Equal("/images/recipes/one.jpg", recipe.ImageUrl);
+    }
+
+    [Fact]
+    public async Task AddMediaAsync_rejects_tenth_photo()
+    {
+        var recipe = ExistingRecipe(DifficultyLevel.Easy);
+        recipe.Media = Enumerable.Range(0, 9).Select(index => Photo($"{index}.jpg", index == 0, index)).ToList();
+        var storage = new FakeRecipeMediaStorage("/images/recipes/ten.jpg");
+        var service = new RecipeService(new FakeRecipeRepository { ExistingRecipe = recipe }, storage, new RecipeMediaOptions());
+
+        var result = await service.AddMediaAsync(recipe.Id, new MemoryStream([1]), "ten.jpg", "image/jpeg", 1, UserId, false);
+
+        Assert.Equal(ServiceErrorType.Validation, result.ErrorType);
+        Assert.Empty(storage.SavedUploads);
+    }
+
     private static CreateRecipeDto NewRecipe(DifficultyLevel difficulty)
     {
         return new CreateRecipeDto
@@ -170,6 +251,31 @@ public class RecipeServiceTests
             UserId = UserId,
             User = new Users { Id = UserId, DisplayName = "Owner", Email = "owner@example.com" }
         };
+    }
+
+    private static RecipeMedia Photo(string fileName, bool isMain, int sortOrder) => new()
+    {
+        Id = Guid.NewGuid(), Url = $"/images/recipes/{fileName}", ContentType = "image/jpeg",
+        MediaType = RecipeMediaType.Image, IsMain = isMain, SortOrder = sortOrder, CreatedAt = DateTime.UtcNow
+    };
+
+    private sealed class FakeRecipeMediaStorage(params string[] urls) : IRecipeMediaStorage
+    {
+        private readonly Queue<string> _urls = new(urls);
+        public List<string> DeletedUrls { get; } = [];
+        public List<RecipeMediaUpload> SavedUploads { get; } = [];
+
+        public Task<string> SaveAsync(RecipeMediaUpload upload, CancellationToken cancellationToken = default)
+        {
+            SavedUploads.Add(upload);
+            return Task.FromResult(_urls.Dequeue());
+        }
+
+        public Task DeleteAsync(string url, CancellationToken cancellationToken = default)
+        {
+            DeletedUrls.Add(url);
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class FakeRecipeRepository : IRecipeRepository

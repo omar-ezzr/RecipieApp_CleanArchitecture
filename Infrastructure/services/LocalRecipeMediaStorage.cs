@@ -2,7 +2,6 @@ using Core.Application.Common;
 using Core.Application.DTO.Recipe;
 using Core.Application.Interfaces.Services;
 using Core.Application.Options;
-using Core.Domain.Enums;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -11,15 +10,13 @@ namespace Infrastructure.Services;
 
 public sealed class LocalRecipeMediaStorage : IRecipeMediaStorage
 {
-    private static readonly IReadOnlyDictionary<string, (string ContentType, RecipeMediaType Type)> Extensions =
-        new Dictionary<string, (string, RecipeMediaType)>(StringComparer.OrdinalIgnoreCase)
+    private static readonly IReadOnlyDictionary<string, string> Extensions =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
-            [".jpg"] = ("image/jpeg", RecipeMediaType.Image),
-            [".jpeg"] = ("image/jpeg", RecipeMediaType.Image),
-            [".png"] = ("image/png", RecipeMediaType.Image),
-            [".webp"] = ("image/webp", RecipeMediaType.Image),
-            [".mp4"] = ("video/mp4", RecipeMediaType.Video),
-            [".webm"] = ("video/webm", RecipeMediaType.Video)
+            [".jpg"] = "image/jpeg",
+            [".jpeg"] = "image/jpeg",
+            [".png"] = "image/png",
+            [".webp"] = "image/webp"
         };
 
     private readonly string _directory;
@@ -45,37 +42,29 @@ public sealed class LocalRecipeMediaStorage : IRecipeMediaStorage
     {
         if (upload.Length <= 0)
         {
-            throw new RecipeMediaValidationException("invalid_media", "A media file is required.");
+            throw new RecipeMediaValidationException("invalid_media", "An image file is required.");
         }
 
         var extension = Path.GetExtension(upload.FileName);
         if (!Extensions.TryGetValue(extension, out var expected) ||
-            !string.Equals(expected.ContentType, upload.ContentType, StringComparison.OrdinalIgnoreCase))
+            !string.Equals(expected, upload.ContentType, StringComparison.OrdinalIgnoreCase))
         {
             throw new RecipeMediaValidationException(
                 "unsupported_media_type",
-                "Only JPEG, PNG, WEBP, MP4, and WebM media are supported.");
+                "Only JPEG, PNG, and WebP images are supported.");
         }
 
-        var allowedContentTypes = expected.Type == RecipeMediaType.Image
-            ? _options.AllowedImageContentTypes
-            : _options.AllowedVideoContentTypes;
-
-        if (!allowedContentTypes.Contains(upload.ContentType, StringComparer.OrdinalIgnoreCase))
+        if (!_options.AllowedImageContentTypes.Contains(upload.ContentType, StringComparer.OrdinalIgnoreCase))
         {
-            throw new RecipeMediaValidationException("unsupported_media_type", "The declared media type is not allowed.");
+            throw new RecipeMediaValidationException("unsupported_media_type", "Only JPEG, PNG, and WebP images are supported.");
         }
 
-        var sizeLimit = expected.Type == RecipeMediaType.Image
-            ? _options.MaxImageFileSizeBytes
-            : _options.MaxVideoFileSizeBytes;
-
-        if (upload.Length > sizeLimit)
+        if (upload.Length > _options.MaxImageFileSizeBytes)
         {
-            throw new RecipeMediaValidationException("media_too_large", "Media exceeds the allowed size.");
+            throw new RecipeMediaValidationException("media_too_large", "Images must be 5 MB or smaller.");
         }
 
-        if (!await HasExpectedSignatureAsync(upload.Content, expected.ContentType, cancellationToken))
+        if (!await HasExpectedSignatureAsync(upload.Content, expected, cancellationToken))
         {
             throw new RecipeMediaValidationException("invalid_media", "The uploaded file signature does not match its type.");
         }
@@ -178,32 +167,7 @@ public sealed class LocalRecipeMediaStorage : IRecipeMediaStorage
             "image/jpeg" => read >= 3 && header[0] == 0xFF && header[1] == 0xD8 && header[2] == 0xFF,
             "image/png" => read >= 8 && header.AsSpan(0, 8).SequenceEqual(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }),
             "image/webp" => read >= 12 && header.AsSpan(0, 4).SequenceEqual("RIFF"u8) && header.AsSpan(8, 4).SequenceEqual("WEBP"u8),
-            "video/mp4" => HasMp4Ftyp(header.AsSpan(0, read)),
-            "video/webm" => read >= 8 &&
-                header.AsSpan(0, 4).SequenceEqual(new byte[] { 0x1A, 0x45, 0xDF, 0xA3 }) &&
-                System.Text.Encoding.ASCII.GetString(header, 0, read).Contains("webm", StringComparison.OrdinalIgnoreCase),
             _ => false
         };
-    }
-
-    private static bool HasMp4Ftyp(ReadOnlySpan<byte> bytes)
-    {
-        for (var offset = 0; offset + 8 <= bytes.Length && offset < 64;)
-        {
-            var size = System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(bytes[offset..]);
-            if (bytes.Slice(offset + 4, 4).SequenceEqual("ftyp"u8))
-            {
-                return size >= 8;
-            }
-
-            if (size < 8 || size > bytes.Length - offset)
-            {
-                return false;
-            }
-
-            offset += (int)size;
-        }
-
-        return false;
     }
 }

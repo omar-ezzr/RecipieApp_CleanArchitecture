@@ -73,13 +73,13 @@ describe('CreateRecipeComponent', () => {
     expect(component.recipe.steps.map(step => step.stepNumber)).toEqual([1, 2]);
   });
 
-  it('cannot submit with zero media', () => {
+  it('cannot submit with zero photos', () => {
     setValidRecipe();
 
     component.submit();
 
     expect(recipeService.create).not.toHaveBeenCalled();
-    expect(component.error).toBe('Add at least one photo or video.');
+    expect(component.error).toBe('Add at least one photo.');
   });
 
   it('submits the expected payload shape with a single image', () => {
@@ -99,28 +99,22 @@ describe('CreateRecipeComponent', () => {
     expect(router.navigate).toHaveBeenCalledOnceWith(['/recipes', 'recipe-1']);
   });
 
-  it('uploads multiple media in selection order and creates only once', () => {
+  it('uploads multiple photos in selection order and creates only once', () => {
     setValidRecipe();
-    selectMedia([imageFile('first.jpg'), imageFile('second.png'), videoFile('clip.mp4')]);
+    selectMedia([imageFile('first.jpg'), imageFile('second.png'), imageFile('third.webp', 'image/webp')]);
 
     component.submit();
 
     expect(recipeService.create).toHaveBeenCalledTimes(1);
-    expect(recipeService.addMedia.calls.allArgs().map(args => args[1].name)).toEqual(['first.jpg', 'second.png', 'clip.mp4']);
-    expect(recipeService.reorderMedia).toHaveBeenCalledOnceWith('recipe-1', ['media-first-jpg', 'media-second-png', 'media-clip-mp4']);
+    expect(recipeService.addMedia.calls.allArgs().map(args => args[1].name)).toEqual(['first.jpg', 'second.png', 'third.webp']);
+    expect(recipeService.reorderMedia).toHaveBeenCalledOnceWith('recipe-1', ['media-first-jpg', 'media-second-png', 'media-third-webp']);
   });
 
-  it('supports video upload', () => {
-    setValidRecipe();
-    selectMedia([videoFile('clip.webm', 'video/webm')]);
+  it('rejects MP4 and WebM files', () => {
+    selectMedia([file('clip.mp4', 'video/mp4'), file('clip.webm', 'video/webm')]);
 
-    component.submit();
-
-    expect(recipeService.addMedia).toHaveBeenCalledOnceWith('recipe-1', jasmine.objectContaining({
-      name: 'clip.webm',
-      type: 'video/webm'
-    }));
-    expect(recipeService.reorderMedia).toHaveBeenCalledOnceWith('recipe-1', ['media-clip-webm']);
+    expect(component.selectedMedia).toEqual([]);
+    expect(component.error).toBe('Choose a JPEG, PNG, or WebP image.');
   });
 
   it('preserves the chosen cover after uploads', () => {
@@ -148,7 +142,7 @@ describe('CreateRecipeComponent', () => {
     expect(recipeService.setMainMedia).not.toHaveBeenCalled();
     expect(recipeService.reorderMedia).toHaveBeenCalledOnceWith('recipe-1', ['media-fallback-jpg']);
     expect(router.navigate).toHaveBeenCalledOnceWith(['/recipes', 'recipe-1'], { queryParams: { edit: true } });
-    expect(component.error).toBe('Recipe created, but 1 media item failed to upload. Continue in edit mode to retry.');
+    expect(component.error).toBe('Recipe created, but 1 photo failed to upload. Continue in edit mode to retry.');
   });
 
   it('navigates to edit mode after a partial upload failure', () => {
@@ -170,7 +164,7 @@ describe('CreateRecipeComponent', () => {
     selectMedia([file('notes.txt', 'text/plain')]);
 
     expect(component.selectedMedia).toEqual([]);
-    expect(component.error).toBe('Choose JPEG, PNG, WEBP, MP4, or WebM media.');
+    expect(component.error).toBe('Choose a JPEG, PNG, or WebP image.');
     expect(createObjectUrlSpy).not.toHaveBeenCalled();
   });
 
@@ -181,18 +175,18 @@ describe('CreateRecipeComponent', () => {
     expect(component.error).toBe('Images must be 5 MB or smaller.');
   });
 
-  it('rejects oversized videos', () => {
-    selectMedia([file('large.mp4', 'video/mp4', 50 * 1024 * 1024 + 1)]);
+  it('rejects MP4 regardless of size', () => {
+    selectMedia([file('large.mp4', 'video/mp4', 1)]);
 
     expect(component.selectedMedia).toEqual([]);
-    expect(component.error).toBe('Videos must be 50 MB or smaller.');
+    expect(component.error).toBe('Choose a JPEG, PNG, or WebP image.');
   });
 
-  it('limits selections to 9 media items', () => {
+  it('limits selections to 9 photos', () => {
     selectMedia(Array.from({ length: 10 }, (_, index) => imageFile(`image-${index}.jpg`)));
 
     expect(component.selectedMedia.length).toBe(9);
-    expect(component.error).toBe('You can add only 9 more media items (maximum 9).');
+    expect(component.error).toBe('You can add only 9 more photos (maximum 9).');
   });
 
   it('revokes object URLs when media is removed and when the component is destroyed', () => {
@@ -352,10 +346,6 @@ describe('CreateRecipeComponent', () => {
     return file(name, type);
   }
 
-  function videoFile(name: string, type = 'video/mp4'): File {
-    return file(name, type);
-  }
-
   function recipeResponse(id = 'recipe-1'): Recipe {
     return {
       id,
@@ -379,12 +369,11 @@ describe('CreateRecipeComponent', () => {
 
   function mediaResponse(fileName: string, isMain = fileName.includes('cover') || fileName.includes('first')): RecipeMedia {
     const normalized = fileName.replace(/[^a-z0-9]+/gi, '-').replace(/-$/, '').toLowerCase();
-    const isVideo = fileName.endsWith('.mp4') || fileName.endsWith('.webm');
     return {
       id: `media-${normalized}`,
       url: `/images/recipes/${fileName}`,
-      mediaType: isVideo ? RecipeMediaType.Video : RecipeMediaType.Image,
-      contentType: isVideo ? 'video/mp4' : 'image/jpeg',
+      mediaType: RecipeMediaType.Image,
+      contentType: fileName.endsWith('.png') ? 'image/png' : fileName.endsWith('.webp') ? 'image/webp' : 'image/jpeg',
       isMain,
       sortOrder: 0
     };

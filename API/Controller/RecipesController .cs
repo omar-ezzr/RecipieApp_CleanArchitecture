@@ -123,9 +123,9 @@ public class RecipesController : ControllerBase
         return Ok(result.Value);
     }
     [HttpPost("{id}/media")]
-    [RequestSizeLimit(53 * 1024 * 1024)]
+    [RequestSizeLimit(8 * 1024 * 1024)]
     public async Task<IActionResult> AddMedia(Guid id, IFormFile? file, CancellationToken cancellationToken)
-    { if (!TryGetCurrentUserId(out var userId)) return this.UnauthorizedIdentityProblem(); if (file is null) return BadRequest(this.ApiError("invalid_media", "A media file is required.")); await using var stream=file.OpenReadStream(); var result=await _service.AddMediaAsync(id,stream,file.FileName,file.ContentType,file.Length,userId,IsAdmin(),cancellationToken); return result.IsSuccess?Ok(result.Value):this.ToActionResult(result, "recipe_not_found", "Recipe was not found."); }
+    { if (!TryGetCurrentUserId(out var userId)) return this.UnauthorizedIdentityProblem(); if (file is null) return BadRequest(this.ApiError("invalid_media", "A photo file is required.")); await using var stream=file.OpenReadStream(); var result=await _service.AddMediaAsync(id,stream,file.FileName,file.ContentType,file.Length,userId,IsAdmin(),cancellationToken); return result.IsSuccess?Ok(result.Value):this.ToActionResult(result, "recipe_not_found", "Recipe was not found."); }
     [HttpDelete("{id}/media/{mediaId}")]
     public async Task<IActionResult> RemoveMedia(Guid id, Guid mediaId, CancellationToken cancellationToken)
     { if (!TryGetCurrentUserId(out var userId)) return this.UnauthorizedIdentityProblem(); var result=await _service.RemoveMediaAsync(id,mediaId,userId,IsAdmin(),cancellationToken);return result.IsSuccess?NoContent():this.ToActionResult(result, "recipe_not_found", "Recipe was not found."); }

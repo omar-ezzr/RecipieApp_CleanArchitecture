@@ -23,7 +23,7 @@ The product is a public cooking network, not an Admin-only recipe catalog. Authe
 - `GET /api/Recipes/me` and Angular `/my-recipes` for the current user's recipes.
 - Angular `/create-recipe` publishing form with ingredients, steps, cuisine, region, difficulty, and cultural fields.
 - Safe recipe/review/comment author display data through public author DTOs.
-- Recipe image/video gallery support through API-managed static media and frontend asset URL resolution.
+- Recipe photo gallery support through API-managed static media and frontend asset URL resolution: 1-9 JPEG, PNG, or WebP photos, up to 5 MB each.
 - Backend unit and integration test projects.
 
 ## Architecture

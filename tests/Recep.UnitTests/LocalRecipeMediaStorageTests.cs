@@ -84,6 +84,21 @@ public sealed class LocalRecipeMediaStorageTests
         ex.Which.Code.Should().Be("invalid_media");
     }
 
+    [Theory]
+    [InlineData("clip.mp4", "video/mp4")]
+    [InlineData("clip.webm", "video/webm")]
+    public async Task Rejects_video_uploads(string fileName, string contentType)
+    {
+        using var temp = new TempDirectory();
+        var storage = CreateStorage(temp.Path, Path.Combine(temp.Path, "wwwroot"), new RecipeMediaOptions());
+
+        var act = () => storage.SaveAsync(Upload(fileName, contentType, [1, 2, 3, 4]));
+
+        var ex = await act.Should().ThrowAsync<RecipeMediaValidationException>();
+        ex.Which.Code.Should().Be("unsupported_media_type");
+        ex.Which.Message.Should().Be("Only JPEG, PNG, and WebP images are supported.");
+    }
+
     [Fact]
     public async Task Rejects_extension_and_mime_mismatch()
     {
@@ -115,9 +130,7 @@ public sealed class LocalRecipeMediaStorageTests
     {
         { "photo.jpg", "image/jpeg", JpegBytes() },
         { "photo.png", "image/png", PngBytes() },
-        { "photo.webp", "image/webp", WebpBytes() },
-        { "clip.mp4", "video/mp4", Mp4Bytes() },
-        { "clip.webm", "video/webm", WebmBytes() }
+        { "photo.webp", "image/webp", WebpBytes() }
     };
 
     private static LocalRecipeMediaStorage CreateStorage(string contentRoot, string webRoot, RecipeMediaOptions options)
@@ -144,8 +157,6 @@ public sealed class LocalRecipeMediaStorageTests
     private static byte[] JpegBytes() => [0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0xFF, 0xD9];
     private static byte[] PngBytes() => [137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 0];
     private static byte[] WebpBytes() => [82, 73, 70, 70, 4, 0, 0, 0, 87, 69, 66, 80, 0, 0, 0, 0];
-    private static byte[] Mp4Bytes() => [0, 0, 0, 16, 102, 116, 121, 112, 105, 115, 111, 109, 0, 0, 0, 1];
-    private static byte[] WebmBytes() => [0x1A, 0x45, 0xDF, 0xA3, 0x42, 0x82, 0x84, 0x77, 0x65, 0x62, 0x6D];
 
     private sealed class TestWebHostEnvironment(string contentRoot, string webRoot) : IWebHostEnvironment
     {

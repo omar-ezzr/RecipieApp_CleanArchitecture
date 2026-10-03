@@ -109,7 +109,7 @@ public sealed class RecipeRepositoryTests
         await using var context = await CreateContextAsync(commands);
         var repository = new RecipeRepository(context);
         var recipe = await context.Recipies.AsNoTracking().FirstAsync();
-        var storage = new QueueRecipeMediaStorage("/images/recipes/first.jpg", "/images/recipes/second.mp4");
+        var storage = new QueueRecipeMediaStorage("/images/recipes/first.jpg", "/images/recipes/second.png");
         var service = new RecipeService(repository, storage, new RecipeMediaOptions());
 
         var first = await service.AddMediaAsync(
@@ -126,8 +126,8 @@ public sealed class RecipeRepositoryTests
         var second = await service.AddMediaAsync(
             recipe.Id,
             new MemoryStream([4, 5, 6]),
-            "second.mp4",
-            "video/mp4",
+            "second.png",
+            "image/png",
             3,
             recipe.UserId,
             isAdmin: false);

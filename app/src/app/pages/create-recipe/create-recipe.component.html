@@ -124,16 +124,16 @@
       </section>
 
       <section class="form-section">
-        <div><p class="ui-label">5. Photos and videos</p><h2>Show the finished dish</h2></div>
+        <div><p class="ui-label">5. Photos</p><h2>Show the finished dish</h2></div>
         <div class="recipe-image-field">
-          <label class="image-picker" for="recipeMedia"><span class="image-picker-button">Add media</span><span class="image-picker-name">{{ selectedMedia.length }} / 9 selected</span><input id="recipeMedia" type="file" multiple accept="image/jpeg,image/png,image/webp,video/mp4,video/webm" (change)="onMediaSelected($event)" aria-label="Add media"></label>
-          <small class="image-picker-help">JPEG, PNG, WEBP up to 5 MB; MP4, WebM up to 50 MB.</small>
+          <label class="image-picker" for="recipeMedia"><span class="image-picker-button">Add photos</span><span class="image-picker-name">{{ selectedMedia.length }} / 9 photos</span><input id="recipeMedia" type="file" multiple accept="image/jpeg,image/png,image/webp" (change)="onMediaSelected($event)" aria-label="Add photos"></label>
+          <small class="image-picker-help">JPEG, PNG, or WebP images up to 5 MB each.</small>
           <div class="media-grid">
             @for (item of selectedMedia; track trackMedia($index, item)) {
               <article class="media-card" [class.is-cover]="item.isMain">
-                @if (item.kind === 'image') { <img [src]="item.previewUrl" [alt]="item.file.name"> } @else { <video [src]="item.previewUrl" muted playsinline preload="metadata"></video> }
+                <img [src]="item.previewUrl" [alt]="item.file.name">
                 <span>{{ item.isMain ? 'Cover' : item.file.name }}</span>
-                <div><button type="button" class="btn btn-secondary-app btn-sm" (click)="setSelectedCover(item.localId)" [disabled]="item.isMain" aria-label="Set as cover">Set as cover</button><button type="button" class="btn btn-danger-app btn-sm" (click)="removeSelectedMedia(item.localId)" aria-label="Remove media">Remove</button></div>
+                <div><button type="button" class="btn btn-secondary-app btn-sm" (click)="setSelectedCover(item.localId)" [disabled]="item.isMain" aria-label="Set as cover">Set as cover</button><button type="button" class="btn btn-danger-app btn-sm" (click)="removeSelectedMedia(item.localId)" aria-label="Remove photo">Remove photo</button></div>
               </article>
             }
           </div>
