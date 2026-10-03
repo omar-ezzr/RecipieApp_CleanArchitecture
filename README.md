@@ -1,162 +1,283 @@
 # Recepie
 
-RecepieV3 is a full-stack social recipe platform built with ASP.NET Core 10, EF Core 10, SQL Server, and Angular 22 standalone components.
+[![CI](https://github.com/omar-ezzr/RecipieApp_CleanArchitecture/actions/workflows/ci.yml/badge.svg)](https://github.com/omar-ezzr/RecipieApp_CleanArchitecture/actions/workflows/ci.yml)
 
-The product is a public cooking network, not an Admin-only recipe catalog. Authenticated users publish their own recipes, manage the recipes they created, browse cultural cooking styles, follow cooks, react to recipes with Likes, save recipes privately, comment, and write reviews. Admins moderate the platform and can manage any recipe or user account when authorized.
+Recepie is a full-stack social cooking platform where people publish recipes, share photo galleries, explore cuisines and regions, follow other cooks, and interact through likes, saved recipes, comments, reviews, and notifications. It is built as an Angular frontend backed by an ASP.NET Core API with an EF Core and SQL Server persistence layer.
 
-## Current Capabilities
+.NET 10 • Angular 22 • EF Core 10 • SQL Server • JWT • GitHub Actions
 
-- JWT authentication with access and refresh tokens.
-- User registration with a public display name.
-- Owner-based recipe publishing and management.
-- Admin moderation for recipes and account management.
-- Recipe listing, search, filtering, sorting, and pagination.
-- Cuisine, region, and traditional-recipe discovery.
-- Public user profiles with follower/following counts and paged recipe grids.
-- Follow and unfollow social relationships.
-- Personalized `/feed` containing recipes from followed cooks.
-- Public recipe Likes with count/current-user state on Feed, Explore, and recipe details.
-- Private favorites/saved recipes kept separate from Likes.
-- Recipe comments kept separate from reviews/ratings.
-- Database-backed notifications for follows, Likes, and comments.
-- Recipe details with ingredients, ordered steps, cultural origin metadata, Likes, favorites, comments, and reviews.
-- `GET /api/Recipes/me` and Angular `/my-recipes` for the current user's recipes.
-- Angular `/create-recipe` publishing form with ingredients, steps, cuisine, region, difficulty, and cultural fields.
-- Safe recipe/review/comment author display data through public author DTOs.
-- Recipe photo gallery support through API-managed static media and frontend asset URL resolution: 1-9 JPEG, PNG, or WebP photos, up to 5 MB each.
-- Backend unit and integration test projects.
+## Highlights
+
+### Recipe publishing
+
+- Create, update, and delete recipes you own; administrators can moderate recipe content.
+- Model ingredients, ordered cooking steps, preparation time, difficulty, category, cuisine, region, and traditional-recipe details.
+- Add, remove, reorder, and choose a cover photo for a recipe gallery.
+- Photo contract: 1–9 photos per gallery; JPEG, PNG, or WebP; maximum 5 MB per image. Video uploads are not supported.
+
+### Social features
+
+- Public user profiles with recipe grids and follower/following information.
+- Follow and unfollow cooks, then browse a personalized feed of their recipes.
+- Like recipes, save private favorites, comment, and submit ratings/reviews.
+- Receive database-backed notifications for follows, likes, and comments.
+
+Likes express public appreciation; favorites are a separate private saved-recipes list.
+
+### Discovery and administration
+
+- Search, sort, filter, and paginate recipes by category, cuisine, region, difficulty, and traditional status.
+- Admin account management: create accounts, update roles or active status, and remove accounts subject to service rules.
+- Admin moderation views for recipes, comments, and reviews, plus category, cuisine, and region reference-data management.
 
 ## Architecture
 
-The backend is layered, with some legacy direct `DbContext` usage still present.
+The solution uses clear Domain, Application, Infrastructure, and API boundaries. Most application flows use services and repository interfaces; the administrative moderation service retains direct `DbContext` queries, an intentional legacy exception documented in the codebase.
 
 ```text
-API                ASP.NET Core controllers, JWT, Swagger, startup
-Core.Domain        Entities, enums, constants
-Core.Application   DTOs, interfaces, services/use cases, validators
-Infrastructure     EF Core DbContext, configurations, repositories, migrations, seeders
-tests/             xUnit unit and integration tests
-app/               Angular 22 standalone frontend
+API
+    HTTP/controllers
+    authentication/authorization
+    middleware
+    configuration
+
+Core.Application
+    use cases/services
+    DTOs
+    interfaces
+    validation
+
+Core.Domain
+    domain entities
+    enums
+    constants
+
+Infrastructure
+    EF Core
+    SQL Server
+    repositories
+    persistence
+    migrations
+    file storage
+
+app
+    Angular frontend
+
+tests
+    unit/integration tests
 ```
 
-Main request flow:
+Request flow:
 
 ```text
-Angular -> API Controller -> Application Service -> Repository -> EF Core -> SQL Server
+Angular
+   ↓
+ASP.NET Core API
+   ↓
+Application services/use cases
+   ↓
+Repositories
+   ↓
+EF Core
+   ↓
+SQL Server
 ```
 
-Important naming is intentionally preserved across the repository:
+Recipe-photo flow:
 
-- `Recipie`
-- `RecipieDto`
-- `RecipieStep`
-- `Recipies`
-- `API/Controller/RecipesController .cs`
+```text
+Angular
+   ↓ multipart upload
+API
+   ↓
+IRecipeMediaStorage
+   ↓
+Persistent filesystem
+```
 
-## Frontend
+## Tech Stack
 
-The Angular app lives in `app/`.
+| Layer | Technology |
+| --- | --- |
+| Frontend | Angular 22 standalone components, Angular Router, RxJS, Bootstrap, ngx-toastr |
+| Backend | ASP.NET Core on .NET 10, C# |
+| Application validation | FluentValidation |
+| Data access | Entity Framework Core 10 |
+| Database | SQL Server |
+| Authentication | JWT bearer access tokens and rotating refresh tokens |
+| Media | Configurable local/persistent filesystem storage via `IRecipeMediaStorage` |
+| Testing | xUnit backend test projects; Jasmine/Karma Angular tests |
+| CI | GitHub Actions |
 
-The frontend uses:
+## Project Structure
 
-- Angular 22 standalone components.
-- Angular Router guards and HTTP interceptors.
-- @openng/ngx-toastr.
-- Bootstrap as a dependency, with a custom editorial design system layered on top.
-- Centralized API base URL in `app/src/app/app-api.config.ts`.
-- Centralized API-relative image URL handling in `app/src/app/core/utils/asset-url.util.ts`.
+```text
+RecipieApp_CleanArchitecture/
+├── API/
+├── Core.Application/
+├── Core.Domain/
+├── Infrastructure/
+├── app/
+├── tests/
+├── docs/
+├── scripts/
+├── Recep.sln
+└── README.md
+```
 
-Current redesigned pages:
+## Production & Security
 
-- `/feed` - authenticated following feed with Like and Save actions.
-- `/recipes` - recipe-first discovery with cuisine/region/category/difficulty/traditional filters.
-- `/recipes/:id` - editorial recipe detail page.
-- `/create-recipe` - authenticated recipe publishing form.
-- `/users/:id` - public user profile.
-- `/profile/edit` - authenticated current-user profile editor.
-- `/saved` - authenticated private saved/favorite recipes.
-- `/notifications` - authenticated social notifications.
-- `/my-recipes` - current user's recipe library.
-- `/login` and `/register` - product-styled auth screens.
-- `/admin/accounts` - Admin account management.
+The repository includes practical production-oriented controls, not absolute security guarantees:
 
-## Backend
+- JWT access tokens, refresh-token rotation, and hashed refresh tokens at rest.
+- Active-user and role validation when bearer tokens are accepted.
+- Per-IP rate limits on login, registration, and refresh-token endpoints.
+- A configured CORS allow-list, safe global error responses, request correlation IDs, HSTS outside Development/Testing, and HTTPS redirection.
+- Liveness and database-readiness health endpoints, plus dependency vulnerability checks in CI.
+- Explicit EF Core migrations for production; the API is not the production migration mechanism.
+- Configurable persistent photo storage with extension, MIME type, and binary-signature validation; filenames are generated by the server.
 
-The API project lives in `API/`.
+Production configuration is supplied through environment variables or a hosting secret manager. Development can load an uncommitted `API/.env` file or use .NET user secrets; start from [`API/.env.example`](API/.env.example) and never commit credentials or JWT keys.
 
-Core backend behavior:
+Current authentication hardening limitation: the Angular client stores access and refresh tokens in `localStorage`. Moving refresh authentication to HttpOnly cookies remains future work.
 
-- JWT bearer authentication is configured in `API/Program.cs`.
-- Token generation happens in `API/Controller/AuthController.cs`.
-- Recipe ownership is enforced in `Core.Application/UseCases/Recipes/RecipeService.cs`.
-- Social features are implemented through focused controllers/services/repositories for profiles, follows, Likes, comments, feed, and notifications.
-- Like endpoints are:
-  - `POST /api/recipes/{recipeId}/likes`
-  - `DELETE /api/recipes/{recipeId}/likes`
-  - `GET /api/recipes/{recipeId}/likes`
-  - `GET /api/recipes/{recipeId}/likes/status`
-- Recipe list/detail DTOs include `likeCount` and `isLikedByCurrentUser`, populated server-side from the authenticated JWT identity.
-- EF Core context is `Infrastructure/Persistence/AppDbContext.cs`.
-- Active seeding is under `Infrastructure/Seed/`.
+### Photo storage
 
-Do not put secrets in committed configuration. Use user secrets or environment variables for connection strings, JWT keys, and seed credentials.
+Recipe photos are recorded as `RecipeMedia` and served from a configurable public path. Configure a persistent filesystem location in production; these are placeholders, not required server paths:
+
+```env
+RecipeMedia__StoragePath=/var/lib/recepie/media/recipes
+RecipeMedia__PublicPath=/images/recipes
+```
+
+The current filesystem implementation is suitable for one API instance, or for multiple instances only when they share the same mounted storage location.
 
 ## Getting Started
+
+### Prerequisites
+
+- .NET 10 SDK
+- Node.js 24 and npm (the version used by CI)
+- SQL Server
+- `dotnet-ef` tooling when applying migrations manually
+
+### Configure the API
+
+Copy `API/.env.example` to an uncommitted `API/.env`, or use .NET user secrets. At minimum, set a SQL Server connection string, a unique JWT key of at least 32 bytes, issuer/audience values, and the Angular CORS origin. For local automatic migration and seed behavior, set `Database__AutoMigrate=true` only if that is appropriate for your development database.
+
+```env
+ConnectionStrings__DefaultConnection=YOUR_SQL_SERVER_CONNECTION_STRING
+Jwt__Key=REPLACE_WITH_A_LOCAL_DEVELOPMENT_KEY_OF_AT_LEAST_32_BYTES
+Jwt__Issuer=Recepie.Api
+Jwt__Audience=Recepie.Web
+Cors__AllowedOrigins__0=http://localhost:4203
+```
+
+### Start the backend
 
 From the repository root:
 
 ```bash
 dotnet restore
 dotnet build Recep.sln
-dotnet test Recep.sln
 dotnet run --project API
 ```
 
-Frontend:
+The default HTTP launch profile listens at `http://localhost:5130`. Swagger UI is available in Development.
+
+### Start the frontend
+
+In a second terminal:
 
 ```bash
 cd app
-npm install
+npm ci
 npm start
 ```
 
-Default local URLs:
+The Angular development server runs at `http://localhost:4203` and proxies API calls to the local API.
 
-- API HTTP launch profile: `http://localhost:5130`
-- Angular dev server: `http://localhost:4203`
-- Swagger is available in Development when the API is running.
+## Database
 
-## Production build and deployment
-
-Build the API and Angular artifacts separately:
+Inspect and apply migrations explicitly with the Infrastructure project and API startup project:
 
 ```bash
-dotnet publish API/API.csproj -c Release
-cd app && npm ci && npm run build
+dotnet ef migrations list \
+  --project Infrastructure \
+  --startup-project API
 ```
 
-Deploy the Angular build to a static host or web server. Run the ASP.NET Core API as a normal process/service with production configuration supplied through environment variables or the hosting secret manager. The production routing contract is same-origin: `/` serves Angular, `/api/*` routes to the API, `/images/*` routes to API-managed media, and `/health/live` plus `/health/ready` route to the API. Database migrations are explicit and must be applied before promoting the API. See [the production runbook](docs/PRODUCTION_RUNBOOK.md) for migrations, backups/restores, persistent media storage, TLS, validation, and rollback.
+```bash
+dotnet ef database update \
+  --project Infrastructure \
+  --startup-project API
+```
 
-## Validation Status
+For production, review pending migrations and apply them as a controlled release step rather than relying on application startup.
 
-Use the release gate before deployment:
+## Testing
 
-- `dotnet restore`
-- `dotnet build Recep.sln -c Release`
-- `dotnet test Recep.sln -c Release`
-- `dotnet list Recep.sln package --vulnerable --include-transitive`
-- `dotnet publish API/API.csproj -c Release --no-restore`
-- `cd app && npm ci && npm run build && npm test -- --watch=false --browsers=ChromeHeadless && npm audit --omit=dev`
+Backend tests:
 
-## Known Limitations
+```bash
+dotnet test Recep.sln
+```
 
-- Angular browser tests require a Chrome, Chromium, or compatible browser binary. Set `CHROME_BIN` when the launcher cannot find one automatically.
-- Frontend build currently reports bundle/component CSS budget warnings.
-- Cuisine/region Admin APIs exist, but no dedicated Angular Admin culture-management page is currently implemented.
-- The current frontend stores tokens in localStorage; backend refresh tokens are hashed at rest, but HttpOnly cookie auth remains future security hardening.
+Frontend tests:
 
+```bash
+cd app
+npm test -- --watch=false --browsers=ChromeHeadless
+```
 
+If Karma cannot find Chrome or Chromium locally, set `CHROME_BIN` to a compatible browser executable.
+
+Dependency checks:
+
+```bash
+dotnet list Recep.sln package \
+  --vulnerable \
+  --include-transitive
+```
+
+```bash
+cd app
+npm audit --omit=dev
+```
+
+## Continuous Integration
+
+The [GitHub Actions workflow](.github/workflows/ci.yml) runs on pushes and pull requests. It restores, builds, and tests the backend; fails on reported NuGet vulnerabilities; publishes the API in Release mode; then runs `npm ci`, the Angular production build, Angular headless tests, and a production-dependency `npm audit`.
+
+## Deployment
+
+The current deployment model separates the static frontend, API, SQL Server, and persistent recipe-media storage:
+
+```text
+/
+    Angular
+
+/api/*
+    ASP.NET Core API
+
+/images/*
+    API-managed persistent recipe photos
+
+/health/live
+/health/ready
+    API
+```
+
+Production requires persistent SQL Server and media storage, TLS/reverse-proxy or platform routing, environment-based configuration and secrets, and explicit migrations. See the [production runbook](docs/PRODUCTION_RUNBOOK.md) for release sequencing, backups, health checks, smoke testing, and rollback guidance.
+
+Useful API entry points include `GET /health/live`, `GET /health/ready`, `/api/Auth`, `/api/Recipes`, `/api/recipes/{recipeId}/likes`, `/api/recipes/{recipeId}/comments`, `/api/feed`, `/api/notifications`, and `/api/users`.
+
+## Known Limitations / Roadmap
+
+- Refresh tokens are currently delivered to and stored by the browser in `localStorage`; a cookie-based refresh flow is future hardening.
+- Filesystem photo storage needs shared mounted storage before scaling to multiple API instances.
+- The Angular production build currently emits some component-CSS budget warnings.
 
 ## Author
 
-Omar Ezzr
+[Omar Ezzr](https://github.com/omar-ezzr)
